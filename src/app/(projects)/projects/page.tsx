@@ -39,7 +39,7 @@ export default async function ProjectsPage() {
       </div>
 
       {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] py-20 text-center backdrop-blur-sm">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-glass-border-strong bg-glass-bg py-20 text-center backdrop-blur-sm">
           <p className="text-base font-medium text-muted-foreground">
             No projects discovered
           </p>

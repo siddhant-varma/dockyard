@@ -79,8 +79,8 @@ export default async function AlertsPage() {
           <h2 className="text-base font-semibold text-foreground/90">
             Alert Rules
           </h2>
-          <div className="rounded-xl border border-white/[0.08]">
-            <ul className="divide-y divide-white/[0.06]">
+          <div className="rounded-xl border border-glass-border">
+            <ul className="divide-y divide-glass-divider">
               {rules.map((rule) => (
                 <li
                   key={rule.id}

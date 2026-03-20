@@ -31,11 +31,11 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
     text: "text-yellow-400",
   },
   completed: {
-    bg: "bg-white/[0.06] border border-white/[0.08]",
+    bg: "bg-glass-hover border border-glass-border",
     text: "text-muted-foreground",
   },
   archived: {
-    bg: "bg-white/[0.04] border border-white/[0.06]",
+    bg: "bg-glass-hover border border-glass-border",
     text: "text-muted-foreground/60",
   },
   // Health statuses
@@ -56,13 +56,13 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
     text: "text-indigo-400",
   },
   unknown: {
-    bg: "bg-white/[0.06] border border-white/[0.08]",
+    bg: "bg-glass-hover border border-glass-border",
     text: "text-muted-foreground",
   },
 };
 
 const FALLBACK = {
-  bg: "bg-white/[0.06] border border-white/[0.08]",
+  bg: "bg-glass-hover border border-glass-border",
   text: "text-muted-foreground",
 };
 

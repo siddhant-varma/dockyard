@@ -82,7 +82,7 @@ function LineItemRow({ label, value }: LineItem) {
 export function BillingCard({ billing }: BillingCardProps) {
   if (!billing) {
     return (
-      <div className="flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
+      <div className="flex flex-col gap-2 rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg dark:glass">
         <h3 className="text-sm font-semibold text-foreground">
           Billing
         </h3>
@@ -103,7 +103,7 @@ export function BillingCard({ billing }: BillingCardProps) {
   ];
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
+    <div className="flex flex-col gap-4 rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg dark:glass">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">
@@ -118,7 +118,7 @@ export function BillingCard({ billing }: BillingCardProps) {
         </span>
       </div>
 
-      <div className="space-y-1.5 border-t border-white/[0.06] pt-3">
+      <div className="space-y-1.5 border-t border-glass-border pt-3">
         {lineItems.map((item) => (
           <LineItemRow key={item.label} label={item.label} value={item.value} />
         ))}

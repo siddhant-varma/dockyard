@@ -44,7 +44,7 @@ export function ProjectsTab({ initial }: { initial: Project[] }) {
         </button>
       </div>
 
-      <div className="divide-y divide-white/[0.06] rounded-md border border-white/[0.06]">
+      <div className="divide-y divide-glass-divider rounded-md border border-glass-border">
         {projects.length === 0 ? (
           <div className="p-4 text-center text-sm text-muted-foreground">
             No projects discovered yet. Add a discovery source and scan.
@@ -73,7 +73,7 @@ export function ProjectsTab({ initial }: { initial: Project[] }) {
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                     : project.status === "discovered"
                       ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                      : "bg-white/[0.06] text-muted-foreground"
+                      : "bg-glass-hover text-muted-foreground"
                 }`}
               >
                 {project.status}

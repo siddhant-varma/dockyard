@@ -141,7 +141,7 @@ export function ActivityFeed({ slug, initialEvents }: ActivityFeedProps) {
           return (
             <li
               key={event.id}
-              className="flex gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-white/[0.04]"
+              className="flex gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-glass-hover"
             >
               <SourceDot source={event.source} />
               <div className="min-w-0 flex-1">
@@ -149,7 +149,7 @@ export function ActivityFeed({ slug, initialEvents }: ActivityFeedProps) {
                   <span className="text-xs font-semibold text-foreground/80">
                     {sourceLabel(event.source)}
                   </span>
-                  <span className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                  <span className="rounded bg-glass-hover px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
                     {event.eventType}
                   </span>
                 </div>
@@ -174,7 +174,7 @@ export function ActivityFeed({ slug, initialEvents }: ActivityFeedProps) {
           <button
             onClick={loadMore}
             disabled={loading}
-            className="rounded-xl border border-white/[0.08] bg-white/[0.05] px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-white/[0.08] disabled:opacity-50"
+            className="rounded-xl border border-glass-border bg-glass-input px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-glass-hover disabled:opacity-50"
           >
             {loading ? "Loading..." : "Load More"}
           </button>

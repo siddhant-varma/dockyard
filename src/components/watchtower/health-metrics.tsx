@@ -55,13 +55,13 @@ export function HealthMetrics({
 
       {/* Component breakdown */}
       {components.length > 0 && (
-        <div className="rounded-xl border border-white/[0.08]">
-          <div className="border-b border-white/[0.08] px-4 py-2.5">
+        <div className="rounded-xl border border-glass-border">
+          <div className="border-b border-glass-border px-4 py-2.5">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Components
             </span>
           </div>
-          <ul className="divide-y divide-white/[0.06]">
+          <ul className="divide-y divide-glass-divider">
             {components.map((component) => (
               <li
                 key={component.name}

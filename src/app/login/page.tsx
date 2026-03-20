@@ -12,8 +12,8 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white/[0.03]">
-      <div className="w-full max-w-sm rounded-xl border border-white/[0.06] bg-white/[0.03] p-8">
+    <div className="flex min-h-screen items-center justify-center bg-glass-bg">
+      <div className="w-full max-w-sm rounded-xl border border-glass-border bg-glass-bg p-8">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-foreground">
             DockYard

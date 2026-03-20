@@ -221,7 +221,7 @@ export default async function HomePage() {
             datacenter={serverStatus.datacenter}
           />
         ) : (
-          <div className="flex items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
+          <div className="flex items-center justify-center rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg dark:glass">
             <p className="text-sm text-muted-foreground">
               Server status unavailable. Check your Hetzner API configuration.
             </p>

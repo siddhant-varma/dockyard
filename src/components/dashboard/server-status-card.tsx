@@ -68,7 +68,7 @@ export function ServerStatusCard({
   const badgeStatus = STATUS_TO_BADGE[status] ?? "unknown";
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
+    <div className="flex flex-col gap-4 rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg dark:glass">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-foreground">

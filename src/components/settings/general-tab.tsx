@@ -33,7 +33,7 @@ export function GeneralTab({ initial }: { initial: PlatformSettings }) {
           onChange={(e) =>
             setSettings({ ...settings, operatingMode: e.target.value })
           }
-          className="mt-1 block w-48 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+          className="mt-1 block w-48 rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
         >
           <option value="local">Local Development</option>
           <option value="vps">VPS / Deployed</option>
@@ -51,7 +51,7 @@ export function GeneralTab({ initial }: { initial: PlatformSettings }) {
           onChange={(e) =>
             setSettings({ ...settings, autoScan: e.target.checked })
           }
-          className="h-4 w-4 rounded border-white/[0.1]"
+          className="h-4 w-4 rounded border-glass-border-strong"
         />
         <label
           htmlFor="autoScan"
@@ -75,7 +75,7 @@ export function GeneralTab({ initial }: { initial: PlatformSettings }) {
               scanInterval: parseInt(e.target.value) || 300,
             })
           }
-          className="mt-1 block w-32 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+          className="mt-1 block w-32 rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
         />
       </div>
 

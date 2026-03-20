@@ -91,7 +91,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-white/[0.06] px-2.5 py-1 text-xs font-medium text-foreground/80"
+                className="rounded-md bg-glass-hover px-2.5 py-1 text-xs font-medium text-foreground/80"
               >
                 {tag}
               </span>
@@ -101,7 +101,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       )}
 
       {/* Meta: repository, discovery source */}
-      <div className="grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-sm sm:grid-cols-2">
+      <div className="grid gap-3 rounded-xl border border-glass-border bg-glass-bg p-4 text-sm sm:grid-cols-2">
         {project.githubRepo && (
           <div>
             <span className="block text-xs font-medium text-muted-foreground">

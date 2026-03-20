@@ -23,7 +23,7 @@ export function SubNav({ items }: SubNavProps) {
   if (items.length === 0) return null;
 
   return (
-    <nav className="flex gap-1 border-b border-white/[0.06] bg-white/[0.01] px-4 backdrop-blur-md">
+    <nav className="flex gap-1 border-b border-glass-border bg-glass-bg px-4 backdrop-blur-md">
       {items.map((item) => {
         const isActive =
           pathname === item.href ||

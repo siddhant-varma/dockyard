@@ -41,7 +41,7 @@ function MetricRow({ metric }: { metric: MetricSeries }) {
       : metric.currentValue.toFixed(1);
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 backdrop-blur-lg dark:glass">
+    <div className="flex items-center justify-between rounded-xl border border-glass-border bg-glass-bg px-4 py-3 backdrop-blur-lg dark:glass">
       <div className="min-w-0">
         <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {metric.label}
