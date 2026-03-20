@@ -2,7 +2,8 @@
  * Alert evaluator worker.
  *
  * Event-driven: fires when health status changes or deploy status changes.
- * Evaluates applicable alert rules and dispatches notifications.
+ * Evaluates applicable alert rules, deduplicates, groups, and dispatches
+ * consolidated notifications per group.
  */
 
 import { inngest } from "../client";
@@ -34,25 +35,44 @@ export const alertEvaluator = inngest.createFunction(
       return { ...result, notified: 0 };
     }
 
+    // Dispatch one notification per group (consolidated)
     const notified = await step.run("dispatch-notifications", async () => {
       let count = 0;
-      for (const alertId of result.alertIds) {
-        const alert = await db.query.alertEvents.findFirst({
-          where: eq(alertEvents.id, alertId),
-        });
-        if (alert) {
-          await dispatchAlert(alert);
-          count++;
+
+      if (result.groups.length > 0) {
+        for (const group of result.groups) {
+          const representativeAlert = await db.query.alertEvents.findFirst({
+            where: eq(alertEvents.id, group.alerts[0].id),
+          });
+          if (representativeAlert) {
+            await dispatchAlert({
+              ...representativeAlert,
+              message: group.groupMessage,
+            });
+            count++;
+          }
+        }
+      } else {
+        for (const alertId of result.alertIds) {
+          const alert = await db.query.alertEvents.findFirst({
+            where: eq(alertEvents.id, alertId),
+          });
+          if (alert) {
+            await dispatchAlert(alert);
+            count++;
+          }
         }
       }
+
       return count;
     });
 
-    // Broadcast alert event to connected dashboards
     if (result.alertsFired > 0) {
       await notifySSE("alert.fired", {
         projectId,
         alertsFired: result.alertsFired,
+        deduplicated: result.deduplicated,
+        groups: result.groups.length,
         timestamp: new Date().toISOString(),
       });
     }

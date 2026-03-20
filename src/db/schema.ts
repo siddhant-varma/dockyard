@@ -21,6 +21,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -126,6 +127,13 @@ export const discoverySourceTypeEnum = pgEnum("discovery_source_type", [
 
 export const operatingModeEnum = pgEnum("operating_mode", ["local", "vps"]);
 
+export const mfaTypeEnum = pgEnum("mfa_type", ["fido2", "totp"]);
+
+export const projectMemberRoleEnum = pgEnum("project_member_role", [
+  "admin",
+  "viewer",
+]);
+
 /* ================================================================
    Core Tables
    ================================================================ */
@@ -184,6 +192,26 @@ export const verificationTokens = pgTable(
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
 );
 
+/**
+ * MFA credentials for FIDO2 (passkeys/security keys) and TOTP authenticator apps.
+ * Credential data is encrypted at rest using AES-256-GCM.
+ */
+export const mfaCredentials = pgTable("mfa_credentials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  type: mfaTypeEnum("type").notNull(),
+  /** Encrypted JSON blob: FIDO2 stores credentialID + publicKey + counter; TOTP stores secret. */
+  credentialData: text("credential_data").notNull(),
+  /** User-provided friendly name (e.g., "YubiKey 5C", "Google Authenticator"). */
+  name: text("name").notNull(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const projects = pgTable("projects", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -206,6 +234,30 @@ export const projects = pgTable("projects", {
     .defaultNow()
     .notNull(),
 });
+
+/**
+ * Per-project role assignments for project-scoped access control.
+ * A user can be an "admin" (manage config, deploy, alerts) or "viewer" (read-only)
+ * for each project they are assigned to. Superadmin users bypass this entirely.
+ */
+export const projectMemberships = pgTable(
+  "project_memberships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    projectId: uuid("project_id")
+      .references(() => projects.id, { onDelete: "cascade" })
+      .notNull(),
+    role: projectMemberRoleEnum("role").notNull(),
+    grantedBy: uuid("granted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [unique("uq_user_project").on(t.userId, t.projectId)]
+);
 
 export const discoverySources = pgTable("discovery_sources", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -463,6 +515,49 @@ export const configAuditLog = pgTable("config_audit_log", {
   rollbackOf: uuid("rollback_of"),
 });
 
+/**
+ * Append-only audit log for all mutation operations.
+ * Records actor, action, target, and before/after diff.
+ * NEVER update or delete rows from this table.
+ */
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: uuid("actor_id").references(() => users.id),
+  actorIp: text("actor_ip"),
+  actorUserAgent: text("actor_user_agent"),
+  action: text("action").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id"),
+  diff: jsonb("diff"),
+  timestamp: timestamp("timestamp", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/**
+ * Config templates for environment profiles (dev/staging/prod).
+ * Each template stores a snapshot of config entries that can be applied
+ * to bulk-update a project's configuration.
+ */
+export const configTemplates = pgTable("config_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  /** Array of {key, value, category} objects. */
+  entries: jsonb("entries").notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 /* ================================================================
    Deployment & Integration Tables
    ================================================================ */
@@ -580,6 +675,32 @@ export const notificationChannels = pgTable("notification_channels", {
    Relations
    ================================================================ */
 
+export const usersRelations = relations(users, ({ many }) => ({
+  mfaCredentials: many(mfaCredentials),
+  projectMemberships: many(projectMemberships),
+}));
+
+export const projectMembershipsRelations = relations(
+  projectMemberships,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [projectMemberships.userId],
+      references: [users.id],
+    }),
+    project: one(projects, {
+      fields: [projectMemberships.projectId],
+      references: [projects.id],
+    }),
+  })
+);
+
+export const mfaCredentialsRelations = relations(mfaCredentials, ({ one }) => ({
+  user: one(users, {
+    fields: [mfaCredentials.userId],
+    references: [users.id],
+  }),
+}));
+
 export const projectsRelations = relations(projects, ({ many, one }) => ({
   roadmapItems: many(roadmapItems),
   checkpoints: many(checkpoints),
@@ -592,6 +713,7 @@ export const projectsRelations = relations(projects, ({ many, one }) => ({
   incidents: many(incidents),
   testRuns: many(testRuns),
   testConfigs: many(testConfigs),
+  memberships: many(projectMemberships),
 }));
 
 export const roadmapItemsRelations = relations(roadmapItems, ({ one }) => ({

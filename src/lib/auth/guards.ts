@@ -1,14 +1,20 @@
 /**
  * API route and page guard wrappers for DockYard.
  *
- * `withAuth` wraps an API route handler with authentication + role checks.
- * Use it to protect API endpoints declaratively.
+ * `withAuth` wraps a static API route handler with authentication + role checks.
+ * `withAuthContext` wraps a dynamic API route handler (with params) similarly.
  *
  * @example
  * ```ts
- * // Require any authenticated user:
+ * // Static route — require any authenticated user:
  * export const GET = withAuth(async (req, user) => {
  *   return apiSuccess({ projects: [] });
+ * });
+ *
+ * // Dynamic route — access route params:
+ * export const GET = withAuthContext(async (req, user, ctx) => {
+ *   const { slug } = await ctx.params;
+ *   return apiSuccess({ slug });
  * });
  *
  * // Require superadmin:
@@ -30,12 +36,38 @@ interface AuthOptions {
   role?: "viewer" | "project_admin" | "superadmin";
 }
 
-/** Handler signature for auth-wrapped API routes. */
-type AuthHandler = (request: Request, user: AuthUser) => Promise<NextResponse>;
+/** Next.js App Router context for dynamic routes. */
+interface RouteContext {
+  params: Promise<Record<string, string>>;
+}
+
+/** Handler signature for auth-wrapped static API routes. */
+type AuthHandler = (
+  request: Request,
+  user: AuthUser
+) => Promise<NextResponse>;
+
+/** Handler signature for auth-wrapped dynamic API routes (with params). */
+type AuthContextHandler = (
+  request: Request,
+  user: AuthUser,
+  context: RouteContext
+) => Promise<NextResponse>;
+
+/** Shared error-catching logic for auth wrappers. */
+function handleAuthError(err: unknown): NextResponse {
+  if (err instanceof ApiError) {
+    return apiError(err.code, err.message, err.status);
+  }
+  const message =
+    err instanceof Error ? err.message : "An unexpected error occurred";
+  console.error("Unhandled API error:", err);
+  return apiError("INTERNAL_ERROR", message, 500);
+}
 
 /**
- * Wrap an API route handler with authentication and optional role checks.
- * Catches ApiError and returns structured error responses.
+ * Wrap a static API route handler with authentication and optional role checks.
+ * Use for routes without dynamic params (e.g., /api/settings).
  */
 export function withAuth(handler: AuthHandler, options?: AuthOptions) {
   return async (request: Request): Promise<NextResponse> => {
@@ -46,13 +78,32 @@ export function withAuth(handler: AuthHandler, options?: AuthOptions) {
       }
       return await handler(request, user);
     } catch (err) {
-      if (err instanceof ApiError) {
-        return apiError(err.code, err.message, err.status);
+      return handleAuthError(err);
+    }
+  };
+}
+
+/**
+ * Wrap a dynamic API route handler with authentication and optional role checks.
+ * Use for routes with dynamic params (e.g., /api/projects/[slug]).
+ * The route context ({ params }) is passed as the third argument.
+ */
+export function withAuthContext(
+  handler: AuthContextHandler,
+  options?: AuthOptions
+) {
+  return async (
+    request: Request,
+    context: RouteContext
+  ): Promise<NextResponse> => {
+    try {
+      const user = await requireAuth();
+      if (options?.role) {
+        requireRole(user, options.role);
       }
-      const message =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      console.error("Unhandled API error:", err);
-      return apiError("INTERNAL_ERROR", message, 500);
+      return await handler(request, user, context);
+    } catch (err) {
+      return handleAuthError(err);
     }
   };
 }

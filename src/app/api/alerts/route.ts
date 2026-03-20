@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { alertRules, projects } from "@/db/schema";
-import { auth } from "@/lib/auth";
+import { withAuth } from "@/lib/auth/guards";
+import { requireProjectPermission } from "@/lib/auth/permissions";
+import { logAudit } from "@/lib/auth/audit";
 
 /** GET /api/alerts — List alert rules. */
-export async function GET(request: NextRequest) {
-  const sp = request.nextUrl.searchParams;
+export const GET = withAuth(async (request) => {
+  const sp = new URL(request.url).searchParams;
   const projectSlug = sp.get("project_slug");
 
   let projectId: string | undefined;
@@ -23,15 +25,10 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json(rules);
-}
+});
 
-/** POST /api/alerts — Create alert rule. */
-export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+/** POST /api/alerts — Create alert rule (requires alert.manage for project-scoped rules). */
+export const POST = withAuth(async (request, user) => {
   const body = (await request.json()) as Record<string, unknown>;
 
   if (
@@ -47,11 +44,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Resolve projectId from slug if provided
+  // Resolve projectId from slug and check project permission if provided
   let projectId: string | undefined;
   if (body.projectSlug) {
+    const slug = String(body.projectSlug);
+    await requireProjectPermission(user.id, slug, "alert.manage");
     const project = await db.query.projects.findFirst({
-      where: eq(projects.slug, String(body.projectSlug)),
+      where: eq(projects.slug, slug),
     });
     projectId = project?.id;
   }
@@ -69,9 +68,17 @@ export async function POST(request: NextRequest) {
       notificationChannels: Array.isArray(body.notificationChannels)
         ? body.notificationChannels
         : undefined,
-      createdBy: session.user.id,
+      createdBy: user.id,
     })
     .returning();
 
+  await logAudit({
+    actorId: user.id,
+    action: "alert_rule.create",
+    targetType: "alert_rule",
+    targetId: rule.id,
+    request,
+  });
+
   return NextResponse.json(rule, { status: 201 });
-}
+});

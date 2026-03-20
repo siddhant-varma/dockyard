@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { HetznerClient } from "@/lib/hetzner/client";
+import { withAuth } from "@/lib/auth/guards";
 
 /** GET /api/hetzner/status — Server status card data. */
-export async function GET() {
+export const GET = withAuth(async () => {
   const token = process.env.HETZNER_API_TOKEN;
   const serverId = process.env.HETZNER_SERVER_ID;
   if (!token || !serverId) {
@@ -14,4 +15,4 @@ export async function GET() {
   const client = new HetznerClient(token);
   const server = await client.getServer(serverId);
   return NextResponse.json(server);
-}
+});

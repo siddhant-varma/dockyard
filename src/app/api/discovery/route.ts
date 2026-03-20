@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { registerAllSources } from "@/lib/discovery/register";
 import { scanAll } from "@/lib/discovery/scanner";
+import { withAuth } from "@/lib/auth/guards";
 
 // Register all discovery sources
 registerAllSources();
@@ -10,7 +11,7 @@ registerAllSources();
  * Triggers a full project discovery scan across all enabled sources.
  * Returns the scan results including found/created/updated counts.
  */
-export async function GET() {
+export const GET = withAuth(async () => {
   try {
     const result = await scanAll();
     return NextResponse.json(result);
@@ -18,4 +19,4 @@ export async function GET() {
     const message = err instanceof Error ? err.message : "Scan failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});

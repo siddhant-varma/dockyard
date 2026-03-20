@@ -1,7 +1,20 @@
 import { addClient, removeClient } from "@/lib/sse/emitter";
+import { requireAuth } from "@/lib/auth/rbac";
+import { apiError } from "@/lib/api/response";
+import { ApiError } from "@/lib/api/errors";
 
 /** GET /api/sse — Server-Sent Events stream for real-time updates. */
 export async function GET() {
+  // Verify auth before opening the stream
+  try {
+    await requireAuth();
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return apiError(err.code, err.message, err.status);
+    }
+    return apiError("UNAUTHORIZED", "Authentication required", 401);
+  }
+
   const clientId = crypto.randomUUID();
   const encoder = new TextEncoder();
 

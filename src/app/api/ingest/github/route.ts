@@ -24,7 +24,13 @@ export async function POST(request: NextRequest) {
 
   // Verify signature if webhook secret is configured
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
-  if (secret && signature) {
+  if (secret) {
+    if (!signature) {
+      return NextResponse.json(
+        { error: "Missing X-Hub-Signature-256 header" },
+        { status: 401 }
+      );
+    }
     if (!verifyGitHubSignature(rawBody, signature, secret)) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
