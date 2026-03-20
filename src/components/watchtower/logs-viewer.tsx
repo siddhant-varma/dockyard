@@ -44,13 +44,13 @@ const LEVEL_BADGE: Record<string, { bg: string; text: string }> = {
     text: "text-blue-700 dark:text-blue-300",
   },
   debug: {
-    bg: "bg-white/[0.06]",
+    bg: "bg-glass-hover",
     text: "text-muted-foreground",
   },
 };
 
 const FALLBACK_BADGE = {
-  bg: "bg-white/[0.06]",
+  bg: "bg-glass-hover",
   text: "text-muted-foreground",
 };
 
@@ -116,7 +116,7 @@ export function LogsViewer({ slug }: LogsViewerProps) {
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value as SeverityFilter)}
-            className="rounded-md border border-white/[0.08] bg-white/[0.05] px-2 py-1 text-sm text-foreground/90 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="rounded-md border border-glass-border bg-glass-input px-2 py-1 text-sm text-foreground/90 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
             {SEVERITY_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
@@ -130,7 +130,7 @@ export function LogsViewer({ slug }: LogsViewerProps) {
           type="button"
           onClick={() => void fetchLogs(true)}
           disabled={loading}
-          className="rounded-md border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-sm font-medium text-foreground/80 shadow-sm transition-colors hover:bg-white/[0.06] disabled:opacity-50"
+          className="rounded-md border border-glass-border bg-glass-input px-3 py-1 text-sm font-medium text-foreground/80 shadow-sm transition-colors hover:bg-glass-hover disabled:opacity-50"
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
@@ -148,7 +148,7 @@ export function LogsViewer({ slug }: LogsViewerProps) {
       )}
 
       {/* Log lines */}
-      <div className="flex-1 overflow-y-auto rounded-xl border border-white/[0.06] bg-black/40 font-mono text-xs">
+      <div className="flex-1 overflow-y-auto rounded-xl border border-glass-border bg-black/40 font-mono text-xs">
         {logs.length === 0 && !error && (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             No log lines to display.
@@ -160,7 +160,7 @@ export function LogsViewer({ slug }: LogsViewerProps) {
           return (
             <div
               key={idx}
-              className="flex items-start gap-3 border-b border-white/[0.08] px-4 py-1.5 last:border-b-0"
+              className="flex items-start gap-3 border-b border-glass-border px-4 py-1.5 last:border-b-0"
             >
               <span className="shrink-0 text-muted-foreground">
                 {new Date(line.timestamp).toLocaleTimeString(undefined, {

@@ -94,7 +94,7 @@ export default async function RoadmapPage({ params }: { params: Params }) {
       </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-glass-border-strong bg-glass-bg py-20 text-center">
           <p className="text-base font-medium text-muted-foreground">
             No roadmap items yet
           </p>
@@ -113,7 +113,7 @@ export default async function RoadmapPage({ params }: { params: Params }) {
                 {phaseItems.map((item) => (
                   <li
                     key={item.id}
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4"
+                    className="rounded-xl border border-glass-border bg-glass-bg p-4"
                   >
                     <div className="mb-1.5 flex items-start justify-between gap-3">
                       <span className="text-sm font-medium text-foreground">

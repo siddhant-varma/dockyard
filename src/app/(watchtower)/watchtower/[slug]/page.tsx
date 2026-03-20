@@ -116,7 +116,7 @@ export default async function ProjectHealthPage({
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-white/[0.08]">
+      <div className="flex border-b border-glass-border">
         {TABS.map((t) => {
           const isActive = activeTab === t.key;
           if (t.key === "logs") {

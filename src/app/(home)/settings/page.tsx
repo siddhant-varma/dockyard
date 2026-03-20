@@ -74,7 +74,7 @@ export default async function SettingsPage({ searchParams }: Props) {
         Settings
       </h1>
 
-      <div className="mb-6 flex gap-1 border-b border-white/[0.06]">
+      <div className="mb-6 flex gap-1 border-b border-glass-border">
         {TABS.map((t) => (
           <a
             key={t.id}

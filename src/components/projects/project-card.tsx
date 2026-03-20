@@ -54,7 +54,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       href={`/projects/${project.slug}`}
-      className="group block rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg transition-all hover:bg-white/[0.06] hover:glow-primary dark:glass"
+      className="group block rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg transition-all hover:bg-glass-hover hover:glow-primary dark:glass"
     >
       {/* Header row: name + status badge */}
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -85,13 +85,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
           {tags.slice(0, 6).map((tag) => (
             <span
               key={tag}
-              className="rounded-md bg-white/[0.06] px-2 py-0.5 text-xs text-muted-foreground border border-white/[0.06]"
+              className="rounded-md bg-glass-hover px-2 py-0.5 text-xs text-muted-foreground border border-glass-border"
             >
               {tag}
             </span>
           ))}
           {tags.length > 6 && (
-            <span className="rounded-md bg-white/[0.04] px-2 py-0.5 text-xs text-muted-foreground/60">
+            <span className="rounded-md bg-glass-hover px-2 py-0.5 text-xs text-muted-foreground/60">
               +{tags.length - 6} more
             </span>
           )}

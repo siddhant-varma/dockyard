@@ -142,7 +142,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
       </div>
 
       {/* Sources list */}
-      <div className="divide-y divide-white/[0.06] rounded-md border border-white/[0.06]">
+      <div className="divide-y divide-glass-divider rounded-md border border-glass-border">
         {sources.length === 0 ? (
           <div className="p-4 text-center text-sm text-muted-foreground">
             No discovery sources configured.
@@ -177,7 +177,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
                   className={`rounded px-2 py-1 text-xs ${
                     source.enabled
                       ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                      : "bg-white/[0.06] text-muted-foreground"
+                      : "bg-glass-hover text-muted-foreground"
                   }`}
                 >
                   {source.enabled ? "Enabled" : "Disabled"}
@@ -195,7 +195,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
       </div>
 
       {/* Add Source form */}
-      <div className="space-y-3 rounded-md border border-white/[0.06] p-4">
+      <div className="space-y-3 rounded-md border border-glass-border p-4">
         <h4 className="text-sm font-medium text-foreground/80">
           Add Discovery Source
         </h4>
@@ -206,7 +206,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
             onChange={(e) =>
               setNewSource({ ...INITIAL_SOURCE, type: e.target.value })
             }
-            className="rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+            className="rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
           >
             <option value="filesystem">Filesystem</option>
             <option value="dokploy">Dokploy</option>
@@ -220,7 +220,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
             onChange={(e) =>
               setNewSource({ ...newSource, name: e.target.value })
             }
-            className="flex-1 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+            className="flex-1 rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
           />
         </div>
 
@@ -233,7 +233,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
             onChange={(e) =>
               setNewSource({ ...newSource, path: e.target.value })
             }
-            className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+            className="w-full rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
           />
         )}
 
@@ -247,7 +247,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
               onChange={(e) =>
                 setNewSource({ ...newSource, instanceUrl: e.target.value })
               }
-              className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+              className="w-full rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
             />
             <input
               type="password"
@@ -256,7 +256,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
               onChange={(e) =>
                 setNewSource({ ...newSource, apiKey: e.target.value })
               }
-              className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+              className="w-full rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
             />
           </div>
         )}
@@ -271,7 +271,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
               onChange={(e) =>
                 setNewSource({ ...newSource, token: e.target.value })
               }
-              className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+              className="w-full rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
             />
             <div className="flex gap-2">
               <input
@@ -281,7 +281,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
                 onChange={(e) =>
                   setNewSource({ ...newSource, org: e.target.value })
                 }
-                className="flex-1 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+                className="flex-1 rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
               />
               <input
                 type="text"
@@ -290,7 +290,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
                 onChange={(e) =>
                   setNewSource({ ...newSource, user: e.target.value })
                 }
-                className="flex-1 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
+                className="flex-1 rounded-md border border-glass-border-strong bg-glass-input px-3 py-2 text-sm"
               />
             </div>
             <p className="text-xs text-muted-foreground">

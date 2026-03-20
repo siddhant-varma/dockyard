@@ -45,14 +45,14 @@ export function HealthCard({
   latencySeries,
 }: HealthCardProps) {
   const borderClass =
-    BORDER_BY_STATUS[status] ?? "border-white/[0.08]";
+    BORDER_BY_STATUS[status] ?? "border-glass-border";
   const sparkColor = SPARKLINE_COLOR_BY_STATUS[status] ?? "#a3a3a3";
   const uptimeDisplay = uptime30d != null ? `${uptime30d.toFixed(2)}%` : "—";
 
   return (
     <Link
       href={`/watchtower/${slug}`}
-      className={`group flex flex-col gap-3 rounded-xl border bg-white/[0.03] p-4 backdrop-blur-lg transition-all hover:bg-white/[0.06] hover:glow-primary dark:glass ${borderClass}`}
+      className={`group flex flex-col gap-3 rounded-xl border bg-glass-bg p-4 backdrop-blur-lg transition-all hover:bg-glass-hover hover:glow-primary dark:glass ${borderClass}`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="text-sm font-semibold text-foreground group-hover:text-primary">

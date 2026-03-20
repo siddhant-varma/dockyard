@@ -19,7 +19,7 @@ interface TopbarProps {
 
 export function Topbar({ activeService, userName, userImage }: TopbarProps) {
   return (
-    <header className="flex h-14 items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-4 backdrop-blur-xl dark:glass-elevated">
+    <header className="flex h-14 items-center justify-between border-b border-glass-border bg-glass-bg px-4 backdrop-blur-xl dark:glass-elevated">
       <div className="flex items-center gap-1">
         {SERVICES.map((svc) => {
           const isActive =
@@ -32,7 +32,7 @@ export function Topbar({ activeService, userName, userImage }: TopbarProps) {
               className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
                 isActive
                   ? "bg-primary/15 font-medium text-primary dark:bg-primary/20 dark:text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-glass-hover"
               }`}
             >
               {svc.label}
@@ -54,7 +54,7 @@ export function Topbar({ activeService, userName, userImage }: TopbarProps) {
             className="h-8 w-8 rounded-full ring-1 ring-white/10"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] text-xs font-medium text-muted-foreground ring-1 ring-white/10">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-glass-hover text-xs font-medium text-muted-foreground ring-1 ring-white/10">
             {userName?.[0]?.toUpperCase() ?? "?"}
           </div>
         )}

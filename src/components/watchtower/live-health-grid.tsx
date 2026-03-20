@@ -63,7 +63,7 @@ export function LiveHealthGrid({ initialProjects }: LiveHealthGridProps) {
   return (
     <>
       {/* Summary bar */}
-      <div className="flex flex-wrap gap-4 rounded-xl border border-white/[0.08] bg-white/[0.03] px-5 py-3">
+      <div className="flex flex-wrap gap-4 rounded-xl border border-glass-border bg-glass-bg px-5 py-3">
         <SummaryCount label="Healthy" count={healthy} color="text-green-600 dark:text-green-400" />
         <SummaryCount label="Degraded" count={degraded} color="text-yellow-600 dark:text-yellow-400" />
         <SummaryCount label="Down" count={down} color="text-red-600 dark:text-red-400" />

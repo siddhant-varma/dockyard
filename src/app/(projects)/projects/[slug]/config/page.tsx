@@ -59,7 +59,7 @@ export default async function ConfigPage({ params }: { params: Params }) {
       <ConfigList entries={entries} slug={slug} />
 
       {/* Apply + redeploy */}
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5">
+      <div className="rounded-xl border border-glass-border bg-glass-bg p-5">
         <h2 className="mb-3 text-sm font-semibold text-foreground/90">
           Apply Configuration
         </h2>

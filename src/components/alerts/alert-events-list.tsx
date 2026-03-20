@@ -80,7 +80,7 @@ export function AlertEventsList({ initialEvents }: AlertEventsListProps) {
 
   if (events.length === 0) {
     return (
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-6 py-8 text-center">
+      <div className="rounded-xl border border-glass-border bg-glass-bg px-6 py-8 text-center">
         <p className="text-sm text-muted-foreground">
           No active alert events.
         </p>
@@ -96,7 +96,7 @@ export function AlertEventsList({ initialEvents }: AlertEventsListProps) {
         </div>
       )}
 
-      <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.08]">
+      <ul className="divide-y divide-glass-divider rounded-xl border border-glass-border">
         {events.map((event) => (
           <li
             key={event.id}
@@ -129,7 +129,7 @@ export function AlertEventsList({ initialEvents }: AlertEventsListProps) {
                 type="button"
                 onClick={() => void handleAcknowledge(event.id)}
                 disabled={acknowledging === event.id}
-                className="shrink-0 rounded-md border border-white/[0.08] bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-sm transition-colors hover:bg-white/[0.08] disabled:opacity-50"
+                className="shrink-0 rounded-md border border-glass-border bg-glass-input px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-sm transition-colors hover:bg-glass-hover disabled:opacity-50"
               >
                 {acknowledging === event.id
                   ? "Acknowledging..."

@@ -55,19 +55,19 @@ export function DeploymentTimeline({ deployments }: DeploymentTimelineProps) {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.08]">
-      <div className="border-b border-white/[0.08] px-4 py-2.5">
+    <div className="rounded-xl border border-glass-border">
+      <div className="border-b border-glass-border px-4 py-2.5">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Deployment history
         </span>
       </div>
-      <ul className="divide-y divide-white/[0.06]">
+      <ul className="divide-y divide-glass-divider">
         {deployments.map((deploy) => (
           <li key={deploy.id} className="flex flex-col gap-1.5 px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={deploy.status} />
               {deploy.commitSha && (
-                <code className="rounded bg-white/[0.06] px-1.5 py-0.5 text-xs font-mono text-foreground/80">
+                <code className="rounded bg-glass-hover px-1.5 py-0.5 text-xs font-mono text-foreground/80">
                   {deploy.commitSha.slice(0, 7)}
                 </code>
               )}

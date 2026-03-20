@@ -109,14 +109,14 @@ export function ConfigList({ entries, slug }: ConfigListProps) {
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {label}
             </h3>
-            <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-muted-foreground">
+            <span className="rounded-full bg-glass-hover px-2 py-0.5 text-xs text-muted-foreground">
               {categoryEntries.length}
             </span>
           </button>
 
           {!isCollapsed && (
-          <div className="rounded-xl border border-white/[0.08]">
-            <ul className="divide-y divide-white/[0.06]">
+          <div className="rounded-xl border border-glass-border">
+            <ul className="divide-y divide-glass-divider">
               {categoryEntries.map((entry) => {
                 const isEditing = editingId === entry.id;
                 const isRevealed = revealedIds.has(entry.id);
@@ -132,7 +132,7 @@ export function ConfigList({ entries, slug }: ConfigListProps) {
                             {entry.displayName ?? entry.key}
                           </span>
                           {entry.isSecret && (
-                            <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-muted-foreground">
+                            <span className="rounded-full bg-glass-hover px-2 py-0.5 text-xs text-muted-foreground">
                               secret
                             </span>
                           )}
@@ -157,14 +157,14 @@ export function ConfigList({ entries, slug }: ConfigListProps) {
                           onClick={() =>
                             setEditingId(isEditing ? null : entry.id)
                           }
-                          className="rounded-md border border-white/[0.08] px-3 py-1 text-xs font-medium text-foreground/80 hover:bg-white/[0.06]"
+                          className="rounded-md border border-glass-border px-3 py-1 text-xs font-medium text-foreground/80 hover:bg-glass-hover"
                         >
                           {isEditing ? "Cancel" : "Edit"}
                         </button>
                       </div>
                     </div>
 
-                    <div className="rounded bg-white/[0.03] px-3 py-1.5 font-mono text-xs text-foreground/80">
+                    <div className="rounded bg-glass-bg px-3 py-1.5 font-mono text-xs text-foreground/80">
                       {displayValue || (
                         <span className="italic text-muted-foreground/60">empty</span>
                       )}

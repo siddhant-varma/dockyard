@@ -107,7 +107,7 @@ export function AlertRuleForm() {
   return (
     <form
       onSubmit={(e) => void handleSubmit(e)}
-      className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5"
+      className="rounded-xl border border-glass-border bg-glass-bg p-5"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Rule name" htmlFor="name" required>
@@ -218,7 +218,7 @@ export function AlertRuleForm() {
 }
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
+  "w-full rounded-md border border-glass-border-strong bg-glass-input px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
 interface FormFieldProps {
   label: string;

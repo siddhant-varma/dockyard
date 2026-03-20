@@ -72,7 +72,7 @@ export function ConfigEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] p-3">
+    <div className="flex flex-col gap-2 rounded-md border border-glass-border bg-glass-bg p-3">
       <input
         type={resolvedInputType}
         value={value}
@@ -81,7 +81,7 @@ export function ConfigEditor({
           setError(null);
         }}
         autoFocus
-        className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-1.5 font-mono text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+        className="w-full rounded-md border border-glass-border-strong bg-glass-input px-3 py-1.5 font-mono text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
         aria-label={`Value for ${entryKey}`}
       />
 
@@ -102,7 +102,7 @@ export function ConfigEditor({
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="rounded-md border border-white/[0.08] px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-white/[0.06]"
+          className="rounded-md border border-glass-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-glass-hover"
         >
           Cancel
         </button>

@@ -80,7 +80,7 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* Tab navigation */}
-      <div className="mb-6 border-b border-white/[0.08]">
+      <div className="mb-6 border-b border-glass-border">
         <nav className="-mb-px flex gap-6" aria-label="Project tabs">
           {TAB_ITEMS.map((tab) => (
             <Link
