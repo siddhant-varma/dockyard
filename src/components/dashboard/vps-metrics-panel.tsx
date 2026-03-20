@@ -29,8 +29,10 @@ export interface MetricSeries {
 }
 
 export interface VpsMetricsPanelProps {
-  /** Four metric series: CPU, memory, disk I/O, network bandwidth. */
+  /** Metric series: CPU, disk I/O, network bandwidth. */
   metrics: MetricSeries[];
+  /** Server name displayed as section heading. */
+  serverName?: string;
 }
 
 /** Card wrapper for a single metric row. */
@@ -41,7 +43,7 @@ function MetricRow({ metric }: { metric: MetricSeries }) {
       : metric.currentValue.toFixed(1);
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-glass-border bg-glass-bg px-4 py-3 backdrop-blur-lg dark:glass">
+    <div className="flex items-center justify-between rounded-xl border border-glass-border bg-glass-bg px-4 py-3 backdrop-blur-lg">
       <div className="min-w-0">
         <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {metric.label}
@@ -70,7 +72,7 @@ function MetricRow({ metric }: { metric: MetricSeries }) {
  * Each row shows a metric label, current value with unit, and a sparkline
  * built from historical data points.
  */
-export function VpsMetricsPanel({ metrics }: VpsMetricsPanelProps) {
+export function VpsMetricsPanel({ metrics, serverName }: VpsMetricsPanelProps) {
   if (metrics.length === 0) {
     return (
       <section aria-label="VPS metrics">
@@ -83,9 +85,12 @@ export function VpsMetricsPanel({ metrics }: VpsMetricsPanelProps) {
 
   return (
     <section aria-label="VPS metrics">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      {serverName && (
+        <h2 className="mb-1 text-base font-semibold text-foreground">{serverName}</h2>
+      )}
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Server Metrics
-      </h2>
+      </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map((metric) => (
           <MetricRow key={metric.label} metric={metric} />

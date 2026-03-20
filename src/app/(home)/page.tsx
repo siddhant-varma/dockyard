@@ -1,33 +1,28 @@
 /**
- * Home dashboard page — DockYard operations overview.
+ * Home dashboard page — DockYard Glass Observatory.
  *
- * Server Component that fetches data from internal API routes in parallel and
- * assembles the full dashboard layout:
- *
- *   - VPS metrics panel (full width) — CPU, memory, disk, network sparklines
- *   - Server status card + billing card (2-column)
- *   - Alerts strip (full width) — active SEV1/SEV2 critical alerts
- *
- * All fetch calls target the local API so credentials never leave the server.
- * The page is intentionally unprotected at this route level; auth is enforced
- * by the layout via the auth helper.
+ * Rebuilt to match the Stitch "DockYard Glass Dashboard" wireframe.
+ * Section order:
+ *   1. Alert banner (full-width, glass, pulsing, with Acknowledge)
+ *   2. Metrics grid (5 glass cards with server name heading)
+ *   3. Server details + Billing (2-column, expanded cards)
+ *   4. Real-time logstream (terminal, filter, live toggle)
+ *   5. Footer (copyright + system status)
  */
 
-import { LiveAlertsStrip } from "@/components/dashboard/live-alerts-strip";
-import {
-  BillingCard,
-  type BillingCardProps,
-} from "@/components/dashboard/billing-card";
-import { ServerStatusCard } from "@/components/dashboard/server-status-card";
+import { AlertBanner } from "@/components/dashboard/alert-banner";
+import { ServerDetailCard } from "@/components/dashboard/server-detail-card";
+import { BillingGlassCard } from "@/components/dashboard/billing-glass-card";
 import { LiveVpsMetrics } from "@/components/dashboard/live-vps-metrics";
-import { type MetricSeries } from "@/components/dashboard/vps-metrics-panel";
+import { Logstream } from "@/components/dashboard/logstream";
+import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import { type MetricSeries } from "@/components/dashboard/vps-metrics-panel";
 
 /* ================================================================
    API Response Types
    ================================================================ */
 
-/** Subset of InfraProvider.ServerDetail returned by GET /api/hetzner/status. */
 interface ServerStatusResponse {
   name: string;
   status: "running" | "off" | "starting" | "stopping" | "unknown";
@@ -36,28 +31,29 @@ interface ServerStatusResponse {
   datacenter?: string;
 }
 
-/** Shape of one metric series from GET /api/hetzner/servers/:id/metrics. */
 interface MetricSeriesResponse {
   name: string;
   labels: Record<string, string>;
   dataPoints: Array<{ timestamp: string; value: number }>;
 }
 
-/** Shape of the billing estimate from GET /api/hetzner/billing. */
-type BillingResponse = NonNullable<BillingCardProps["billing"]>;
+interface BillingResponse {
+  serverCost: string | null;
+  volumeCost: string | null;
+  ipCost: string | null;
+  lbCost: string | null;
+  trafficCost: string | null;
+  totalCost: string | null;
+  calculatedAt: string;
+}
 
 /* ================================================================
    Fetch Helpers
    ================================================================ */
 
-/** Base URL for internal API calls from a Server Component. */
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-/**
- * Fetches server status from the Hetzner status endpoint.
- * Returns null on any non-OK response or network failure.
- */
 async function fetchServerStatus(): Promise<ServerStatusResponse | null> {
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/hetzner/status`, {
@@ -70,10 +66,6 @@ async function fetchServerStatus(): Promise<ServerStatusResponse | null> {
   }
 }
 
-/**
- * Fetches the latest billing estimate.
- * Returns null when no estimate exists yet (fresh install).
- */
 async function fetchBilling(): Promise<BillingResponse | null> {
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/hetzner/billing`, {
@@ -86,10 +78,6 @@ async function fetchBilling(): Promise<BillingResponse | null> {
   }
 }
 
-/**
- * Fetches the last hour of CPU, disk, and network metrics for the primary server.
- * Returns an empty array when the server ID is not configured or the request fails.
- */
 async function fetchMetrics(): Promise<MetricSeriesResponse[]> {
   const serverId = process.env.HETZNER_SERVER_ID;
   if (!serverId) return [];
@@ -119,33 +107,13 @@ async function fetchMetrics(): Promise<MetricSeriesResponse[]> {
    Transform Helpers
    ================================================================ */
 
-/**
- * Converts raw MetricSeriesResponse arrays into the shape expected by
- * VpsMetricsPanel. Hetzner returns separate series per metric type; we
- * supplement with static display metadata (label, unit, color).
- */
 function buildMetricSeries(raw: MetricSeriesResponse[]): MetricSeries[] {
-  const METRIC_META: Record<
-    string,
-    { label: string; unit: string; color: string }
-  > = {
+  const METRIC_META: Record<string, { label: string; unit: string; color: string }> = {
     cpu: { label: "CPU", unit: "%", color: "#6366f1" },
     "disk.0.iops.read": { label: "Disk Read", unit: "IOPS", color: "#22c55e" },
-    "disk.0.iops.write": {
-      label: "Disk Write",
-      unit: "IOPS",
-      color: "#f59e0b",
-    },
-    "network.0.bandwidth.in": {
-      label: "Net In",
-      unit: "MB/s",
-      color: "#38bdf8",
-    },
-    "network.0.bandwidth.out": {
-      label: "Net Out",
-      unit: "MB/s",
-      color: "#a78bfa",
-    },
+    "disk.0.iops.write": { label: "Disk Write", unit: "IOPS", color: "#f59e0b" },
+    "network.0.bandwidth.in": { label: "Net In", unit: "MB/s", color: "#38bdf8" },
+    "network.0.bandwidth.out": { label: "Net Out", unit: "MB/s", color: "#a78bfa" },
   };
 
   const series: MetricSeries[] = raw
@@ -153,18 +121,15 @@ function buildMetricSeries(raw: MetricSeriesResponse[]): MetricSeries[] {
     .map((s) => {
       const meta = METRIC_META[s.name];
       const values = s.dataPoints.map((p) => p.value);
-      const current = values[values.length - 1] ?? 0;
-
       return {
         label: meta.label,
-        currentValue: current,
+        currentValue: values[values.length - 1] ?? 0,
         unit: meta.unit,
         history: values,
         color: meta.color,
       };
     });
 
-  // Always include a CPU row, even if Hetzner returned it under a different key.
   if (series.length === 0 && raw.length > 0) {
     const first = raw[0];
     const values = first.dataPoints.map((p) => p.value);
@@ -181,15 +146,9 @@ function buildMetricSeries(raw: MetricSeriesResponse[]): MetricSeries[] {
 }
 
 /* ================================================================
-   Page Component
+   Page Component — Glass Observatory Dashboard
    ================================================================ */
 
-/**
- * Home dashboard page.
- *
- * Fetches server status, billing, and metrics concurrently. Gracefully degrades:
- * each section renders an empty or placeholder state when its data is unavailable.
- */
 export default async function HomePage() {
   const [serverStatus, billing, rawMetrics] = await Promise.all([
     fetchServerStatus(),
@@ -201,35 +160,42 @@ export default async function HomePage() {
 
   return (
     <DashboardLayout>
-      {/* Alerts strip — SSE-driven with polling fallback */}
-      <LiveAlertsStrip />
+      {/* 1. Critical Alert Banner — full-width glass with Acknowledge */}
+      <AlertBanner />
 
-      {/* VPS metrics panel — SSE-driven live updates */}
+      {/* 2. Metrics Grid — 5 glass cards with server name heading */}
       <LiveVpsMetrics
         initialMetrics={metrics}
+        serverName={serverStatus?.name}
         metricsUrl={`/api/hetzner/servers/${process.env.HETZNER_SERVER_ID ?? ""}/metrics?type=cpu&step=60`}
       />
 
-      {/* Server status + billing — 2-column on larger viewports */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* 3. Server Details + Billing — 2-column expanded cards */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {serverStatus ? (
-          <ServerStatusCard
+          <ServerDetailCard
             name={serverStatus.name}
             status={serverStatus.status}
+            region={serverStatus.datacenter}
             publicIpv4={serverStatus.publicIpv4}
             serverType={serverStatus.serverType}
-            datacenter={serverStatus.datacenter}
           />
         ) : (
-          <div className="flex items-center justify-center rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg dark:glass">
+          <div className="flex items-center justify-center rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg">
             <p className="text-sm text-muted-foreground">
               Server status unavailable. Check your Hetzner API configuration.
             </p>
           </div>
         )}
 
-        <BillingCard billing={billing} />
+        <BillingGlassCard billing={billing} />
       </div>
+
+      {/* 4. Real-time Logstream — terminal with filter and live toggle */}
+      <Logstream />
+
+      {/* 5. Footer — copyright + system status */}
+      <DashboardFooter />
     </DashboardLayout>
   );
 }

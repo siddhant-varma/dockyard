@@ -50,7 +50,10 @@ export default function RootLayout({
               (function() {
                 try {
                   var mode = localStorage.getItem('dockyard-theme');
-                  if (mode === 'dark' || (!mode && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  if (mode === 'light') {
+                    // User explicitly chose light mode — respect it
+                  } else {
+                    // Default to dark (Glass Observatory design direction)
                     document.documentElement.classList.add('dark');
                   }
                 } catch(e) {}

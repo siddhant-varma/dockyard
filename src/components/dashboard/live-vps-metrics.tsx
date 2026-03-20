@@ -17,11 +17,14 @@ import { useRealtimeData } from "@/lib/sse";
 interface LiveVpsMetricsProps {
   initialMetrics: MetricSeries[];
   metricsUrl: string;
+  /** Server name shown above the metrics grid. */
+  serverName?: string;
 }
 
 export function LiveVpsMetrics({
   initialMetrics,
   metricsUrl,
+  serverName,
 }: LiveVpsMetricsProps) {
   const { data: metrics } = useRealtimeData<MetricSeries[]>(
     initialMetrics,
@@ -30,5 +33,5 @@ export function LiveVpsMetrics({
     { maxPoints: 60 }
   );
 
-  return <VpsMetricsPanel metrics={metrics} />;
+  return <VpsMetricsPanel metrics={metrics} serverName={serverName} />;
 }
