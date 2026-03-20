@@ -93,13 +93,13 @@ function sourceLabel(source: string): string {
 /** Dot indicator for source type. */
 function SourceDot({ source }: { source: string }) {
   const colorMap: Record<string, string> = {
-    github: "bg-neutral-800 dark:bg-neutral-200",
+    github: "bg-foreground/80",
     dokploy: "bg-indigo-500",
     manual: "bg-sky-500",
     dip: "bg-violet-500",
     hetzner: "bg-red-500",
   };
-  const color = colorMap[source] ?? "bg-neutral-400";
+  const color = colorMap[source] ?? "bg-muted-foreground/60";
   return <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${color}`} />;
 }
 
@@ -127,7 +127,7 @@ export function ActivityFeed({ slug, initialEvents }: ActivityFeedProps) {
 
   if (events.length === 0) {
     return (
-      <p className="py-10 text-center text-sm text-neutral-400 dark:text-neutral-500">
+      <p className="py-10 text-center text-sm text-muted-foreground/60">
         No activity recorded yet.
       </p>
     );
@@ -141,25 +141,25 @@ export function ActivityFeed({ slug, initialEvents }: ActivityFeedProps) {
           return (
             <li
               key={event.id}
-              className="flex gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+              className="flex gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-white/[0.04]"
             >
               <SourceDot source={event.source} />
               <div className="min-w-0 flex-1">
                 <div className="mb-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                  <span className="text-xs font-semibold text-foreground/80">
                     {sourceLabel(event.source)}
                   </span>
-                  <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                  <span className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
                     {event.eventType}
                   </span>
                 </div>
-                <p className="truncate text-sm text-neutral-600 dark:text-neutral-300">
+                <p className="truncate text-sm text-muted-foreground">
                   {summary}
                 </p>
               </div>
               <time
                 dateTime={event.createdAt}
-                className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500"
+                className="shrink-0 text-xs text-muted-foreground/60"
                 title={new Date(event.createdAt).toLocaleString()}
               >
                 {formatRelative(event.createdAt)}
@@ -174,7 +174,7 @@ export function ActivityFeed({ slug, initialEvents }: ActivityFeedProps) {
           <button
             onClick={loadMore}
             disabled={loading}
-            className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            className="rounded-xl border border-white/[0.08] bg-white/[0.05] px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-white/[0.08] disabled:opacity-50"
           >
             {loading ? "Loading..." : "Load More"}
           </button>

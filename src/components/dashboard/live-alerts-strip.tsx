@@ -30,13 +30,14 @@ function formatTimeSince(iso: string): string {
 
 const SEVERITY_STYLES = {
   sev1: {
-    badge: "bg-red-600 text-white dark:bg-red-500",
-    border: "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30",
+    badge: "bg-red-500/20 text-red-400 border border-red-500/20",
+    border: "border-red-500/15 bg-red-500/[0.06] backdrop-blur-lg",
+    dot: "bg-red-500",
   },
   sev2: {
-    badge: "bg-orange-500 text-white dark:bg-orange-400",
-    border:
-      "border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30",
+    badge: "bg-orange-500/20 text-orange-400 border border-orange-500/20",
+    border: "border-orange-500/15 bg-orange-500/[0.06] backdrop-blur-lg",
+    dot: "bg-orange-500",
   },
 };
 
@@ -102,17 +103,21 @@ export function LiveAlertsStrip() {
           return (
             <div
               key={alert.id}
-              className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 ${styles.border}`}
+              className={`flex shrink-0 items-center gap-2.5 rounded-full border px-3 py-1.5 ${styles.border}`}
             >
+              <span className="relative flex h-2 w-2">
+                <span className={`absolute inline-flex h-full w-full rounded-full ${styles.dot} animate-pulse-ring`} />
+                <span className={`relative inline-flex h-2 w-2 rounded-full ${styles.dot}`} />
+              </span>
               <span
                 className={`rounded-full px-1.5 py-0.5 text-xs font-bold uppercase leading-none ${styles.badge}`}
               >
                 {alert.severity.toUpperCase()}
               </span>
-              <span className="max-w-xs truncate text-xs font-medium text-neutral-800 dark:text-neutral-200">
+              <span className="max-w-xs truncate text-xs font-medium text-foreground/80">
                 {alert.message ?? "No message"}
               </span>
-              <span className="shrink-0 text-xs text-neutral-500 dark:text-neutral-400">
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">
                 {formatTimeSince(alert.triggeredAt)}
               </span>
             </div>

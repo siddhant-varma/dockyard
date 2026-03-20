@@ -57,17 +57,17 @@ export default async function AlertsPage() {
     <div className="flex flex-col gap-8">
       {/* Page header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <h1 className="text-xl font-semibold text-foreground">
           Alert Rules & Events
         </h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           Active alert events and rule configuration.
         </p>
       </div>
 
       {/* Active events */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
+        <h2 className="text-base font-semibold text-foreground/90">
           Active Events
         </h2>
         <AlertEventsList initialEvents={events} />
@@ -76,33 +76,33 @@ export default async function AlertsPage() {
       {/* Rule list */}
       {rules.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
+          <h2 className="text-base font-semibold text-foreground/90">
             Alert Rules
           </h2>
-          <div className="rounded-lg border border-neutral-200 dark:border-neutral-700">
-            <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+          <div className="rounded-xl border border-white/[0.08]">
+            <ul className="divide-y divide-white/[0.06]">
               {rules.map((rule) => (
                 <li
                   key={rule.id}
                   className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
                 >
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    <span className="text-sm font-medium text-foreground">
                       {rule.name}
                     </span>
-                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    <span className="text-xs text-muted-foreground">
                       {rule.metric} {rule.operator} {rule.threshold}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {rule.severity.toUpperCase()}
                     </span>
                     <span
                       className={`text-xs ${
                         rule.enabled
                           ? "text-green-600 dark:text-green-400"
-                          : "text-neutral-400"
+                          : "text-muted-foreground/60"
                       }`}
                     >
                       {rule.enabled ? "Enabled" : "Disabled"}
@@ -117,7 +117,7 @@ export default async function AlertsPage() {
 
       {/* Create new rule */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
+        <h2 className="text-base font-semibold text-foreground/90">
           Create Alert Rule
         </h2>
         <AlertRuleForm />

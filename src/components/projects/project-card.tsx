@@ -54,11 +54,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       href={`/projects/${project.slug}`}
-      className="group block rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-neutral-700 dark:bg-neutral-900"
+      className="group block rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg transition-all hover:bg-white/[0.06] hover:glow-primary dark:glass"
     >
       {/* Header row: name + status badge */}
       <div className="mb-3 flex items-start justify-between gap-3">
-        <h3 className="truncate text-base font-semibold text-neutral-900 group-hover:text-indigo-600 dark:text-neutral-100 dark:group-hover:text-indigo-400">
+        <h3 className="truncate text-base font-semibold text-foreground group-hover:text-primary">
           {project.name}
         </h3>
         <StatusBadge status={project.status} className="shrink-0" />
@@ -66,7 +66,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
       {/* Description */}
       {project.description && (
-        <p className="mb-4 line-clamp-2 text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
           {project.description}
         </p>
       )}
@@ -85,13 +85,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
           {tags.slice(0, 6).map((tag) => (
             <span
               key={tag}
-              className="rounded-md bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+              className="rounded-md bg-white/[0.06] px-2 py-0.5 text-xs text-muted-foreground border border-white/[0.06]"
             >
               {tag}
             </span>
           ))}
           {tags.length > 6 && (
-            <span className="rounded-md bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-500">
+            <span className="rounded-md bg-white/[0.04] px-2 py-0.5 text-xs text-muted-foreground/60">
               +{tags.length - 6} more
             </span>
           )}
@@ -99,7 +99,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       )}
 
       {/* Footer: last activity */}
-      <p className="text-xs text-neutral-400 dark:text-neutral-500">
+      <p className="text-xs text-muted-foreground/60">
         Last activity {formatRelative(project.updatedAt)}
       </p>
     </Link>

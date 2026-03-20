@@ -23,7 +23,7 @@ export function SubNav({ items }: SubNavProps) {
   if (items.length === 0) return null;
 
   return (
-    <nav className="flex gap-1 border-b border-neutral-200 bg-white px-4 dark:border-neutral-800 dark:bg-neutral-950">
+    <nav className="flex gap-1 border-b border-white/[0.06] bg-white/[0.01] px-4 backdrop-blur-md">
       {items.map((item) => {
         const isActive =
           pathname === item.href ||
@@ -34,13 +34,13 @@ export function SubNav({ items }: SubNavProps) {
             href={item.href}
             className={`relative px-3 py-2.5 text-sm transition-colors ${
               isActive
-                ? "font-medium text-neutral-900 dark:text-neutral-100"
-                : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+                ? "font-medium text-primary"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {item.label}
             {isActive && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-neutral-100" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
           </Link>
         );

@@ -109,14 +109,14 @@ export default async function ProjectHealthPage({
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <h1 className="text-xl font-semibold text-foreground">
           {detail.project.name}
         </h1>
         <StatusBadge status={detail.health.overallStatus} />
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-neutral-200 dark:border-neutral-700">
+      <div className="flex border-b border-white/[0.08]">
         {TABS.map((t) => {
           const isActive = activeTab === t.key;
           if (t.key === "logs") {
@@ -126,8 +126,8 @@ export default async function ProjectHealthPage({
                 href={`/watchtower/${slug}/logs`}
                 className={`px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "border-b-2 border-neutral-900 text-neutral-900 dark:border-neutral-100 dark:text-neutral-100"
-                    : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                    ? "border-b-2 border-foreground text-foreground"
+                    : "text-muted-foreground hover:text-foreground/90"
                 }`}
               >
                 {t.label}
@@ -140,8 +140,8 @@ export default async function ProjectHealthPage({
               href={`/watchtower/${slug}?tab=${t.key}`}
               className={`px-4 py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? "border-b-2 border-neutral-900 text-neutral-900 dark:border-neutral-100 dark:text-neutral-100"
-                  : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                  ? "border-b-2 border-foreground text-foreground"
+                  : "text-muted-foreground hover:text-foreground/90"
               }`}
             >
               {t.label}

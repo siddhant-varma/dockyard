@@ -69,24 +69,24 @@ export default async function ProjectDetailPage({
     <div>
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <h1 className="text-xl font-semibold text-foreground">
           {project.name}
         </h1>
         {project.currentPhase && (
-          <p className="mt-0.5 text-sm text-neutral-500 dark:text-neutral-400">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {project.currentPhase}
           </p>
         )}
       </div>
 
       {/* Tab navigation */}
-      <div className="mb-6 border-b border-neutral-200 dark:border-neutral-700">
+      <div className="mb-6 border-b border-white/[0.08]">
         <nav className="-mb-px flex gap-6" aria-label="Project tabs">
           {TAB_ITEMS.map((tab) => (
             <Link
               key={tab.label}
               href={`${baseHref}${tab.href}`}
-              className="border-b-2 border-transparent pb-3 text-sm font-medium text-neutral-500 transition-colors hover:border-neutral-400 hover:text-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-500 dark:hover:text-neutral-200"
+              className="border-b-2 border-transparent pb-3 text-sm font-medium text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground/80"
             >
               {tab.label}
             </Link>
@@ -101,7 +101,7 @@ export default async function ProjectDetailPage({
         </div>
 
         <div>
-          <h2 className="mb-4 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+          <h2 className="mb-4 text-sm font-semibold text-foreground/80">
             Recent Activity
           </h2>
           <ActivityFeed slug={slug} initialEvents={activity} />

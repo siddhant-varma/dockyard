@@ -37,17 +37,17 @@ export function HealthMetrics({
       {/* Overall status row */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Overall status
           </span>
           <StatusBadge status={overallStatus} />
         </div>
 
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             30-day uptime
           </span>
-          <span className="text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
+          <span className="text-sm font-semibold tabular-nums text-foreground">
             {uptimeDisplay}
           </span>
         </div>
@@ -55,13 +55,13 @@ export function HealthMetrics({
 
       {/* Component breakdown */}
       {components.length > 0 && (
-        <div className="rounded-lg border border-neutral-200 dark:border-neutral-700">
-          <div className="border-b border-neutral-200 px-4 py-2.5 dark:border-neutral-700">
-            <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        <div className="rounded-xl border border-white/[0.08]">
+          <div className="border-b border-white/[0.08] px-4 py-2.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Components
             </span>
           </div>
-          <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+          <ul className="divide-y divide-white/[0.06]">
             {components.map((component) => (
               <li
                 key={component.name}
@@ -71,7 +71,7 @@ export function HealthMetrics({
                   status={component.status}
                   label={component.name}
                 />
-                <span className="text-xs tabular-nums text-neutral-500 dark:text-neutral-400">
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {component.latencyMs != null
                     ? `${component.latencyMs} ms`
                     : "—"}
@@ -83,7 +83,7 @@ export function HealthMetrics({
       )}
 
       {components.length === 0 && (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           No component health data available.
         </p>
       )}

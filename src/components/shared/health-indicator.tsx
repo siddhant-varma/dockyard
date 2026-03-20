@@ -9,12 +9,12 @@
  */
 
 const DOT_COLORS: Record<string, string> = {
-  healthy: "bg-green-500",
-  ok: "bg-green-500",
-  degraded: "bg-yellow-500",
-  down: "bg-red-500",
-  maintenance: "bg-indigo-500",
-  unknown: "bg-neutral-400",
+  healthy: "bg-green-400",
+  ok: "bg-green-400",
+  degraded: "bg-yellow-400",
+  down: "bg-red-400",
+  maintenance: "bg-indigo-400",
+  unknown: "bg-muted-foreground",
 };
 
 interface HealthIndicatorProps {
@@ -33,8 +33,11 @@ export function HealthIndicator({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <span className={`inline-block h-2 w-2 rounded-full ${dotColor}`} />
-      <span className="text-sm capitalize text-neutral-700 dark:text-neutral-300">
+      <span className="relative flex h-2 w-2">
+        <span className={`absolute inline-flex h-full w-full rounded-full ${dotColor} opacity-40 animate-pulse-dot`} />
+        <span className={`relative inline-flex h-2 w-2 rounded-full ${dotColor}`} />
+      </span>
+      <span className="text-sm capitalize text-foreground/80">
         {displayLabel}
       </span>
     </div>

@@ -16,18 +16,18 @@ export default async function LogsPage({ params }: { params: Params }) {
   return (
     <div className="flex h-full flex-col gap-4">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link
           href={`/watchtower/${slug}`}
-          className="hover:text-neutral-800 dark:hover:text-neutral-200"
+          className="hover:text-foreground/90"
         >
           {slug}
         </Link>
         <span>/</span>
-        <span className="text-neutral-900 dark:text-neutral-100">Logs</span>
+        <span className="text-foreground">Logs</span>
       </div>
 
-      <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+      <h1 className="text-xl font-semibold text-foreground">
         Logs
       </h1>
 

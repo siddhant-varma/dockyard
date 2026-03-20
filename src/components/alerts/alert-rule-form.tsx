@@ -107,7 +107,7 @@ export function AlertRuleForm() {
   return (
     <form
       onSubmit={(e) => void handleSubmit(e)}
-      className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900"
+      className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Rule name" htmlFor="name" required>
@@ -208,7 +208,7 @@ export function AlertRuleForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           {submitting ? "Creating..." : "Create rule"}
         </button>
@@ -218,7 +218,7 @@ export function AlertRuleForm() {
 }
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100";
+  "w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
 interface FormFieldProps {
   label: string;
@@ -232,7 +232,7 @@ function FormField({ label, htmlFor, required, children }: FormFieldProps) {
     <div className="flex flex-col gap-1">
       <label
         htmlFor={htmlFor}
-        className="text-xs font-medium text-neutral-600 dark:text-neutral-400"
+        className="text-xs font-medium text-muted-foreground"
       >
         {label}
         {required && (

@@ -44,14 +44,14 @@ const LEVEL_BADGE: Record<string, { bg: string; text: string }> = {
     text: "text-blue-700 dark:text-blue-300",
   },
   debug: {
-    bg: "bg-neutral-100 dark:bg-neutral-800",
-    text: "text-neutral-600 dark:text-neutral-400",
+    bg: "bg-white/[0.06]",
+    text: "text-muted-foreground",
   },
 };
 
 const FALLBACK_BADGE = {
-  bg: "bg-neutral-100 dark:bg-neutral-800",
-  text: "text-neutral-600 dark:text-neutral-400",
+  bg: "bg-white/[0.06]",
+  text: "text-muted-foreground",
 };
 
 const POLL_INTERVAL_MS = 5000;
@@ -111,12 +111,12 @@ export function LogsViewer({ slug }: LogsViewerProps) {
     <div className="flex h-full flex-col gap-3">
       {/* Toolbar */}
       <div className="flex items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+        <label className="flex items-center gap-2 text-sm text-foreground/80">
           <span>Severity</span>
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value as SeverityFilter)}
-            className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm text-neutral-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
+            className="rounded-md border border-white/[0.08] bg-white/[0.05] px-2 py-1 text-sm text-foreground/90 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
             {SEVERITY_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
@@ -130,12 +130,12 @@ export function LogsViewer({ slug }: LogsViewerProps) {
           type="button"
           onClick={() => void fetchLogs(true)}
           disabled={loading}
-          className="rounded-md border border-neutral-200 bg-white px-3 py-1 text-sm font-medium text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          className="rounded-md border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-sm font-medium text-foreground/80 shadow-sm transition-colors hover:bg-white/[0.06] disabled:opacity-50"
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
 
-        <span className="ml-auto text-xs text-neutral-400 dark:text-neutral-500">
+        <span className="ml-auto text-xs text-muted-foreground/60">
           Polling every 5s
         </span>
       </div>
@@ -148,9 +148,9 @@ export function LogsViewer({ slug }: LogsViewerProps) {
       )}
 
       {/* Log lines */}
-      <div className="flex-1 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-950 font-mono text-xs dark:border-neutral-800">
+      <div className="flex-1 overflow-y-auto rounded-xl border border-white/[0.06] bg-black/40 font-mono text-xs">
         {logs.length === 0 && !error && (
-          <div className="flex h-full items-center justify-center text-neutral-500">
+          <div className="flex h-full items-center justify-center text-muted-foreground">
             No log lines to display.
           </div>
         )}
@@ -160,9 +160,9 @@ export function LogsViewer({ slug }: LogsViewerProps) {
           return (
             <div
               key={idx}
-              className="flex items-start gap-3 border-b border-neutral-800 px-4 py-1.5 last:border-b-0"
+              className="flex items-start gap-3 border-b border-white/[0.08] px-4 py-1.5 last:border-b-0"
             >
-              <span className="shrink-0 text-neutral-500">
+              <span className="shrink-0 text-muted-foreground">
                 {new Date(line.timestamp).toLocaleTimeString(undefined, {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -174,7 +174,7 @@ export function LogsViewer({ slug }: LogsViewerProps) {
               >
                 {line.level.toUpperCase()}
               </span>
-              <span className="break-all text-neutral-200">{line.message}</span>
+              <span className="break-all text-foreground/90">{line.message}</span>
             </div>
           );
         })}

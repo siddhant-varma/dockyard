@@ -85,20 +85,20 @@ export default async function RoadmapPage({ params }: { params: Params }) {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <h1 className="text-xl font-semibold text-foreground">
           Roadmap
         </h1>
-        <p className="mt-0.5 text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="mt-0.5 text-sm text-muted-foreground">
           {project.name}
         </p>
       </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 py-20 text-center dark:border-neutral-700 dark:bg-neutral-900">
-          <p className="text-base font-medium text-neutral-600 dark:text-neutral-400">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] py-20 text-center">
+          <p className="text-base font-medium text-muted-foreground">
             No roadmap items yet
           </p>
-          <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-500">
+          <p className="mt-1 text-sm text-muted-foreground/60">
             Add milestones and phases to track project progress.
           </p>
         </div>
@@ -106,28 +106,28 @@ export default async function RoadmapPage({ params }: { params: Params }) {
         <div className="space-y-10">
           {Array.from(grouped.entries()).map(([phase, phaseItems]) => (
             <section key={phase}>
-              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 {phase}
               </h2>
               <ul className="space-y-3">
                 {phaseItems.map((item) => (
                   <li
                     key={item.id}
-                    className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900"
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4"
                   >
                     <div className="mb-1.5 flex items-start justify-between gap-3">
-                      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      <span className="text-sm font-medium text-foreground">
                         {item.title}
                       </span>
                       <StatusBadge status={item.status} className="shrink-0" />
                     </div>
                     {item.description && (
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      <p className="text-sm text-muted-foreground">
                         {item.description}
                       </p>
                     )}
                     {item.estimatedAt && (
-                      <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
+                      <p className="mt-2 text-xs text-muted-foreground/60">
                         Target:{" "}
                         {new Date(item.estimatedAt).toLocaleDateString(
                           "en-GB",

@@ -63,16 +63,16 @@ export function LiveHealthGrid({ initialProjects }: LiveHealthGridProps) {
   return (
     <>
       {/* Summary bar */}
-      <div className="flex flex-wrap gap-4 rounded-lg border border-neutral-200 bg-neutral-50 px-5 py-3 dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="flex flex-wrap gap-4 rounded-xl border border-white/[0.08] bg-white/[0.03] px-5 py-3">
         <SummaryCount label="Healthy" count={healthy} color="text-green-600 dark:text-green-400" />
         <SummaryCount label="Degraded" count={degraded} color="text-yellow-600 dark:text-yellow-400" />
         <SummaryCount label="Down" count={down} color="text-red-600 dark:text-red-400" />
-        <SummaryCount label="Total" count={sorted.length} color="text-neutral-700 dark:text-neutral-300" />
+        <SummaryCount label="Total" count={sorted.length} color="text-foreground/80" />
       </div>
 
       {/* Health card grid */}
       {sorted.length === 0 ? (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           No projects are being monitored yet.
         </p>
       ) : (
@@ -97,7 +97,7 @@ function SummaryCount({ label, count, color }: { label: string; count: number; c
   return (
     <div className="flex items-baseline gap-1.5">
       <span className={`text-lg font-bold tabular-nums ${color}`}>{count}</span>
-      <span className="text-sm text-neutral-500 dark:text-neutral-400">{label}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
     </div>
   );
 }

@@ -42,10 +42,10 @@ const STATUS_TO_BADGE: Record<string, string> = {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <span className="shrink-0 text-xs text-neutral-500 dark:text-neutral-400">
+      <span className="shrink-0 text-xs text-muted-foreground">
         {label}
       </span>
-      <span className="truncate text-right text-xs font-medium text-neutral-800 dark:text-neutral-200">
+      <span className="truncate text-right font-mono text-xs font-medium text-foreground/80">
         {value}
       </span>
     </div>
@@ -68,13 +68,13 @@ export function ServerStatusCard({
   const badgeStatus = STATUS_TO_BADGE[status] ?? "unknown";
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">
+    <div className="flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <h3 className="truncate text-sm font-semibold text-foreground">
             {name}
           </h3>
-          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Hetzner VPS
           </p>
         </div>
