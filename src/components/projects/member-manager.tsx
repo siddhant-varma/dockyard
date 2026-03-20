@@ -1,11 +1,8 @@
 /**
  * MemberManager — client component for managing project memberships.
  *
- * Displays a table of current project members with their roles, and provides
- * an "Add Member" form for superadmin users. Only superadmins can see the
- * add/remove/update controls; project admins and viewers see a read-only list.
- *
- * Renders within the project detail page's settings section.
+ * Displays a glass table of current project members with roles, and provides
+ * an "Add Member" form for superadmin users. Glass Observatory styling.
  *
  * @param projectSlug - The project's URL slug for API calls.
  * @param isSuperadmin - Whether the current user is a superadmin.
@@ -16,7 +13,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
-/** A project member as returned by GET /api/projects/:slug/members. */
 interface ProjectMember {
   id: string;
   userId: string;
@@ -31,6 +27,11 @@ interface MemberManagerProps {
   projectSlug: string;
   isSuperadmin: boolean;
 }
+
+const ROLE_STYLES: Record<string, string> = {
+  admin: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  viewer: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+};
 
 export function MemberManager({
   projectSlug,
@@ -63,10 +64,8 @@ export function MemberManager({
   async function handleAddMember(e: React.FormEvent) {
     e.preventDefault();
     if (!newUserId.trim()) return;
-
     setSubmitting(true);
     setError(null);
-
     try {
       const res = await fetch(`/api/projects/${projectSlug}/members`, {
         method: "POST",
@@ -111,109 +110,139 @@ export function MemberManager({
       if (!res.ok) throw new Error("Failed to remove member");
       await fetchMembers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove member");
+      setError(
+        err instanceof Error ? err.message : "Failed to remove member"
+      );
     }
   }
 
   if (loading) {
-    return <div className="text-sm text-gray-500">Loading members...</div>;
+    return (
+      <div className="text-sm text-muted-foreground/60">
+        Loading members...
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Project Members</h3>
-
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
           {error}
         </div>
       )}
 
       {members.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          No project-specific members assigned. Superadmins have universal
-          access.
-        </p>
+        <div className="rounded-xl border border-dashed border-glass-border bg-glass-bg p-8 text-center backdrop-blur-sm">
+          <p className="text-sm text-muted-foreground/60">
+            No project-specific members assigned. Superadmins have universal
+            access.
+          </p>
+        </div>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left text-gray-500">
-              <th className="pb-2 font-medium">User</th>
-              <th className="pb-2 font-medium">Role</th>
-              <th className="pb-2 font-medium">Added</th>
-              {isSuperadmin && (
-                <th className="pb-2 font-medium">Actions</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member) => (
-              <tr key={member.id} className="border-b">
-                <td className="py-2">
-                  <div className="flex items-center gap-2">
-                    {member.userImage && (
-                      <Image
-                        src={member.userImage}
-                        alt=""
-                        width={24}
-                        height={24}
-                        className="h-6 w-6 rounded-full"
-                      />
-                    )}
-                    <div>
-                      <div className="font-medium">{member.userName}</div>
-                      <div className="text-xs text-gray-500">
-                        {member.userEmail}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-2">
-                  {isSuperadmin ? (
-                    <select
-                      value={member.role}
-                      onChange={(e) =>
-                        handleUpdateRole(
-                          member.userId,
-                          e.target.value as "admin" | "viewer"
-                        )
-                      }
-                      className="rounded border px-2 py-1 text-sm"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="viewer">Viewer</option>
-                    </select>
-                  ) : (
-                    <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium capitalize">
-                      {member.role}
-                    </span>
-                  )}
-                </td>
-                <td className="py-2 text-gray-500">
-                  {new Date(member.createdAt).toLocaleDateString()}
-                </td>
+        <div className="overflow-hidden rounded-xl border border-glass-border bg-glass-bg backdrop-blur-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-glass-border text-left">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                  User
+                </th>
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                  Role
+                </th>
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                  Added
+                </th>
                 {isSuperadmin && (
-                  <td className="py-2">
-                    <button
-                      onClick={() => handleRemoveMember(member.userId)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
-                  </td>
+                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                    Actions
+                  </th>
                 )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {members.map((member) => (
+                <tr
+                  key={member.id}
+                  className="border-b border-glass-divider last:border-0"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {member.userImage ? (
+                        <Image
+                          src={member.userImage}
+                          alt=""
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 rounded-full"
+                        />
+                      ) : (
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-glass-hover border border-glass-border text-xs text-muted-foreground">
+                          {member.userName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium text-foreground">
+                          {member.userName}
+                        </div>
+                        <div className="text-xs text-muted-foreground/50">
+                          {member.userEmail}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {isSuperadmin ? (
+                      <select
+                        value={member.role}
+                        onChange={(e) =>
+                          handleUpdateRole(
+                            member.userId,
+                            e.target.value as "admin" | "viewer"
+                          )
+                        }
+                        className="rounded-lg border border-glass-border bg-glass-input px-2 py-1 text-sm text-foreground backdrop-blur-sm focus:border-[var(--color-brand-500)] focus:outline-none"
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    ) : (
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${ROLE_STYLES[member.role] ?? ""}`}
+                      >
+                        {member.role}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground/60">
+                    {new Date(member.createdAt).toLocaleDateString()}
+                  </td>
+                  {isSuperadmin && (
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleRemoveMember(member.userId)}
+                        className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {isSuperadmin && (
-        <form onSubmit={handleAddMember} className="flex items-end gap-3">
+        <form
+          onSubmit={handleAddMember}
+          className="flex flex-col gap-3 rounded-xl border border-glass-border bg-glass-bg p-4 backdrop-blur-sm sm:flex-row sm:items-end"
+        >
           <div className="flex-1">
             <label
               htmlFor="userId"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-xs font-medium text-muted-foreground/70 mb-1"
             >
               User ID
             </label>
@@ -223,22 +252,24 @@ export function MemberManager({
               value={newUserId}
               onChange={(e) => setNewUserId(e.target.value)}
               placeholder="UUID of the user to add"
-              className="mt-1 w-full rounded border px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-glass-border bg-glass-input px-3 py-2 text-sm text-foreground placeholder-muted-foreground/40 backdrop-blur-sm focus:border-[var(--color-brand-500)] focus:outline-none"
               required
             />
           </div>
           <div>
             <label
               htmlFor="role"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-xs font-medium text-muted-foreground/70 mb-1"
             >
               Role
             </label>
             <select
               id="role"
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value as "admin" | "viewer")}
-              className="mt-1 rounded border px-3 py-2 text-sm"
+              onChange={(e) =>
+                setNewRole(e.target.value as "admin" | "viewer")
+              }
+              className="rounded-lg border border-glass-border bg-glass-input px-3 py-2 text-sm text-foreground backdrop-blur-sm focus:border-[var(--color-brand-500)] focus:outline-none"
             >
               <option value="admin">Admin</option>
               <option value="viewer">Viewer</option>
@@ -247,7 +278,7 @@ export function MemberManager({
           <button
             type="submit"
             disabled={submitting}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-[var(--color-brand-500)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-brand-600)] disabled:opacity-50"
           >
             {submitting ? "Adding..." : "Add Member"}
           </button>
