@@ -1,5 +1,5 @@
 import { db } from "@/db/connection";
-import { platformSettings } from "@/db/schema";
+import { platformSettings, discoverySources } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { GeneralTab } from "@/components/settings/general-tab";
 import { ProjectsTab } from "@/components/settings/projects-tab";
@@ -18,17 +18,55 @@ const TABS = [
 export default async function SettingsPage({ searchParams }: Props) {
   const { tab = "general" } = await searchParams;
 
-  const settings = await db.query.platformSettings.findFirst({
+  let settings = await db.query.platformSettings.findFirst({
     where: eq(platformSettings.id, "singleton"),
   });
+
+  // Auto-initialize platform settings on first visit
+  if (!settings) {
+    [settings] = await db
+      .insert(platformSettings)
+      .values({
+        id: "singleton",
+        operatingMode: "local",
+        autoScan: true,
+        scanInterval: 300,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    // Refetch if onConflict race condition
+    if (!settings) {
+      settings = await db.query.platformSettings.findFirst({
+        where: eq(platformSettings.id, "singleton"),
+      });
+    }
+  }
 
   const allProjects = await db.query.projects.findMany({
     orderBy: (p, { asc }) => [asc(p.name)],
   });
 
-  const allSources = await db.query.discoverySources.findMany({
+  let allSources = await db.query.discoverySources.findMany({
     orderBy: (s, { asc }) => [asc(s.createdAt)],
   });
+
+  // Auto-create default filesystem discovery source on first visit
+  if (allSources.length === 0) {
+    await db
+      .insert(discoverySources)
+      .values({
+        type: "filesystem",
+        name: "Local Projects",
+        config: { path: "..", recursive: false },
+        enabled: true,
+      })
+      .onConflictDoNothing();
+
+    allSources = await db.query.discoverySources.findMany({
+      orderBy: (s, { asc }) => [asc(s.createdAt)],
+    });
+  }
 
   return (
     <div>
@@ -52,12 +90,12 @@ export default async function SettingsPage({ searchParams }: Props) {
         ))}
       </div>
 
-      {tab === "general" && settings && (
+      {tab === "general" && (
         <GeneralTab
           initial={{
-            operatingMode: settings.operatingMode,
-            autoScan: settings.autoScan,
-            scanInterval: settings.scanInterval,
+            operatingMode: settings?.operatingMode ?? "local",
+            autoScan: settings?.autoScan ?? true,
+            scanInterval: settings?.scanInterval ?? 300,
           }}
         />
       )}

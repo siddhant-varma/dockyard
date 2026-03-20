@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * SourcesTab — manages discovery sources (filesystem, Dokploy, GitHub).
+ *
+ * Each source type has its own config fields:
+ * - Filesystem: scan path
+ * - Dokploy: API URL + API key
+ * - GitHub: personal access token + optional org/user
+ */
+
 import { useState } from "react";
 
 interface DiscoverySourceItem {
@@ -11,40 +20,92 @@ interface DiscoverySourceItem {
   lastScanResult: { found?: number } | null;
 }
 
+interface NewSourceState {
+  type: string;
+  name: string;
+  // Filesystem
+  path: string;
+  // Dokploy
+  instanceUrl: string;
+  apiKey: string;
+  // GitHub
+  token: string;
+  org: string;
+  user: string;
+}
+
+const INITIAL_SOURCE: NewSourceState = {
+  type: "filesystem",
+  name: "",
+  path: "..",
+  instanceUrl: "",
+  apiKey: "",
+  token: "",
+  org: "",
+  user: "",
+};
+
 export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
   const [sources, setSources] = useState(initial);
   const [adding, setAdding] = useState(false);
-  const [newSource, setNewSource] = useState({
-    type: "filesystem",
-    name: "",
-    path: "..",
-  });
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [newSource, setNewSource] = useState<NewSourceState>(INITIAL_SOURCE);
+
+  function buildConfig(): Record<string, unknown> {
+    switch (newSource.type) {
+      case "filesystem":
+        return { path: newSource.path || "..", recursive: false };
+      case "dokploy":
+        return { instanceUrl: newSource.instanceUrl, apiKey: newSource.apiKey };
+      case "github":
+        return {
+          token: newSource.token,
+          ...(newSource.org ? { org: newSource.org } : {}),
+          ...(newSource.user ? { user: newSource.user } : {}),
+        };
+      default:
+        return {};
+    }
+  }
 
   async function handleAdd() {
     if (!newSource.name) return;
     setAdding(true);
     try {
-      const config =
-        newSource.type === "filesystem"
-          ? { path: newSource.path }
-          : { instanceUrl: "", apiKey: "" };
-
       const res = await fetch("/api/discovery/sources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: newSource.type,
           name: newSource.name,
-          config,
+          config: buildConfig(),
         }),
       });
       if (res.ok) {
         const created = await res.json();
         setSources([...sources, created]);
-        setNewSource({ type: "filesystem", name: "", path: ".." });
+        setNewSource(INITIAL_SOURCE);
       }
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function handleScanNow() {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const res = await fetch("/api/discovery");
+      if (res.ok) {
+        const data = await res.json();
+        const found = data.discovered ?? data.projects?.length ?? 0;
+        setScanResult(`Scan complete: ${found} project(s) found`);
+      } else {
+        setScanResult("Scan failed");
+      }
+    } finally {
+      setScanning(false);
     }
   }
 
@@ -64,6 +125,23 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
 
   return (
     <div className="space-y-6">
+      {/* Scan Now button */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleScanNow}
+          disabled={scanning}
+          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+        >
+          {scanning ? "Scanning..." : "Scan Now"}
+        </button>
+        {scanResult && (
+          <span className="text-sm text-neutral-600 dark:text-neutral-400">
+            {scanResult}
+          </span>
+        )}
+      </div>
+
+      {/* Sources list */}
       <div className="divide-y divide-neutral-200 rounded-md border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
         {sources.length === 0 ? (
           <div className="p-4 text-center text-sm text-neutral-500">
@@ -83,6 +161,13 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
                   {source.type}
                   {source.lastScanResult?.found != null && (
                     <> &middot; {source.lastScanResult.found} found</>
+                  )}
+                  {source.lastScanAt && (
+                    <>
+                      {" "}
+                      &middot; Last scan:{" "}
+                      {new Date(source.lastScanAt).toLocaleString()}
+                    </>
                   )}
                 </div>
               </div>
@@ -109,21 +194,24 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
         )}
       </div>
 
+      {/* Add Source form */}
       <div className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
         <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Add Source
+          Add Discovery Source
         </h4>
+
         <div className="flex gap-2">
           <select
             value={newSource.type}
             onChange={(e) =>
-              setNewSource({ ...newSource, type: e.target.value })
+              setNewSource({ ...INITIAL_SOURCE, type: e.target.value })
             }
             className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
           >
             <option value="filesystem">Filesystem</option>
             <option value="dokploy">Dokploy</option>
             <option value="github">GitHub</option>
+            <option value="manual">Manual</option>
           </select>
           <input
             type="text"
@@ -134,25 +222,91 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
             }
             className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
           />
-          {newSource.type === "filesystem" && (
+        </div>
+
+        {/* Filesystem config */}
+        {newSource.type === "filesystem" && (
+          <input
+            type="text"
+            placeholder="Scan path (e.g., .. or /home/user/projects)"
+            value={newSource.path}
+            onChange={(e) =>
+              setNewSource({ ...newSource, path: e.target.value })
+            }
+            className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+          />
+        )}
+
+        {/* Dokploy config */}
+        {newSource.type === "dokploy" && (
+          <div className="space-y-2">
             <input
               type="text"
-              placeholder="Path (e.g., ..)"
-              value={newSource.path}
+              placeholder="Dokploy API URL (e.g., https://dokploy.example.com)"
+              value={newSource.instanceUrl}
               onChange={(e) =>
-                setNewSource({ ...newSource, path: e.target.value })
+                setNewSource({ ...newSource, instanceUrl: e.target.value })
               }
-              className="w-40 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+              className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
             />
-          )}
-          <button
-            onClick={handleAdd}
-            disabled={adding || !newSource.name}
-            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            Add
-          </button>
-        </div>
+            <input
+              type="password"
+              placeholder="Dokploy API Key"
+              value={newSource.apiKey}
+              onChange={(e) =>
+                setNewSource({ ...newSource, apiKey: e.target.value })
+              }
+              className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+            />
+          </div>
+        )}
+
+        {/* GitHub config */}
+        {newSource.type === "github" && (
+          <div className="space-y-2">
+            <input
+              type="password"
+              placeholder="GitHub Personal Access Token (required)"
+              value={newSource.token}
+              onChange={(e) =>
+                setNewSource({ ...newSource, token: e.target.value })
+              }
+              className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Organization (optional)"
+                value={newSource.org}
+                onChange={(e) =>
+                  setNewSource({ ...newSource, org: e.target.value })
+                }
+                className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+              />
+              <input
+                type="text"
+                placeholder="User (optional)"
+                value={newSource.user}
+                onChange={(e) =>
+                  setNewSource({ ...newSource, user: e.target.value })
+                }
+                className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+              />
+            </div>
+            <p className="text-xs text-neutral-500">
+              Token needs <code>repo</code> scope for private repos or{" "}
+              <code>public_repo</code> for public only.
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={handleAdd}
+          disabled={adding || !newSource.name}
+          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+        >
+          {adding ? "Adding..." : "Add Source"}
+        </button>
       </div>
     </div>
   );
