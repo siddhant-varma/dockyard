@@ -3,8 +3,6 @@ import "./globals.css";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { cn } from "@/lib/utils";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { MobileNav } from "@/components/shared/mobile-nav";
 
 export const metadata: Metadata = {
   title: {
@@ -41,33 +39,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(GeistSans.variable, GeistMono.variable)}
+      className={cn(GeistSans.variable, GeistMono.variable, "dark")}
       suppressHydrationWarning
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var mode = localStorage.getItem('dockyard-theme');
-                  if (mode === 'light') {
-                    // User explicitly chose light mode — respect it
-                  } else {
-                    // Default to dark (Glass Observatory design direction)
-                    document.documentElement.classList.add('dark');
-                  }
-                } catch(e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body className="min-h-screen text-foreground antialiased font-sans pb-16 md:pb-0">
-        <TooltipProvider>
-          {children}
-          <MobileNav />
-        </TooltipProvider>
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+        {children}
       </body>
     </html>
   );
