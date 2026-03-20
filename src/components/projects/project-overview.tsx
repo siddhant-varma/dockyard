@@ -56,15 +56,15 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       {/* Description */}
       {project.description ? (
         <div>
-          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Description
           </h2>
-          <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+          <p className="text-sm leading-relaxed text-foreground/80">
             {project.description}
           </p>
         </div>
       ) : (
-        <p className="text-sm text-neutral-400 dark:text-neutral-500">
+        <p className="text-sm text-muted-foreground/60">
           No description provided.
         </p>
       )}
@@ -72,10 +72,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       {/* Current phase */}
       {project.currentPhase && (
         <div>
-          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Current Phase
           </h2>
-          <p className="text-sm text-neutral-700 dark:text-neutral-300">
+          <p className="text-sm text-foreground/80">
             {project.currentPhase}
           </p>
         </div>
@@ -84,14 +84,14 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       {/* Tech stack */}
       {tags.length > 0 && (
         <div>
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Tech Stack
           </h2>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                className="rounded-md bg-white/[0.06] px-2.5 py-1 text-xs font-medium text-foreground/80"
               >
                 {tag}
               </span>
@@ -101,10 +101,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       )}
 
       {/* Meta: repository, discovery source */}
-      <div className="grid gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:grid-cols-2">
+      <div className="grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-sm sm:grid-cols-2">
         {project.githubRepo && (
           <div>
-            <span className="block text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            <span className="block text-xs font-medium text-muted-foreground">
               Repository
             </span>
             <a
@@ -119,29 +119,29 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         )}
         {project.dokployAppId && (
           <div>
-            <span className="block text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            <span className="block text-xs font-medium text-muted-foreground">
               Dokploy App ID
             </span>
-            <span className="font-mono text-neutral-700 dark:text-neutral-300">
+            <span className="font-mono text-foreground/80">
               {project.dokployAppId}
             </span>
           </div>
         )}
         {project.discoveredVia && (
           <div>
-            <span className="block text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            <span className="block text-xs font-medium text-muted-foreground">
               Discovered Via
             </span>
-            <span className="capitalize text-neutral-700 dark:text-neutral-300">
+            <span className="capitalize text-foreground/80">
               {project.discoveredVia}
             </span>
           </div>
         )}
         <div>
-          <span className="block text-xs font-medium text-neutral-500 dark:text-neutral-400">
+          <span className="block text-xs font-medium text-muted-foreground">
             Added
           </span>
-          <span className="text-neutral-700 dark:text-neutral-300">
+          <span className="text-foreground/80">
             {new Date(project.createdAt).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "short",

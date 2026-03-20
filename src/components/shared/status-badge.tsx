@@ -15,55 +15,55 @@
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   // Project statuses
   discovered: {
-    bg: "bg-blue-100 dark:bg-blue-900/30",
-    text: "text-blue-700 dark:text-blue-300",
+    bg: "bg-blue-500/15 border border-blue-500/20",
+    text: "text-blue-400",
   },
   discovery: {
-    bg: "bg-blue-100 dark:bg-blue-900/30",
-    text: "text-blue-700 dark:text-blue-300",
+    bg: "bg-blue-500/15 border border-blue-500/20",
+    text: "text-blue-400",
   },
   active: {
-    bg: "bg-green-100 dark:bg-green-900/30",
-    text: "text-green-700 dark:text-green-300",
+    bg: "bg-green-500/15 border border-green-500/20",
+    text: "text-green-400",
   },
   paused: {
-    bg: "bg-yellow-100 dark:bg-yellow-900/30",
-    text: "text-yellow-700 dark:text-yellow-300",
+    bg: "bg-yellow-500/15 border border-yellow-500/20",
+    text: "text-yellow-400",
   },
   completed: {
-    bg: "bg-neutral-100 dark:bg-neutral-800",
-    text: "text-neutral-600 dark:text-neutral-400",
+    bg: "bg-white/[0.06] border border-white/[0.08]",
+    text: "text-muted-foreground",
   },
   archived: {
-    bg: "bg-neutral-100 dark:bg-neutral-800",
-    text: "text-neutral-500 dark:text-neutral-500",
+    bg: "bg-white/[0.04] border border-white/[0.06]",
+    text: "text-muted-foreground/60",
   },
   // Health statuses
   healthy: {
-    bg: "bg-green-100 dark:bg-green-900/30",
-    text: "text-green-700 dark:text-green-300",
+    bg: "bg-green-500/15 border border-green-500/20",
+    text: "text-green-400",
   },
   degraded: {
-    bg: "bg-yellow-100 dark:bg-yellow-900/30",
-    text: "text-yellow-700 dark:text-yellow-300",
+    bg: "bg-yellow-500/15 border border-yellow-500/20",
+    text: "text-yellow-400",
   },
   down: {
-    bg: "bg-red-100 dark:bg-red-900/30",
-    text: "text-red-700 dark:text-red-300",
+    bg: "bg-red-500/15 border border-red-500/20",
+    text: "text-red-400",
   },
   maintenance: {
-    bg: "bg-indigo-100 dark:bg-indigo-900/30",
-    text: "text-indigo-700 dark:text-indigo-300",
+    bg: "bg-indigo-500/15 border border-indigo-500/20",
+    text: "text-indigo-400",
   },
   unknown: {
-    bg: "bg-neutral-100 dark:bg-neutral-800",
-    text: "text-neutral-500 dark:text-neutral-500",
+    bg: "bg-white/[0.06] border border-white/[0.08]",
+    text: "text-muted-foreground",
   },
 };
 
 const FALLBACK = {
-  bg: "bg-neutral-100 dark:bg-neutral-800",
-  text: "text-neutral-600 dark:text-neutral-400",
+  bg: "bg-white/[0.06] border border-white/[0.08]",
+  text: "text-muted-foreground",
 };
 
 interface StatusBadgeProps {

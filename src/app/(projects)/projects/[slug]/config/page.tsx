@@ -43,12 +43,12 @@ export default async function ConfigPage({ params }: { params: Params }) {
     <div className="flex flex-col gap-8">
       {/* Page header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <h1 className="text-xl font-semibold text-foreground">
           Config
         </h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           Environment variables and service parameters for{" "}
-          <span className="font-medium text-neutral-700 dark:text-neutral-300">
+          <span className="font-medium text-foreground/80">
             {slug}
           </span>
           . Secrets are masked by default.
@@ -59,8 +59,8 @@ export default async function ConfigPage({ params }: { params: Params }) {
       <ConfigList entries={entries} slug={slug} />
 
       {/* Apply + redeploy */}
-      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-5 dark:border-neutral-700 dark:bg-neutral-900">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+      <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5">
+        <h2 className="mb-3 text-sm font-semibold text-foreground/90">
           Apply Configuration
         </h2>
         <ApplyRestart slug={slug} />

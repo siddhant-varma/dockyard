@@ -65,10 +65,10 @@ function formatUpdatedAt(iso: string): string {
 function LineItemRow({ label, value }: LineItem) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-neutral-500 dark:text-neutral-400">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
-      <span className="text-xs font-medium tabular-nums text-neutral-700 dark:text-neutral-300">
+      <span className="text-xs font-medium tabular-nums text-foreground/80">
         {formatEur(value)}
       </span>
     </div>
@@ -82,11 +82,11 @@ function LineItemRow({ label, value }: LineItem) {
 export function BillingCard({ billing }: BillingCardProps) {
   if (!billing) {
     return (
-      <div className="flex flex-col gap-2 rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">
-        <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <div className="flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
+        <h3 className="text-sm font-semibold text-foreground">
           Billing
         </h3>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+        <p className="text-xs text-muted-foreground">
           No billing estimate recorded yet. The first estimate will appear after
           the next background job run.
         </p>
@@ -103,28 +103,28 @@ export function BillingCard({ billing }: BillingCardProps) {
   ];
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">
+    <div className="flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <h3 className="text-sm font-semibold text-foreground">
             Billing
           </h3>
-          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Month-to-date estimate
           </p>
         </div>
-        <span className="shrink-0 text-2xl font-bold tabular-nums text-neutral-900 dark:text-neutral-100">
+        <span className="shrink-0 font-mono text-2xl font-bold tabular-nums text-foreground">
           {formatEur(billing.totalCost)}
         </span>
       </div>
 
-      <div className="space-y-1.5 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+      <div className="space-y-1.5 border-t border-white/[0.06] pt-3">
         {lineItems.map((item) => (
           <LineItemRow key={item.label} label={item.label} value={item.value} />
         ))}
       </div>
 
-      <p className="text-right text-xs text-neutral-400 dark:text-neutral-600">
+      <p className="text-right text-xs text-muted-foreground/60">
         Updated {formatUpdatedAt(billing.calculatedAt)}
       </p>
     </div>

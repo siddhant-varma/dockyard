@@ -21,6 +21,7 @@ import {
 import { ServerStatusCard } from "@/components/dashboard/server-status-card";
 import { LiveVpsMetrics } from "@/components/dashboard/live-vps-metrics";
 import { type MetricSeries } from "@/components/dashboard/vps-metrics-panel";
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 
 /* ================================================================
    API Response Types
@@ -199,7 +200,7 @@ export default async function HomePage() {
   const metrics = buildMetricSeries(rawMetrics);
 
   return (
-    <div className="flex flex-col gap-6">
+    <DashboardLayout>
       {/* Alerts strip — SSE-driven with polling fallback */}
       <LiveAlertsStrip />
 
@@ -220,8 +221,8 @@ export default async function HomePage() {
             datacenter={serverStatus.datacenter}
           />
         ) : (
-          <div className="flex items-center justify-center rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          <div className="flex items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-lg dark:glass">
+            <p className="text-sm text-muted-foreground">
               Server status unavailable. Check your Hetzner API configuration.
             </p>
           </div>
@@ -229,6 +230,6 @@ export default async function HomePage() {
 
         <BillingCard billing={billing} />
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

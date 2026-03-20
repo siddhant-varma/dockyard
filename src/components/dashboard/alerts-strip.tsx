@@ -74,10 +74,10 @@ function AlertPill({ alert }: { alert: AlertEvent }) {
       >
         {alert.severity.toUpperCase()}
       </span>
-      <span className="max-w-xs truncate text-xs font-medium text-neutral-800 dark:text-neutral-200">
+      <span className="max-w-xs truncate text-xs font-medium text-foreground/90">
         {message}
       </span>
-      <span className="shrink-0 text-xs text-neutral-500 dark:text-neutral-400">
+      <span className="shrink-0 text-xs text-muted-foreground">
         {formatTimeSince(alert.triggeredAt)}
       </span>
     </div>

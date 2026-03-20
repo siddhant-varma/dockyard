@@ -82,7 +82,7 @@ export function ApplyRestart({ slug }: ApplyRestartProps) {
               ? "bg-green-600 text-white dark:bg-green-500"
               : status === "error"
                 ? "bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
-                : "bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
           }`}
         >
           {STATUS_LABEL[status]}
@@ -92,19 +92,19 @@ export function ApplyRestart({ slug }: ApplyRestartProps) {
         {(status === "saving" ||
           status === "redeploying" ||
           status === "live") && (
-          <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Step
               label="Saving"
               active={status === "saving"}
               done={status === "redeploying" || status === "live"}
             />
-            <span className="text-neutral-300 dark:text-neutral-600">→</span>
+            <span className="text-muted-foreground/40">→</span>
             <Step
               label="Redeploying"
               active={status === "redeploying"}
               done={status === "live"}
             />
-            <span className="text-neutral-300 dark:text-neutral-600">→</span>
+            <span className="text-muted-foreground/40">→</span>
             <Step label="Live" active={status === "live"} done={false} />
           </div>
         )}
@@ -114,7 +114,7 @@ export function ApplyRestart({ slug }: ApplyRestartProps) {
         <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
       )}
 
-      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+      <p className="text-xs text-muted-foreground">
         Pushes all config entries to the Dokploy deployment platform and
         triggers a redeploy. The project will restart with the updated
         environment variables.
@@ -136,8 +136,8 @@ function Step({ label, active, done }: StepProps) {
         done
           ? "font-medium text-green-600 dark:text-green-400"
           : active
-            ? "font-medium text-neutral-900 dark:text-neutral-100"
-            : "text-neutral-400 dark:text-neutral-600"
+            ? "font-medium text-foreground"
+            : "text-muted-foreground/60"
       }
     >
       {label}

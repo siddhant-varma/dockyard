@@ -70,11 +70,11 @@ export default async function SettingsPage({ searchParams }: Props) {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+      <h1 className="mb-6 text-2xl font-bold text-foreground">
         Settings
       </h1>
 
-      <div className="mb-6 flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="mb-6 flex gap-1 border-b border-white/[0.06]">
         {TABS.map((t) => (
           <a
             key={t.id}
@@ -82,7 +82,7 @@ export default async function SettingsPage({ searchParams }: Props) {
             className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               tab === t.id
                 ? "border-brand-600 text-brand-600"
-                : "border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                : "border-transparent text-muted-foreground hover:text-foreground/80"
             }`}
           >
             {t.label}

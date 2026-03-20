@@ -72,7 +72,7 @@ export function ConfigEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-800/50">
+    <div className="flex flex-col gap-2 rounded-md border border-white/[0.08] bg-white/[0.03] p-3">
       <input
         type={resolvedInputType}
         value={value}
@@ -81,7 +81,7 @@ export function ConfigEditor({
           setError(null);
         }}
         autoFocus
-        className="w-full rounded-md border border-neutral-200 bg-white px-3 py-1.5 font-mono text-sm text-neutral-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+        className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-1.5 font-mono text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
         aria-label={`Value for ${entryKey}`}
       />
 
@@ -94,7 +94,7 @@ export function ConfigEditor({
           type="button"
           onClick={() => void handleSave()}
           disabled={saving}
-          className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save"}
         </button>
@@ -102,7 +102,7 @@ export function ConfigEditor({
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+          className="rounded-md border border-white/[0.08] px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-white/[0.06]"
         >
           Cancel
         </button>

@@ -80,8 +80,8 @@ export function AlertEventsList({ initialEvents }: AlertEventsListProps) {
 
   if (events.length === 0) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-6 py-8 text-center dark:border-neutral-700 dark:bg-neutral-900">
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+      <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-6 py-8 text-center">
+        <p className="text-sm text-muted-foreground">
           No active alert events.
         </p>
       </div>
@@ -96,7 +96,7 @@ export function AlertEventsList({ initialEvents }: AlertEventsListProps) {
         </div>
       )}
 
-      <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-700">
+      <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.08]">
         {events.map((event) => (
           <li
             key={event.id}
@@ -105,14 +105,14 @@ export function AlertEventsList({ initialEvents }: AlertEventsListProps) {
             <StatusBadge status={event.severity} className="self-start" />
 
             <div className="flex flex-1 flex-col gap-0.5">
-              <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              <p className="text-sm font-medium text-foreground">
                 {event.message ?? "No message"}
               </p>
-              <div className="flex flex-wrap gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {event.projectName && (
                   <span>
                     Project:{" "}
-                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                    <span className="font-medium text-foreground/80">
                       {event.projectName}
                     </span>
                   </span>
@@ -129,7 +129,7 @@ export function AlertEventsList({ initialEvents }: AlertEventsListProps) {
                 type="button"
                 onClick={() => void handleAcknowledge(event.id)}
                 disabled={acknowledging === event.id}
-                className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 shadow-sm transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                className="shrink-0 rounded-md border border-white/[0.08] bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-sm transition-colors hover:bg-white/[0.08] disabled:opacity-50"
               >
                 {acknowledging === event.id
                   ? "Acknowledging..."

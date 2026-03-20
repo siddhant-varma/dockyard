@@ -19,7 +19,7 @@ interface TopbarProps {
 
 export function Topbar({ activeService, userName, userImage }: TopbarProps) {
   return (
-    <header className="flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 dark:border-neutral-800 dark:bg-neutral-950">
+    <header className="flex h-14 items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-4 backdrop-blur-xl dark:glass-elevated">
       <div className="flex items-center gap-1">
         {SERVICES.map((svc) => {
           const isActive =
@@ -29,10 +29,10 @@ export function Topbar({ activeService, userName, userImage }: TopbarProps) {
             <Link
               key={svc.href}
               href={svc.href}
-              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+              className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
                 isActive
-                  ? "bg-neutral-100 font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
-                  : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+                  ? "bg-primary/15 font-medium text-primary dark:bg-primary/20 dark:text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
               }`}
             >
               {svc.label}
@@ -42,7 +42,7 @@ export function Topbar({ activeService, userName, userImage }: TopbarProps) {
       </div>
       <div className="flex items-center gap-3">
         {userName && (
-          <span className="text-sm text-neutral-600 dark:text-neutral-400">
+          <span className="text-sm text-muted-foreground">
             {userName}
           </span>
         )}
@@ -51,10 +51,10 @@ export function Topbar({ activeService, userName, userImage }: TopbarProps) {
           <img
             src={userImage}
             alt={userName ?? "User"}
-            className="h-8 w-8 rounded-full"
+            className="h-8 w-8 rounded-full ring-1 ring-white/10"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200 text-xs font-medium text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] text-xs font-medium text-muted-foreground ring-1 ring-white/10">
             {userName?.[0]?.toUpperCase() ?? "?"}
           </div>
         )}

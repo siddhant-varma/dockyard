@@ -135,16 +135,16 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
           {scanning ? "Scanning..." : "Scan Now"}
         </button>
         {scanResult && (
-          <span className="text-sm text-neutral-600 dark:text-neutral-400">
+          <span className="text-sm text-muted-foreground">
             {scanResult}
           </span>
         )}
       </div>
 
       {/* Sources list */}
-      <div className="divide-y divide-neutral-200 rounded-md border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+      <div className="divide-y divide-white/[0.06] rounded-md border border-white/[0.06]">
         {sources.length === 0 ? (
-          <div className="p-4 text-center text-sm text-neutral-500">
+          <div className="p-4 text-center text-sm text-muted-foreground">
             No discovery sources configured.
           </div>
         ) : (
@@ -154,10 +154,10 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
               className="flex items-center justify-between p-3"
             >
               <div>
-                <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                <div className="text-sm font-medium text-foreground">
                   {source.name}
                 </div>
-                <div className="text-xs text-neutral-500">
+                <div className="text-xs text-muted-foreground">
                   {source.type}
                   {source.lastScanResult?.found != null && (
                     <> &middot; {source.lastScanResult.found} found</>
@@ -177,7 +177,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
                   className={`rounded px-2 py-1 text-xs ${
                     source.enabled
                       ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                      : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800"
+                      : "bg-white/[0.06] text-muted-foreground"
                   }`}
                 >
                   {source.enabled ? "Enabled" : "Disabled"}
@@ -195,8 +195,8 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
       </div>
 
       {/* Add Source form */}
-      <div className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-        <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+      <div className="space-y-3 rounded-md border border-white/[0.06] p-4">
+        <h4 className="text-sm font-medium text-foreground/80">
           Add Discovery Source
         </h4>
 
@@ -206,7 +206,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
             onChange={(e) =>
               setNewSource({ ...INITIAL_SOURCE, type: e.target.value })
             }
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+            className="rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
           >
             <option value="filesystem">Filesystem</option>
             <option value="dokploy">Dokploy</option>
@@ -220,7 +220,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
             onChange={(e) =>
               setNewSource({ ...newSource, name: e.target.value })
             }
-            className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+            className="flex-1 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
           />
         </div>
 
@@ -233,7 +233,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
             onChange={(e) =>
               setNewSource({ ...newSource, path: e.target.value })
             }
-            className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+            className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
           />
         )}
 
@@ -247,7 +247,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
               onChange={(e) =>
                 setNewSource({ ...newSource, instanceUrl: e.target.value })
               }
-              className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+              className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
             />
             <input
               type="password"
@@ -256,7 +256,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
               onChange={(e) =>
                 setNewSource({ ...newSource, apiKey: e.target.value })
               }
-              className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+              className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
             />
           </div>
         )}
@@ -271,7 +271,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
               onChange={(e) =>
                 setNewSource({ ...newSource, token: e.target.value })
               }
-              className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+              className="w-full rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
             />
             <div className="flex gap-2">
               <input
@@ -281,7 +281,7 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
                 onChange={(e) =>
                   setNewSource({ ...newSource, org: e.target.value })
                 }
-                className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                className="flex-1 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
               />
               <input
                 type="text"
@@ -290,10 +290,10 @@ export function SourcesTab({ initial }: { initial: DiscoverySourceItem[] }) {
                 onChange={(e) =>
                   setNewSource({ ...newSource, user: e.target.value })
                 }
-                className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                className="flex-1 rounded-md border border-white/[0.1] bg-white/[0.05] px-3 py-2 text-sm"
               />
             </div>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               Token needs <code>repo</code> scope for private repos or{" "}
               <code>public_repo</code> for public only.
             </p>

@@ -32,7 +32,7 @@ export function ProjectsTab({ initial }: { initial: Project[] }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+        <h3 className="text-sm font-medium text-foreground/80">
           Discovered Projects ({projects.length})
         </h3>
         <button
@@ -44,9 +44,9 @@ export function ProjectsTab({ initial }: { initial: Project[] }) {
         </button>
       </div>
 
-      <div className="divide-y divide-neutral-200 rounded-md border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+      <div className="divide-y divide-white/[0.06] rounded-md border border-white/[0.06]">
         {projects.length === 0 ? (
-          <div className="p-4 text-center text-sm text-neutral-500">
+          <div className="p-4 text-center text-sm text-muted-foreground">
             No projects discovered yet. Add a discovery source and scan.
           </div>
         ) : (
@@ -56,10 +56,10 @@ export function ProjectsTab({ initial }: { initial: Project[] }) {
               className="flex items-center justify-between p-3"
             >
               <div>
-                <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                <div className="text-sm font-medium text-foreground">
                   {project.name}
                 </div>
-                <div className="text-xs text-neutral-500">
+                <div className="text-xs text-muted-foreground">
                   {project.slug} &middot; via{" "}
                   {project.discoveredVia ?? "unknown"}
                   {project.techStack && project.techStack.length > 0 && (
@@ -73,7 +73,7 @@ export function ProjectsTab({ initial }: { initial: Project[] }) {
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                     : project.status === "discovered"
                       ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                      : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                      : "bg-white/[0.06] text-muted-foreground"
                 }`}
               >
                 {project.status}

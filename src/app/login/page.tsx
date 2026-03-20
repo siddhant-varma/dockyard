@@ -12,13 +12,13 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-      <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="flex min-h-screen items-center justify-center bg-white/[0.03]">
+      <div className="w-full max-w-sm rounded-xl border border-white/[0.06] bg-white/[0.03] p-8">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+          <h1 className="text-2xl font-bold text-foreground">
             DockYard
           </h1>
-          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+          <p className="mt-2 text-sm text-muted-foreground">
             Sign in to manage your projects
           </p>
         </div>
@@ -31,7 +31,7 @@ export default async function LoginPage() {
         >
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Sign in with GitHub
           </button>

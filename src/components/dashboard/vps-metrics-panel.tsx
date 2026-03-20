@@ -41,14 +41,14 @@ function MetricRow({ metric }: { metric: MetricSeries }) {
       : metric.currentValue.toFixed(1);
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-700 dark:bg-neutral-900">
+    <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 backdrop-blur-lg dark:glass">
       <div className="min-w-0">
-        <p className="truncate text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {metric.label}
         </p>
-        <p className="mt-0.5 text-xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
+        <p className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-foreground">
           {formatted}
-          <span className="ml-1 text-sm font-normal text-neutral-500 dark:text-neutral-400">
+          <span className="ml-1 text-sm font-normal text-muted-foreground">
             {metric.unit}
           </span>
         </p>
@@ -74,7 +74,7 @@ export function VpsMetricsPanel({ metrics }: VpsMetricsPanelProps) {
   if (metrics.length === 0) {
     return (
       <section aria-label="VPS metrics">
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           No metrics available.
         </p>
       </section>
@@ -83,10 +83,10 @@ export function VpsMetricsPanel({ metrics }: VpsMetricsPanelProps) {
 
   return (
     <section aria-label="VPS metrics">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         Server Metrics
       </h2>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map((metric) => (
           <MetricRow key={metric.label} metric={metric} />
         ))}

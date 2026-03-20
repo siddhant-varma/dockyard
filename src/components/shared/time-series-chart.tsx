@@ -58,7 +58,7 @@ export function TimeSeriesChart({
   if (points.length < 2) {
     return (
       <div
-        className={`flex items-center justify-center text-xs text-neutral-400 ${className}`}
+        className={`flex items-center justify-center text-xs text-muted-foreground/60 ${className}`}
         style={{ width, height }}
       >
         Waiting for data...
@@ -145,7 +145,7 @@ export function TimeSeriesChart({
             x={tick.x}
             y={height - 4}
             textAnchor="middle"
-            className="fill-neutral-400 dark:fill-neutral-500"
+            className="fill-muted-foreground/60"
             fontSize="9"
             fontFamily="monospace"
           >
@@ -181,7 +181,7 @@ export function TimeSeriesChart({
       {/* Tooltip */}
       {hoverPoint && hoverCoord && (
         <div
-          className="pointer-events-none absolute z-10 rounded bg-neutral-900 px-2 py-1 text-xs text-white shadow dark:bg-neutral-100 dark:text-neutral-900"
+          className="pointer-events-none absolute z-10 rounded bg-popover px-2 py-1 text-xs text-popover-foreground shadow"
           style={{
             left: Math.min(hoverCoord.x, width - 100),
             top: PADDING.top - 4,
