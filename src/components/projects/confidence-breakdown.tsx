@@ -2,7 +2,7 @@
  * ConfidenceBreakdown — shows factor-by-factor confidence score analysis.
  *
  * Displays each contributing factor (velocity, blockers, recency, health)
- * with its impact on the overall score. Glass Observatory styling.
+ * with its impact on the overall score and explanatory tooltips.
  *
  * @param breakdown - The breakdown object from the confidence calculation.
  * @param score - The overall confidence score.
@@ -26,26 +26,22 @@ interface ConfidenceBreakdownProps {
 const FACTOR_INFO = {
   velocity: {
     label: "Velocity",
-    description:
-      "Based on items completed per week vs remaining roadmap items",
+    description: "Based on items completed per week vs remaining roadmap items",
     positive: true,
   },
   blockers: {
     label: "Blockers",
-    description:
-      "Active blockers reduce confidence by 0.05-0.15 each based on severity",
+    description: "Active blockers reduce confidence by 0.05-0.15 each based on severity",
     positive: false,
   },
   recency: {
     label: "Checkpoint Recency",
-    description:
-      "Score decays 0.02/day after 14 days without a manual checkpoint",
+    description: "Score decays 0.02/day after 14 days without a manual checkpoint",
     positive: false,
   },
   health: {
     label: "Service Health",
-    description:
-      "Degraded services reduce by 0.10, down services by 0.20",
+    description: "Degraded services reduce by 0.10, down services by 0.20",
     positive: false,
   },
 } as const;
@@ -58,9 +54,8 @@ export function ConfidenceBreakdown({
   return (
     <div className="space-y-3">
       {breakdown.manualOverride && (
-        <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-xs text-blue-400">
-          Score set by manual checkpoint (overrides automated calculation for 7
-          days)
+        <div className="rounded-md bg-blue-50 p-2 text-xs text-blue-700">
+          Score set by manual checkpoint (overrides automated calculation for 7 days)
         </div>
       )}
 
@@ -91,17 +86,13 @@ export function ConfidenceBreakdown({
         />
       </div>
 
-      <div className="flex items-center justify-between border-t border-glass-border pt-2">
-        <span className="text-sm font-semibold text-foreground">
-          Overall Score
-        </span>
-        <span className="text-sm font-bold text-foreground">
-          {Math.round(score * 100)}%
-        </span>
+      <div className="flex items-center justify-between border-t pt-2">
+        <span className="text-sm font-semibold">Overall Score</span>
+        <span className="text-sm font-bold">{Math.round(score * 100)}%</span>
       </div>
 
       {decayWarning && (
-        <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-2 text-xs text-yellow-400">
+        <div className="rounded-md bg-yellow-50 p-2 text-xs text-yellow-700">
           Score is decaying — add a manual checkpoint to refresh.
         </div>
       )}
@@ -127,17 +118,14 @@ function FactorRow({
       : "0%";
 
   const colorClass = positive
-    ? "text-green-400"
+    ? "text-green-600"
     : value > 0
-      ? "text-red-400"
-      : "text-muted-foreground/40";
+      ? "text-red-600"
+      : "text-gray-400";
 
   return (
-    <div
-      className="flex items-center justify-between text-sm"
-      title={description}
-    >
-      <span className="text-muted-foreground/70">{label}</span>
+    <div className="flex items-center justify-between text-sm" title={description}>
+      <span className="text-gray-600">{label}</span>
       <span className={`font-mono font-medium ${colorClass}`}>{display}</span>
     </div>
   );

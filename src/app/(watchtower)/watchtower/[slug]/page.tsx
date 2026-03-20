@@ -1,17 +1,18 @@
 /**
  * Project health detail page — /watchtower/[slug]
  *
- * Server component. Fetches health detail for a single project and renders
- * tabbed sections: Health (default), Deployments, DORA, Tests, Logs.
- * Wires all Phase 2 components: deploy diff, rollback, DORA dashboard.
- * Glass Observatory styling.
+ * Server component. Fetches health detail for a single project and
+ * renders tabbed sections: Health (default), Logs, and Deployments.
+ *
+ * Health tab: HealthMetrics component + DeploymentTimeline component.
+ * Logs tab: link to the dedicated /watchtower/[slug]/logs route.
+ * Deployments tab: full DeploymentTimeline.
  */
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LiveHealthDetail } from "@/components/watchtower/live-health-detail";
 import { DeploymentTimeline } from "@/components/watchtower/deployment-timeline";
-import { DoraDashboard } from "@/components/watchtower/dora-dashboard";
 import { StatusBadge } from "@/components/shared";
 
 type Params = Promise<{ slug: string }>;
@@ -41,41 +42,31 @@ interface DeploymentEvent {
   environment: string;
 }
 
-const INTERNAL_BASE =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
 async function fetchHealthDetail(slug: string): Promise<HealthDetail | null> {
-  try {
-    const res = await fetch(`${INTERNAL_BASE}/api/health/projects/${slug}`, {
-      next: { revalidate: 15 },
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) return null;
-    return res.json() as Promise<HealthDetail>;
-  } catch {
-    return null;
-  }
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const res = await fetch(`${baseUrl}/api/health/projects/${slug}`, {
+    next: { revalidate: 15 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) return null;
+  return res.json() as Promise<HealthDetail>;
 }
 
 async function fetchDeployments(slug: string): Promise<DeploymentEvent[]> {
-  try {
-    const res = await fetch(
-      `${INTERNAL_BASE}/api/projects/${slug}/deployments?limit=15`,
-      { next: { revalidate: 30 } }
-    );
-    if (!res.ok) return [];
-    return res.json() as Promise<DeploymentEvent[]>;
-  } catch {
-    return [];
-  }
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const res = await fetch(
+    `${baseUrl}/api/projects/${slug}/deployments?limit=15`,
+    { next: { revalidate: 30 } }
+  );
+  if (!res.ok) return [];
+  return res.json() as Promise<DeploymentEvent[]>;
 }
 
 function normalizeComponents(raw: unknown): ComponentHealth[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter(
-      (c): c is Record<string, unknown> =>
-        typeof c === "object" && c !== null
+      (c): c is Record<string, unknown> => typeof c === "object" && c !== null
     )
     .map((c) => ({
       name: typeof c.name === "string" ? c.name : String(c.name ?? ""),
@@ -87,8 +78,6 @@ function normalizeComponents(raw: unknown): ComponentHealth[] {
 const TABS = [
   { key: "health", label: "Health" },
   { key: "deployments", label: "Deployments" },
-  { key: "dora", label: "DORA" },
-  { key: "tests", label: "Tests" },
   { key: "logs", label: "Logs" },
 ] as const;
 
@@ -115,52 +104,50 @@ export default async function ProjectHealthPage({
   if (!detail) notFound();
 
   const components = normalizeComponents(detail.health.components);
-  const uptimeDisplay =
-    detail.uptime != null ? `${detail.uptime.toFixed(2)}%` : "—";
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header — hero card */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-foreground">
           {detail.project.name}
         </h1>
         <StatusBadge status={detail.health.overallStatus} />
-        <span className="text-sm text-muted-foreground/70">
-          Uptime: {uptimeDisplay}
-        </span>
       </div>
 
       {/* Tab bar */}
-      <div className="border-b border-glass-border">
-        <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Health tabs">
-          {TABS.map((t) => {
-            const isActive = activeTab === t.key;
-            const href =
-              t.key === "logs"
-                ? `/watchtower/${slug}/logs`
-                : t.key === "tests"
-                  ? `/watchtower/${slug}/tests`
-                  : `/watchtower/${slug}?tab=${t.key}`;
-
+      <div className="flex border-b border-glass-border">
+        {TABS.map((t) => {
+          const isActive = activeTab === t.key;
+          if (t.key === "logs") {
             return (
               <Link
                 key={t.key}
-                href={href}
-                className={`relative whitespace-nowrap px-4 pb-3 pt-1 text-sm font-medium transition-colors ${
+                href={`/watchtower/${slug}/logs`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "text-[var(--color-brand-500)]"
-                    : "text-muted-foreground hover:text-foreground/80"
+                    ? "border-b-2 border-foreground text-foreground"
+                    : "text-muted-foreground hover:text-foreground/90"
                 }`}
               >
                 {t.label}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-brand-500)]" />
-                )}
               </Link>
             );
-          })}
-        </nav>
+          }
+          return (
+            <Link
+              key={t.key}
+              href={`/watchtower/${slug}?tab=${t.key}`}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? "border-b-2 border-foreground text-foreground"
+                  : "text-muted-foreground hover:text-foreground/90"
+              }`}
+            >
+              {t.label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Tab content */}
@@ -180,17 +167,6 @@ export default async function ProjectHealthPage({
 
       {activeTab === "deployments" && (
         <DeploymentTimeline deployments={deployments} />
-      )}
-
-      {activeTab === "dora" && (
-        <DoraDashboard
-          metrics={{
-            deployFrequency: { name: "Deploy Frequency", value: "—", level: "low", trend: "stable" },
-            leadTime: { name: "Lead Time", value: "—", level: "low", trend: "stable" },
-            changeFailureRate: { name: "Change Failure Rate", value: "—", level: "low", trend: "stable" },
-            mttr: { name: "MTTR", value: "—", level: "low", trend: "stable" },
-          }}
-        />
       )}
     </div>
   );

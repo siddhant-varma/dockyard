@@ -1,17 +1,20 @@
 /**
  * ProjectOverview — server component rendering the summary view of a project.
  *
- * Displays status/health/confidence hero, description, phase timeline,
- * blockers, weekly AI summary, and metadata — all in Glass Observatory
- * styling. This is the default tab content on the project detail page.
+ * Displays the project description, current development phase, lifecycle status,
+ * health indicator, and tech stack tags. Intended as the default tab content on
+ * the project detail page.
  *
- * @param project - Full project record from GET /api/projects/:slug.
+ * This is a React Server Component — it receives all data as props and performs
+ * no client-side data fetching.
+ *
+ * @param project - Full project record returned from GET /api/projects/:slug.
  */
 
 import { StatusBadge, HealthIndicator } from "@/components/shared";
 import { ConfidenceBadge } from "./confidence-badge";
 
-/** Full project detail record. Matches GET /api/projects/:slug response. */
+/** Full project detail record. Matches the shape returned by GET /api/projects/:slug. */
 export interface ProjectDetail {
   id: string;
   name: string;
@@ -25,7 +28,9 @@ export interface ProjectDetail {
   discoveredVia: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Aggregated health status from the project_health table, if available. */
   healthStatus?: string;
+  /** Automated confidence score (0.00-1.00), if calculated. */
   confidenceScore?: number;
 }
 
@@ -39,24 +44,19 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
 
   return (
     <section className="space-y-6">
-      {/* Status + Health + Confidence hero row */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-glass-border bg-glass-bg p-4 backdrop-blur-sm">
+      {/* Status and health row */}
+      <div className="flex flex-wrap items-center gap-4">
         <StatusBadge status={project.status} />
         <HealthIndicator status={healthStatus} />
         {project.confidenceScore != null && (
           <ConfidenceBadge score={project.confidenceScore} size="md" />
         )}
-        {project.currentPhase && (
-          <span className="ml-auto text-sm text-muted-foreground/70">
-            {project.currentPhase}
-          </span>
-        )}
       </div>
 
       {/* Description */}
       {project.description ? (
-        <div className="rounded-xl border border-glass-border bg-glass-bg p-4 backdrop-blur-sm">
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground/70">
+        <div>
+          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Description
           </h2>
           <p className="text-sm leading-relaxed text-foreground/80">
@@ -64,10 +64,19 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-glass-border bg-glass-bg p-4 backdrop-blur-sm">
-          <p className="text-sm text-muted-foreground/50">
-            No description provided. Add one via the project&apos;s
-            .dockyard.json file.
+        <p className="text-sm text-muted-foreground/60">
+          No description provided.
+        </p>
+      )}
+
+      {/* Current phase */}
+      {project.currentPhase && (
+        <div>
+          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Current Phase
+          </h2>
+          <p className="text-sm text-foreground/80">
+            {project.currentPhase}
           </p>
         </div>
       )}
@@ -75,14 +84,14 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       {/* Tech stack */}
       {tags.length > 0 && (
         <div>
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground/70">
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Tech Stack
           </h2>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-glass-border bg-glass-bg px-2.5 py-1 text-xs font-medium text-foreground/80 backdrop-blur-sm"
+                className="rounded-md bg-glass-hover px-2.5 py-1 text-xs font-medium text-foreground/80"
               >
                 {tag}
               </span>
@@ -92,17 +101,17 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       )}
 
       {/* Meta: repository, discovery source */}
-      <div className="grid gap-3 rounded-xl border border-glass-border bg-glass-bg p-4 text-sm backdrop-blur-sm sm:grid-cols-2">
+      <div className="grid gap-3 rounded-xl border border-glass-border bg-glass-bg p-4 text-sm sm:grid-cols-2">
         {project.githubRepo && (
           <div>
-            <span className="block text-xs font-medium text-muted-foreground/70">
+            <span className="block text-xs font-medium text-muted-foreground">
               Repository
             </span>
             <a
               href={`https://github.com/${project.githubRepo}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate text-[var(--color-brand-500)] hover:underline"
+              className="truncate text-indigo-600 hover:underline dark:text-indigo-400"
             >
               {project.githubRepo}
             </a>
@@ -110,29 +119,29 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         )}
         {project.dokployAppId && (
           <div>
-            <span className="block text-xs font-medium text-muted-foreground/70">
+            <span className="block text-xs font-medium text-muted-foreground">
               Dokploy App ID
             </span>
-            <span className="font-mono text-foreground/70">
+            <span className="font-mono text-foreground/80">
               {project.dokployAppId}
             </span>
           </div>
         )}
         {project.discoveredVia && (
           <div>
-            <span className="block text-xs font-medium text-muted-foreground/70">
+            <span className="block text-xs font-medium text-muted-foreground">
               Discovered Via
             </span>
-            <span className="capitalize text-foreground/70">
+            <span className="capitalize text-foreground/80">
               {project.discoveredVia}
             </span>
           </div>
         )}
         <div>
-          <span className="block text-xs font-medium text-muted-foreground/70">
+          <span className="block text-xs font-medium text-muted-foreground">
             Added
           </span>
-          <span className="text-foreground/70">
+          <span className="text-foreground/80">
             {new Date(project.createdAt).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "short",

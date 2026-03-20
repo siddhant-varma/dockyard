@@ -30,7 +30,7 @@ export function ConfidenceBadge({ score, size = "sm" }: ConfidenceBadgeProps) {
 }
 
 function getColorClass(score: number): string {
-  if (score >= 0.7) return "bg-green-500/15 text-green-400 border border-green-500/20";
-  if (score >= 0.4) return "bg-yellow-500/15 text-yellow-400 border border-yellow-500/20";
-  return "bg-red-500/15 text-red-400 border border-red-500/20";
+  if (score >= 0.7) return "bg-green-100 text-green-800";
+  if (score >= 0.4) return "bg-yellow-100 text-yellow-800";
+  return "bg-red-100 text-red-800";
 }

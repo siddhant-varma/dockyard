@@ -1,8 +1,8 @@
 /**
  * WeeklySummary — displays an AI-generated weekly project summary.
  *
- * Glass card with the AI narrative, highlights, concerns, and
- * next-week outlook. Shows "AI Generated" badge and date range.
+ * Shows the generated narrative, key highlights, concerns, and
+ * next-week outlook with an "AI Generated" badge and timestamp.
  *
  * @param summary - The summary payload from ai_context_snapshots.
  */
@@ -26,34 +26,28 @@ export function WeeklySummary({ summary }: WeeklySummaryProps) {
   const end = new Date(summary.period.end).toLocaleDateString();
 
   return (
-    <div className="rounded-xl border border-glass-border bg-glass-bg p-4 space-y-3 backdrop-blur-sm">
+    <div className="rounded-lg border p-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h4 className="text-sm font-semibold text-foreground">
-            Weekly Summary
-          </h4>
-          <span className="rounded-full bg-purple-500/15 border border-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-400">
+          <h4 className="text-sm font-semibold">Weekly Summary</h4>
+          <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
             AI Generated
           </span>
         </div>
-        <span className="text-xs text-muted-foreground/60">
+        <span className="text-xs text-gray-500">
           {start} — {end}
         </span>
       </div>
 
       {/* Narrative */}
-      <p className="text-sm leading-relaxed text-foreground/80">
-        {summary.narrative}
-      </p>
+      <p className="text-sm text-gray-700">{summary.narrative}</p>
 
       {/* Highlights */}
       {summary.highlights.length > 0 && (
         <div>
-          <h5 className="text-xs font-medium text-muted-foreground/70 mb-1">
-            Highlights
-          </h5>
-          <ul className="list-disc list-inside text-sm text-foreground/70 space-y-0.5">
+          <h5 className="text-xs font-medium text-gray-500 mb-1">Highlights</h5>
+          <ul className="list-disc list-inside text-sm text-gray-600 space-y-0.5">
             {summary.highlights.map((h, i) => (
               <li key={i}>{h}</li>
             ))}
@@ -64,10 +58,8 @@ export function WeeklySummary({ summary }: WeeklySummaryProps) {
       {/* Concerns */}
       {summary.concerns.length > 0 && (
         <div>
-          <h5 className="text-xs font-medium text-red-400/80 mb-1">
-            Concerns
-          </h5>
-          <ul className="list-disc list-inside text-sm text-red-400/70 space-y-0.5">
+          <h5 className="text-xs font-medium text-red-500 mb-1">Concerns</h5>
+          <ul className="list-disc list-inside text-sm text-red-600 space-y-0.5">
             {summary.concerns.map((c, i) => (
               <li key={i}>{c}</li>
             ))}
@@ -76,9 +68,8 @@ export function WeeklySummary({ summary }: WeeklySummaryProps) {
       )}
 
       {/* Outlook */}
-      <div className="rounded-lg bg-glass-hover border border-glass-border p-2 text-xs text-foreground/60">
-        <strong className="text-foreground/80">Next week:</strong>{" "}
-        {summary.nextWeekOutlook}
+      <div className="rounded bg-gray-50 p-2 text-xs text-gray-600">
+        <strong>Next week:</strong> {summary.nextWeekOutlook}
       </div>
     </div>
   );
