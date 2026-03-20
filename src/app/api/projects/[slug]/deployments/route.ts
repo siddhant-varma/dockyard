@@ -1,17 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { projects, deploymentEvents } from "@/db/schema";
-
-type Params = Promise<{ slug: string }>;
+import { withAuthContext } from "@/lib/auth/guards";
 
 /** GET /api/projects/:slug/deployments — Deployment history. */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Params }
-) {
-  const { slug } = await params;
-  const sp = request.nextUrl.searchParams;
+export const GET = withAuthContext(async (request, _user, context) => {
+  const { slug } = await context.params;
+  const sp = new URL(request.url).searchParams;
   const limit = Math.min(Number(sp.get("limit") ?? 20), 100);
 
   const project = await db.query.projects.findFirst({
@@ -29,4 +25,4 @@ export async function GET(
     .limit(limit);
 
   return NextResponse.json(deploys);
-}
+});

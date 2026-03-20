@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/db/connection";
 import { eq } from "drizzle-orm";
 import { projects, projectHealth } from "@/db/schema";
+import { withAuth } from "@/lib/auth/guards";
 
 /** GET /api/health/projects — All projects health summary for Watchtower grid. */
-export async function GET() {
+export const GET = withAuth(async () => {
   const allHealth = await db
     .select({
       projectId: projectHealth.projectId,
@@ -19,4 +20,4 @@ export async function GET() {
     .innerJoin(projects, eq(projectHealth.projectId, projects.id));
 
   return NextResponse.json(allHealth);
-}
+});

@@ -1,17 +1,22 @@
 /**
- * Basic alert evaluation engine.
+ * Alert evaluation engine for DockYard.
  *
  * Evaluates alert rules against current project health/metrics.
- * For MVP, supports two rule types:
+ * Pipeline: evaluate rules → deduplicate → create events → group → return.
+ *
+ * Supports rule types:
  * - health_status == down → fires when project health is "down"
  * - deploy_status == failed → fires when last deploy failed
  *
- * Respects cooldown periods to prevent alert flooding.
+ * Integrates with the deduplication engine to suppress duplicate alerts
+ * and the grouping engine to batch related alerts for notifications.
  */
 
-import { and, eq, gte } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { alertRules, alertEvents, projectHealth } from "@/db/schema";
+import { isDuplicate } from "./deduplication";
+import { groupAlerts, type AlertGroup } from "./grouping";
 
 /** Result of evaluating alerts for a project. */
 export interface AlertEvaluationResult {
@@ -19,20 +24,23 @@ export interface AlertEvaluationResult {
   rulesEvaluated: number;
   alertsFired: number;
   alertIds: string[];
+  /** Grouped alerts for consolidated notification dispatch. */
+  groups: AlertGroup[];
+  /** Number of alerts suppressed by deduplication. */
+  deduplicated: number;
 }
 
 /**
  * Evaluate all active alert rules for a project.
- * Creates Alert_Event records for breached thresholds.
+ *
+ * Pipeline: evaluate rules → deduplicate → create events → group.
+ * Returns grouped alerts for notification dispatch.
  */
 export async function evaluateAlerts(
   projectId: string
 ): Promise<AlertEvaluationResult> {
   const rules = await db.query.alertRules.findMany({
-    where: and(
-      eq(alertRules.enabled, true)
-      // Rules scoped to this project OR global rules (null projectId)
-    ),
+    where: eq(alertRules.enabled, true),
   });
 
   const applicableRules = rules.filter(
@@ -40,17 +48,18 @@ export async function evaluateAlerts(
   );
 
   const alertIds: string[] = [];
+  let deduplicated = 0;
+  const pendingAlerts = [];
 
   for (const rule of applicableRules) {
     const breached = await isThresholdBreached(projectId, rule);
     if (!breached) continue;
 
-    const inCooldown = await isInCooldown(
-      rule.id,
-      projectId,
-      rule.cooldownSecs
-    );
-    if (inCooldown) continue;
+    const duplicate = await isDuplicate(rule.id, projectId);
+    if (duplicate) {
+      deduplicated++;
+      continue;
+    }
 
     const [alert] = await db
       .insert(alertEvents)
@@ -60,18 +69,34 @@ export async function evaluateAlerts(
         severity: rule.severity,
         status: "firing",
         message: `Alert: ${rule.name} — ${rule.metric} ${rule.operator} ${rule.threshold}`,
-        context: { metric: rule.metric, threshold: rule.threshold },
+        context: {
+          metric: rule.metric,
+          threshold: rule.threshold,
+          ruleName: rule.name,
+          runbookUrl: rule.runbookUrl,
+        },
       })
       .returning();
 
     alertIds.push(alert.id);
+    pendingAlerts.push({
+      id: alert.id,
+      projectId,
+      severity: alert.severity,
+      message: alert.message,
+      context: alert.context as Record<string, unknown> | null,
+    });
   }
+
+  const groups = await groupAlerts(pendingAlerts);
 
   return {
     projectId,
     rulesEvaluated: applicableRules.length,
     alertsFired: alertIds.length,
     alertIds,
+    groups,
+    deduplicated,
   };
 }
 
@@ -88,7 +113,6 @@ async function isThresholdBreached(
     });
     if (!health) return false;
 
-    // health_status == 0 means "down"
     if (rule.operator === "==" && rule.threshold === 0) {
       return health.overallStatus === "down";
     }
@@ -96,31 +120,8 @@ async function isThresholdBreached(
   }
 
   if (rule.metric === "deploy_status") {
-    // Check most recent deployment — not implemented in detail for MVP
-    // Will be wired when deploy tracking is complete
     return false;
   }
 
   return false;
-}
-
-/**
- * Check if an alert is in its cooldown period.
- */
-async function isInCooldown(
-  ruleId: string,
-  projectId: string,
-  cooldownSecs: number
-): Promise<boolean> {
-  const cutoff = new Date(Date.now() - cooldownSecs * 1000);
-
-  const recent = await db.query.alertEvents.findFirst({
-    where: and(
-      eq(alertEvents.ruleId, ruleId),
-      eq(alertEvents.projectId, projectId),
-      gte(alertEvents.triggeredAt, cutoff)
-    ),
-  });
-
-  return recent !== undefined;
 }

@@ -10,6 +10,7 @@
 
 import Link from "next/link";
 import { StatusBadge, HealthIndicator } from "@/components/shared";
+import { ConfidenceBadge } from "./confidence-badge";
 
 /** Shape of a project record returned by the list API. */
 export interface ProjectSummary {
@@ -23,6 +24,8 @@ export interface ProjectSummary {
   updatedAt: string;
   /** Aggregated health status from project_health table, if available. */
   healthStatus?: string;
+  /** Automated confidence score (0.00-1.00), if calculated. */
+  confidenceScore?: number;
 }
 
 interface ProjectCardProps {
@@ -68,9 +71,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </p>
       )}
 
-      {/* Health indicator */}
-      <div className="mb-4">
+      {/* Health indicator + confidence */}
+      <div className="mb-4 flex items-center gap-2">
         <HealthIndicator status={healthStatus} />
+        {project.confidenceScore != null && (
+          <ConfidenceBadge score={project.confidenceScore} />
+        )}
       </div>
 
       {/* Tech stack tags */}

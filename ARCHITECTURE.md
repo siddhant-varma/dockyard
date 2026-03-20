@@ -75,15 +75,18 @@ When the same project is found via multiple sources, DockYard merges the data:
 │  ┌──────────────────────▼─────────────────────────────┐        │
 │  │              Service Layer (src/lib/)                │        │
 │  │  discovery/ ingestion/ dokploy/ hetzner/ alerts/    │        │
-│  │  health/    metrics/   ai/      auth/   crypto/     │        │
-│  │  notifications/                                     │        │
+│  │  health/ metrics/ ai/ auth/ crypto/ slo/ config/   │        │
+│  │  incidents/ deployments/ tests/ actions/            │        │
+│  │  notifications/ projects/                           │        │
 │  └──────────────────────┬─────────────────────────────┘        │
 │                         │                                       │
 │  ┌──────────────────────▼─────────────────────────────┐        │
 │  │         Background Workers (Inngest)                │        │
-│  │  health-check  alert-evaluator  hetzner-metrics     │        │
+│  │  health-check  alert-evaluator  alert-escalation     │        │
 │  │  signal-processor  billing-calculator  ai-summary   │        │
-│  │  project-scanner                                    │        │
+│  │  project-scanner  slo-calculator  confidence-scorer │        │
+│  │  deploy-tracker  auto-rollback  hetzner-metrics     │        │
+│  │  test-runner  metrics-scraper                       │        │
 │  └──────────────────────┬─────────────────────────────┘        │
 │                         │                                       │
 │  ┌──────────────────────▼─────────────────────────────┐        │
@@ -139,12 +142,29 @@ UI → DockYard API → Validate → Audit Log → Dokploy saveEnvironment → D
 ### Health Check Flow
 Inngest cron (30s) → HTTP GET /healthz per project → Store Health_Check_Result → Aggregate to Project_Health → Evaluate Alert Rules → Dispatch Notifications
 
+### SLO Budget Flow
+Inngest cron (5min) → Load active SLOs → Query health_check_results / metric_points → Calculate budget remaining + burn rate → Update slo_budgets → Check burn-rate thresholds (14.4x/6x/3x) → Fire severity-appropriate alert → SSE broadcast
+
+### Incident Lifecycle Flow
+SEV1/SEV2 alert fires → Auto-create incident (30min dedup window) → investigating → identified → monitoring → resolved (MTTR calculated) → postmortem (AI draft) → publish
+
+### Metrics Scraping Flow (DIP Level 2)
+Inngest cron (60s) → Load DIP L2+ projects → GET /metrics → Parse Prometheus text format → Store metric_points → SSE broadcast
+
+### CloudEvents Ingestion Flow (DIP Level 3)
+External project → POST /api/ingest (CloudEvents + Standard Webhooks signature) → Validate + parse → Route by event type → Update deployment/alert/health/config state → SSE broadcast
+
+### Smoke Test Flow
+Manual trigger or post-deploy event → Load test configs → HTTP requests per endpoint → Validate status + body + latency → Store test_runs results → SSE broadcast
+
 ## Security
 
 - OAuth2 SSO + MFA (FIDO2/TOTP) for authentication
 - RBAC with 4 roles: superadmin, project_admin, viewer, machine
+- **API route guards**: All endpoints use `withAuth()` (static routes) or `withAuthContext()` (dynamic routes) from `src/lib/auth/guards.ts`. Only `/api/health` is intentionally public. When `DOCKYARD_AUTH_ENABLED=false`, guards return an anonymous superadmin.
 - JIT re-authentication for destructive operations
 - All config values AES-256-GCM encrypted at rest
-- Webhook signature verification (HMAC-SHA256)
+- Webhook signature verification (HMAC-SHA256) — GitHub webhooks require `X-Hub-Signature-256` header when `GITHUB_WEBHOOK_SECRET` is configured
+- SSE broadcast endpoint protected by localhost check + `SSE_BROADCAST_SECRET` bearer token
 - Audit logging on all mutations
 - Local mode filesystem access restricted to configured scan directories only

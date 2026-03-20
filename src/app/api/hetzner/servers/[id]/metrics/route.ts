@@ -1,15 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { HetznerClient } from "@/lib/hetzner/client";
 import type { ServerMetricType } from "@/lib/providers/types";
-
-type Params = Promise<{ id: string }>;
+import { withAuthContext } from "@/lib/auth/guards";
 
 /** GET /api/hetzner/servers/:id/metrics — Server metrics time series. */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Params }
-) {
-  const { id } = await params;
+export const GET = withAuthContext(async (request, _user, context) => {
+  const { id } = await context.params;
   const token = process.env.HETZNER_API_TOKEN;
   if (!token) {
     return NextResponse.json(
@@ -18,7 +14,7 @@ export async function GET(
     );
   }
 
-  const sp = request.nextUrl.searchParams;
+  const sp = new URL(request.url).searchParams;
   const type = (sp.get("type") ?? "cpu") as ServerMetricType;
   const startParam = sp.get("start");
   const endParam = sp.get("end");
@@ -31,4 +27,4 @@ export async function GET(
   const client = new HetznerClient(token);
   const metrics = await client.getServerMetrics(id, type, { start, end, step });
   return NextResponse.json(metrics);
-}
+});

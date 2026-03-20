@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { projects, projectHealth } from "@/db/schema";
 import { calculateUptime } from "@/lib/health/uptime";
 import { getRecentHealthChecks } from "@/lib/health/storage";
-
-type Params = Promise<{ slug: string }>;
+import { withAuthContext } from "@/lib/auth/guards";
 
 /** GET /api/health/projects/:slug — Single project health detail. */
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Params }
-) {
-  const { slug } = await params;
+export const GET = withAuthContext(async (_request, _user, context) => {
+  const { slug } = await context.params;
 
   const project = await db.query.projects.findFirst({
     where: eq(projects.slug, slug),
@@ -34,4 +30,4 @@ export async function GET(
     uptime,
     recentChecks,
   });
-}
+});

@@ -11,7 +11,7 @@
  * @param slug    - Project slug used to build API paths for updates.
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ConfigEditor } from "@/components/config/config-editor";
 
 interface ConfigEntry {
@@ -41,10 +41,30 @@ function groupByCategory(entries: ConfigEntry[]): Map<string, ConfigEntry[]> {
   return map;
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  general: "General",
+  database: "Database",
+  ai_provider: "AI Provider",
+  auth: "Authentication",
+  storage: "Storage",
+  monitoring: "Monitoring",
+  custom: "Custom",
+};
+
 export function ConfigList({ entries, slug }: ConfigListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [localEntries, setLocalEntries] = useState<ConfigEntry[]>(entries);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = useCallback((category: string) => {
+    setCollapsedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }, []);
 
   function toggleReveal(id: string) {
     setRevealedIds((prev) => {
@@ -74,12 +94,27 @@ export function ConfigList({ entries, slug }: ConfigListProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {Array.from(grouped.entries()).map(([category, categoryEntries]) => (
-        <div key={category} className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            {category}
-          </h3>
+      {Array.from(grouped.entries()).map(([category, categoryEntries]) => {
+        const isCollapsed = collapsedCategories.has(category);
+        const label = CATEGORY_LABELS[category] ?? category;
 
+        return (
+        <div key={category} className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => toggleCategory(category)}
+            className="flex items-center gap-2 text-left"
+          >
+            <span className="text-xs text-neutral-400">{isCollapsed ? "▸" : "▾"}</span>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              {label}
+            </h3>
+            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+              {categoryEntries.length}
+            </span>
+          </button>
+
+          {!isCollapsed && (
           <div className="rounded-lg border border-neutral-200 dark:border-neutral-700">
             <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {categoryEntries.map((entry) => {
@@ -158,8 +193,10 @@ export function ConfigList({ entries, slug }: ConfigListProps) {
               })}
             </ul>
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

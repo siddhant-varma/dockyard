@@ -11,6 +11,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { broadcast, getClientCount } from "@/lib/sse/emitter";
 
 export async function POST(request: NextRequest) {
+  // Guard: only accept requests from localhost or with a valid internal secret
+  const internalSecret = process.env.SSE_BROADCAST_SECRET;
+  const authHeader = request.headers.get("authorization");
+  const isLocalhost =
+    request.headers.get("host")?.startsWith("localhost") ||
+    request.headers.get("host")?.startsWith("127.0.0.1");
+
+  if (!isLocalhost) {
+    if (!internalSecret || authHeader !== `Bearer ${internalSecret}`) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const body = await request.json();
   const { event, data } = body as { event?: string; data?: unknown };
 

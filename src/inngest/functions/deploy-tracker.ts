@@ -90,6 +90,12 @@ export const deployTracker = inngest.createFunction(
         name: "dockyard/deploy.status.changed",
         data: { projectId, deployEventId, status: finalStatus },
       });
+
+      // Trigger auto-rollback if enabled
+      await inngest.send({
+        name: "dockyard/config.auto-rollback.triggered",
+        data: { projectId, deployEventId },
+      });
     }
 
     // Broadcast deploy status to connected dashboards

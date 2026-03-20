@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { projects } from "@/db/schema";
 import { DokployClient } from "@/lib/dokploy/client";
-
-type Params = Promise<{ slug: string }>;
+import { withAuthContext } from "@/lib/auth/guards";
 
 /** GET /api/projects/:slug/logs — Fetch logs from Dokploy. */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Params }
-) {
-  const { slug } = await params;
-  const sp = request.nextUrl.searchParams;
+export const GET = withAuthContext(async (request, _user, context) => {
+  const { slug } = await context.params;
+  const sp = new URL(request.url).searchParams;
   const tail = Number(sp.get("tail") ?? 100);
 
   const project = await db.query.projects.findFirst({
@@ -42,4 +38,4 @@ export async function GET(
   const filtered = level ? logs.filter((l) => l.level === level) : logs;
 
   return NextResponse.json(filtered);
-}
+});

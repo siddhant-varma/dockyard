@@ -12,6 +12,7 @@
  */
 
 import { StatusBadge, HealthIndicator } from "@/components/shared";
+import { ConfidenceBadge } from "./confidence-badge";
 
 /** Full project detail record. Matches the shape returned by GET /api/projects/:slug. */
 export interface ProjectDetail {
@@ -29,6 +30,8 @@ export interface ProjectDetail {
   updatedAt: string;
   /** Aggregated health status from the project_health table, if available. */
   healthStatus?: string;
+  /** Automated confidence score (0.00-1.00), if calculated. */
+  confidenceScore?: number;
 }
 
 interface ProjectOverviewProps {
@@ -45,6 +48,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
       <div className="flex flex-wrap items-center gap-4">
         <StatusBadge status={project.status} />
         <HealthIndicator status={healthStatus} />
+        {project.confidenceScore != null && (
+          <ConfidenceBadge score={project.confidenceScore} size="md" />
+        )}
       </div>
 
       {/* Description */}

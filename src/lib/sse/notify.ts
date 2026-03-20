@@ -21,9 +21,16 @@ export async function notifySSE(
   data: unknown
 ): Promise<void> {
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const secret = process.env.SSE_BROADCAST_SECRET;
+    if (secret) {
+      headers["Authorization"] = `Bearer ${secret}`;
+    }
     await fetch(`${BROADCAST_URL}/api/sse/broadcast`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ event, data }),
     });
   } catch (err) {

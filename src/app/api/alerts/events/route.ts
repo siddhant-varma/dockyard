@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { alertEvents, projects } from "@/db/schema";
+import { withAuth } from "@/lib/auth/guards";
 
 /** GET /api/alerts/events — Active alert events. */
-export async function GET(request: NextRequest) {
-  const sp = request.nextUrl.searchParams;
+export const GET = withAuth(async (request) => {
+  const sp = new URL(request.url).searchParams;
   const severity = sp.get("severity");
   const projectSlug = sp.get("project_slug");
 
@@ -34,4 +35,4 @@ export async function GET(request: NextRequest) {
     .limit(50);
 
   return NextResponse.json(events);
-}
+});

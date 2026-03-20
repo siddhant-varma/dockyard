@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { billingEstimates } from "@/db/schema";
+import { withAuth } from "@/lib/auth/guards";
 
 /** GET /api/hetzner/billing — Latest billing estimate. */
-export async function GET() {
+export const GET = withAuth(async () => {
   const latest = await db.query.billingEstimates.findFirst({
     orderBy: [desc(billingEstimates.calculatedAt)],
   });
@@ -14,4 +15,4 @@ export async function GET() {
   }
 
   return NextResponse.json(latest);
-}
+});
