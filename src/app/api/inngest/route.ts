@@ -12,6 +12,8 @@ import { sloCalculator } from "@/inngest/functions/slo-calculator";
 import { autoRollback } from "@/inngest/functions/auto-rollback";
 import { confidenceScorer } from "@/inngest/functions/confidence-scorer";
 import { aiSummary } from "@/inngest/functions/ai-summary";
+import { testRunner } from "@/inngest/functions/test-runner";
+import { metricsScraper } from "@/inngest/functions/metrics-scraper";
 
 /**
  * Inngest API route handler.
@@ -33,5 +35,7 @@ export const { GET, POST, PUT } = serve({
     autoRollback,
     confidenceScorer,
     aiSummary,
+    testRunner,
+    metricsScraper,
   ],
 });
