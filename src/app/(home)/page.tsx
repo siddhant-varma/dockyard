@@ -24,11 +24,14 @@ import { type MetricSeries } from "@/components/dashboard/vps-metrics-panel";
    ================================================================ */
 
 interface ServerStatusResponse {
+  id: string;
   name: string;
   status: "running" | "off" | "starting" | "stopping" | "unknown";
   publicIpv4?: string;
   serverType: string;
   datacenter?: string;
+  uptime?: string;
+  osVersion?: string;
 }
 
 interface MetricSeriesResponse {
@@ -84,23 +87,31 @@ async function fetchMetrics(): Promise<MetricSeriesResponse[]> {
 
   const end = new Date();
   const start = new Date(end.getTime() - 3600_000);
-  const params = new URLSearchParams({
-    type: "cpu",
-    start: start.toISOString(),
-    end: end.toISOString(),
-    step: "60",
-  });
+  const types = ["cpu", "disk", "network"];
+  const allSeries: MetricSeriesResponse[] = [];
 
-  try {
-    const res = await fetch(
-      `${INTERNAL_BASE}/api/hetzner/servers/${serverId}/metrics?${params}`,
-      { next: { revalidate: 60 } }
-    );
-    if (!res.ok) return [];
-    return (await res.json()) as MetricSeriesResponse[];
-  } catch {
-    return [];
+  for (const type of types) {
+    const params = new URLSearchParams({
+      type,
+      start: start.toISOString(),
+      end: end.toISOString(),
+      step: "60",
+    });
+    try {
+      const res = await fetch(
+        `${INTERNAL_BASE}/api/hetzner/servers/${serverId}/metrics?${params}`,
+        { next: { revalidate: 60 } }
+      );
+      if (res.ok) {
+        const data = (await res.json()) as MetricSeriesResponse[];
+        allSeries.push(...data);
+      }
+    } catch {
+      /* continue fetching other types */
+    }
   }
+
+  return allSeries;
 }
 
 /* ================================================================
@@ -130,16 +141,31 @@ function buildMetricSeries(raw: MetricSeriesResponse[]): MetricSeries[] {
       };
     });
 
-  if (series.length === 0 && raw.length > 0) {
-    const first = raw[0];
-    const values = first.dataPoints.map((p) => p.value);
-    series.push({
-      label: "CPU",
-      currentValue: values[values.length - 1] ?? 0,
-      unit: "%",
-      history: values,
-      color: "#6366f1",
-    });
+  // Ensure all 5 metric cards always render — pad missing ones with zero-value series
+  const allExpected = Object.entries(METRIC_META);
+  for (const [key, meta] of allExpected) {
+    if (!series.some((s) => s.label === meta.label)) {
+      // Check if raw data has this key under an alternate name
+      const match = raw.find((r) => r.name === key);
+      if (match) {
+        const values = match.dataPoints.map((p) => p.value);
+        series.push({
+          label: meta.label,
+          currentValue: values[values.length - 1] ?? 0,
+          unit: meta.unit,
+          history: values,
+          color: meta.color,
+        });
+      } else {
+        series.push({
+          label: meta.label,
+          currentValue: 0,
+          unit: meta.unit,
+          history: [0],
+          color: meta.color,
+        });
+      }
+    }
   }
 
   return series;
@@ -175,10 +201,13 @@ export default async function HomePage() {
         {serverStatus ? (
           <ServerDetailCard
             name={serverStatus.name}
+            serverId={serverStatus.id}
             status={serverStatus.status}
             region={serverStatus.datacenter}
             publicIpv4={serverStatus.publicIpv4}
             serverType={serverStatus.serverType}
+            uptime={serverStatus.uptime}
+            kernel={serverStatus.osVersion}
           />
         ) : (
           <div className="flex items-center justify-center rounded-xl border border-glass-border bg-glass-bg p-5 backdrop-blur-lg">

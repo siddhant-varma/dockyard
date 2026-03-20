@@ -89,7 +89,20 @@ export function AlertBanner() {
     setAlerts((prev) => prev.filter((a) => a.id !== id));
   };
 
-  if (alerts.length === 0) return null;
+  if (alerts.length === 0) {
+    return (
+      <section aria-label="System status">
+        <div className="flex items-center gap-3 rounded-xl border border-green-500/10 bg-green-500/[0.04] p-4 backdrop-blur-lg">
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40 animate-pulse-dot" />
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-green-400" />
+          </span>
+          <span className="text-sm font-medium text-green-400">All systems nominal</span>
+          <span className="font-mono text-xs text-muted-foreground">No active alerts</span>
+        </div>
+      </section>
+    );
+  }
 
   const top = alerts[0];
   const isSev1 = top.severity === "sev1";

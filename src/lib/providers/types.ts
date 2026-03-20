@@ -151,6 +151,10 @@ export interface ServerDetail extends ServerSummary {
   outboundTraffic?: number;
   includedTraffic?: number;
   volumes: VolumeSummary[];
+  /** Human-readable uptime string (e.g. "12d 4h 11m"). Calculated from createdAt. */
+  uptime?: string;
+  /** OS/kernel identifier derived from the server image (e.g. "Ubuntu 22.04"). */
+  osVersion?: string;
 }
 
 /** Type of server metric to query. */

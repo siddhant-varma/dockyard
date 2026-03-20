@@ -1,11 +1,5 @@
 import { TopbarGlass } from "@/components/dashboard/topbar-glass";
-import { SubNav, type SubNavItem } from "@/components/shared/sub-nav";
 import { auth } from "@/lib/auth";
-
-const SUB_NAV_ITEMS: SubNavItem[] = [
-  { label: "Dashboard", href: "/" },
-  { label: "Settings", href: "/settings" },
-];
 
 export default async function HomeLayout({
   children,
@@ -20,7 +14,6 @@ export default async function HomeLayout({
         userName={session?.user?.name}
         userImage={session?.user?.image}
       />
-      <SubNav items={SUB_NAV_ITEMS} />
       <main className="flex-1 overflow-y-auto p-6 canvas">{children}</main>
     </div>
   );

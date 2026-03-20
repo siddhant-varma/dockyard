@@ -76,9 +76,15 @@ export function BillingGlassCard({ billing }: BillingGlassCardProps) {
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Current Billing Cycle
         </h3>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div>
+            <span className="font-mono text-3xl font-bold text-foreground">$0.00</span>
+            <span className="ml-1 text-sm text-muted-foreground">/mo</span>
+          </div>
+          <ConsumptionRing percent={0} />
+        </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          No billing estimate recorded yet. The first estimate will appear after
-          the next background job run.
+          Awaiting first estimate
         </p>
       </div>
     );

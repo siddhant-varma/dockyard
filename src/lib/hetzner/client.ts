@@ -40,7 +40,7 @@ interface HetznerServer {
   };
   datacenter?: { name: string };
   server_type: { name: string; description: string };
-  image?: { name: string };
+  image?: { name: string; description?: string };
   created: string;
   ingoing_traffic: number | null;
   outgoing_traffic: number | null;
@@ -225,18 +225,30 @@ function mapServerSummary(s: HetznerServer): ServerSummary {
   };
 }
 
+/** Formats elapsed time since a date as "Xd Yh Zm". */
+function formatUptime(createdAt: Date): string {
+  const ms = Date.now() - createdAt.getTime();
+  const days = Math.floor(ms / 86_400_000);
+  const hours = Math.floor((ms % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((ms % 3_600_000) / 60_000);
+  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
+}
+
 function mapServerDetail(
   s: HetznerServer,
   volumes: VolumeSummary[]
 ): ServerDetail {
+  const createdAt = new Date(s.created);
   return {
     ...mapServerSummary(s),
     image: s.image?.name,
-    createdAt: new Date(s.created),
+    createdAt,
     inboundTraffic: s.ingoing_traffic ?? undefined,
     outboundTraffic: s.outgoing_traffic ?? undefined,
     includedTraffic: s.included_traffic ?? undefined,
     volumes,
+    uptime: formatUptime(createdAt),
+    osVersion: s.image?.description ?? s.image?.name ?? undefined,
   };
 }
 
