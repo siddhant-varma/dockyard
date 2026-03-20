@@ -65,7 +65,7 @@ DockYard runs in one of two modes:
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/your-org/dockyard.git
+git clone https://github.com/dockyard-oss/dockyard.git
 cd dockyard
 npm install
 
@@ -105,6 +105,8 @@ npm run db:seed        # Seed development data
 - [DockYard JSON](DOCKYARD-JSON.md) — `.dockyard.json` schema reference
 - [Contributing](CONTRIBUTING.md) — Setup, architecture overview, how to add adapters
 - [Dev Guidelines](Dev-Guidelines.md) — Coding standards
+
+> **Note:** The `docs/` directory is a git submodule pointing to a private repository used for internal planning. It is **not required** for development — the project builds and runs without it. If you see a submodule-related warning during `git clone`, you can safely ignore it. All public documentation is in the root directory.
 
 ## License
 

@@ -1,4 +1,4 @@
 [submodule "docs"]
 	path = docs
-	url = https://github.com/siddhant-varma/dockyard-internal.git
+	url = https://github.com/dockyard-oss/dockyard-internal.git
 	branch = main

@@ -6,7 +6,7 @@ Thank you for your interest in contributing to DockYard! This guide will help yo
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/your-org/dockyard.git
+git clone https://github.com/dockyard-oss/dockyard.git
 cd dockyard
 npm install
 
