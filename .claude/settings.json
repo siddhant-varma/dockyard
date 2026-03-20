@@ -1,0 +1,9 @@
+{
+  "deny": [
+    "rm -rf",
+    "git push --force",
+    "git push -f",
+    "DROP DATABASE",
+    "drop database"
+  ]
+}

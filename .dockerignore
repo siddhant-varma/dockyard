@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+!README.md
+docs/
+.env
+.env.*
+!.env.example
+.vscode
+.idea
+coverage
+.turbo

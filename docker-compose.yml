@@ -1,0 +1,21 @@
+services:
+  dockyard-postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: dockyard-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: dockyard
+      POSTGRES_PASSWORD: dockyard
+      POSTGRES_DB: dockyard
+    volumes:
+      - dockyard_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dockyard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dockyard_pgdata:

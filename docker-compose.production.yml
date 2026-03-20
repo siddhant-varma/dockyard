@@ -1,0 +1,58 @@
+services:
+  dockyard-postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: dockyard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-dockyard}
+    volumes:
+      - dockyard_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dockyard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dockyard
+
+  dockyard-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dockyard-app
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    depends_on:
+      dockyard-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DOCKYARD_DOMAIN: ${DOCKYARD_DOMAIN:-dockyard.cc}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL:-https://dockyard.cc}
+      AUTH_GITHUB_ID: ${AUTH_GITHUB_ID}
+      AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET}
+      CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:?Set CONFIG_ENCRYPTION_KEY}
+      DOKPLOY_API_URL: ${DOKPLOY_API_URL}
+      DOKPLOY_API_KEY: ${DOKPLOY_API_KEY}
+      HETZNER_API_TOKEN: ${HETZNER_API_TOKEN}
+      HETZNER_SERVER_ID: ${HETZNER_SERVER_ID}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      INNGEST_EVENT_KEY: ${INNGEST_EVENT_KEY:-}
+      INNGEST_SIGNING_KEY: ${INNGEST_SIGNING_KEY:-}
+    networks:
+      - dockyard
+      - dokploy-network
+
+volumes:
+  dockyard_pgdata:
+
+networks:
+  dockyard:
+    driver: bridge
+  dokploy-network:
+    external: true
