@@ -24,7 +24,7 @@
 
 ## Current Phase
 
-Phase 2 — Advanced (Watchtower v2). Sessions 1-10 of 20 complete (75 of 106 tasks).
+Phase 2 — Advanced (Watchtower v2) — **complete**. All 20 sessions, 106 tasks implemented.
 See `docs/planning/phase-2-execution-plan.md` for the full plan.
 Task tracking: `docs/system/Tasks.md` — IDs use `[Phase]-[Component]-[Number]` format (e.g., `P4-AUTH-001`)
 

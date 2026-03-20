@@ -23,7 +23,11 @@
 |---------|------|---------------|
 | Health Poller | `src/lib/health/` | Polls project health endpoints on schedule |
 | Alert Engine | `src/lib/alerts/` | Evaluates rules, deduplication, grouping, escalation, burn-rate alerts, weekly review |
-| Metrics Collector | `src/lib/metrics/` | Collects, aggregates, and stores time-series metrics |
+| Metrics Collector | `src/lib/metrics/` | Prometheus scraping, DORA metrics, time-series queries |
+| Incident Management | `src/lib/incidents/` | Incident lifecycle, auto-create, resolution, post-mortems, metrics |
+| Smoke Tests | `src/lib/tests/` | Configurable HTTP smoke test runner, post-deploy testing |
+| Deployments | `src/lib/deployments/` | Deploy diff (commit/config changes), one-click rollback |
+| Quick Actions | `src/lib/actions/` | One-click redeploy, quick env update |
 | Notifications | `src/lib/notifications/` | Multi-channel dispatch (email, Slack, push) |
 | SSE Emitter | `src/lib/sse/` | Server-Sent Events broadcast, client hooks (useSSE, useRealtimeData) |
 
@@ -103,6 +107,23 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | GET | `/api/projects/:slug/confidence` | `withAuthContext` | Get confidence score + breakdown |
 | GET | `/api/projects/:slug/summaries` | `withAuthContext` | List AI-generated summaries |
 | GET | `/api/projects/:slug/handoff` | `withAuthContext` | Generate context handoff block (JSON/Markdown) |
+| GET | `/api/projects/:slug/dora` | `withAuthContext` | Get DORA metrics (deploy freq, lead time, MTTR, CFR) |
+| GET | `/api/projects/:slug/tests/config` | `withAuthContext` | List smoke test configurations |
+| POST | `/api/projects/:slug/tests/config` | `withAuthContext` (project admin) | Create test configuration |
+| POST | `/api/projects/:slug/tests/run` | `withAuthContext` (project admin) | Trigger smoke test run |
+| GET | `/api/projects/:slug/tests/results` | `withAuthContext` | List test run results |
+| GET | `/api/projects/:slug/deployments/:id/diff` | `withAuthContext` | Get deployment diff (commits, config changes) |
+| POST | `/api/projects/:slug/deployments/:id/rollback` | `withAuthContext` (project admin) | Trigger rollback to specific deploy |
+
+### Incidents
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/api/incidents` | `withAuth` | List incidents (filterable by status, severity, project) |
+| POST | `/api/incidents` | `withAuth` | Create incident |
+| GET | `/api/incidents/:id` | `withAuthContext` | Get incident detail with timeline |
+| PUT | `/api/incidents/:id` | `withAuthContext` | Update incident status |
+| POST | `/api/incidents/:id/timeline` | `withAuthContext` | Add timeline entry |
 
 ### Auth
 

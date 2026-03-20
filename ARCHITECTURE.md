@@ -76,6 +76,7 @@ When the same project is found via multiple sources, DockYard merges the data:
 │  │              Service Layer (src/lib/)                │        │
 │  │  discovery/ ingestion/ dokploy/ hetzner/ alerts/    │        │
 │  │  health/ metrics/ ai/ auth/ crypto/ slo/ config/   │        │
+│  │  incidents/ deployments/ tests/ actions/            │        │
 │  │  notifications/ projects/                           │        │
 │  └──────────────────────┬─────────────────────────────┘        │
 │                         │                                       │
@@ -85,6 +86,7 @@ When the same project is found via multiple sources, DockYard merges the data:
 │  │  signal-processor  billing-calculator  ai-summary   │        │
 │  │  project-scanner  slo-calculator  confidence-scorer │        │
 │  │  deploy-tracker  auto-rollback  hetzner-metrics     │        │
+│  │  test-runner  metrics-scraper                       │        │
 │  └──────────────────────┬─────────────────────────────┘        │
 │                         │                                       │
 │  ┌──────────────────────▼─────────────────────────────┐        │
@@ -139,6 +141,21 @@ UI → DockYard API → Validate → Audit Log → Dokploy saveEnvironment → D
 
 ### Health Check Flow
 Inngest cron (30s) → HTTP GET /healthz per project → Store Health_Check_Result → Aggregate to Project_Health → Evaluate Alert Rules → Dispatch Notifications
+
+### SLO Budget Flow
+Inngest cron (5min) → Load active SLOs → Query health_check_results / metric_points → Calculate budget remaining + burn rate → Update slo_budgets → Check burn-rate thresholds (14.4x/6x/3x) → Fire severity-appropriate alert → SSE broadcast
+
+### Incident Lifecycle Flow
+SEV1/SEV2 alert fires → Auto-create incident (30min dedup window) → investigating → identified → monitoring → resolved (MTTR calculated) → postmortem (AI draft) → publish
+
+### Metrics Scraping Flow (DIP Level 2)
+Inngest cron (60s) → Load DIP L2+ projects → GET /metrics → Parse Prometheus text format → Store metric_points → SSE broadcast
+
+### CloudEvents Ingestion Flow (DIP Level 3)
+External project → POST /api/ingest (CloudEvents + Standard Webhooks signature) → Validate + parse → Route by event type → Update deployment/alert/health/config state → SSE broadcast
+
+### Smoke Test Flow
+Manual trigger or post-deploy event → Load test configs → HTTP requests per endpoint → Validate status + body + latency → Store test_runs results → SSE broadcast
 
 ## Security
 
