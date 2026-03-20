@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { MobileNav } from "@/components/shared/mobile-nav";
 
 export const metadata: Metadata = {
   title: {
@@ -62,9 +63,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans pb-16 md:pb-0">
         <TooltipProvider>
           {children}
+          <MobileNav />
         </TooltipProvider>
       </body>
     </html>

@@ -8,3 +8,4 @@ export {
   GlassCardMotion,
   ScrollReveal,
 } from "./motion";
+export { MobileNav } from "./mobile-nav";
