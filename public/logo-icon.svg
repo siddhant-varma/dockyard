@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- DockYard Icon — Standalone mark -->
+  <!-- Three ascending bars (dock pylons) on a base beam -->
+  <rect x="4" y="6" width="5" height="20" rx="1.5" fill="#0c8ce9"/>
+  <rect x="12" y="12" width="5" height="14" rx="1.5" fill="#36a6ff"/>
+  <rect x="20" y="18" width="5" height="8" rx="1.5" fill="#7cc4ff"/>
+  <!-- Base beam connecting all pylons -->
+  <rect x="3" y="25" width="23" height="3" rx="1.5" fill="#0c8ce9"/>
+</svg>

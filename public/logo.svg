@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none">
+  <!-- DockYard Logo — Minimal Futuristic -->
+  <!-- Icon: abstract dock/terminal connector -->
+  <g>
+    <!-- Dock structure: angular pier shape -->
+    <rect x="2" y="8" width="4" height="24" rx="1" fill="#0c8ce9"/>
+    <rect x="8" y="14" width="4" height="18" rx="1" fill="#36a6ff"/>
+    <rect x="14" y="20" width="4" height="12" rx="1" fill="#7cc4ff"/>
+    <!-- Connector beam -->
+    <rect x="2" y="30" width="16" height="3" rx="1" fill="#0c8ce9"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="28" y="28" font-family="Geist, system-ui, sans-serif" font-size="20" font-weight="600" fill="currentColor" letter-spacing="-0.02em">
+    <tspan fill="currentColor">Dock</tspan><tspan fill="#0c8ce9">Yard</tspan>
+  </text>
+</svg>

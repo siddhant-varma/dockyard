@@ -6,9 +6,30 @@ import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
-  title: "DockYard",
+  title: {
+    default: "DockYard",
+    template: "%s — DockYard",
+  },
   description:
-    "Open-source operations platform — project discovery, tracking, config management, and health monitoring.",
+    "Open-source operations platform — project discovery, health monitoring, and deployment management.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/manifest.webmanifest",
+  metadataBase: new URL(
+    process.env.AUTH_URL ?? "http://localhost:3000"
+  ),
+  openGraph: {
+    title: "DockYard",
+    description:
+      "Open-source operations platform — project discovery, health monitoring, and deployment management.",
+    siteName: "DockYard",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
