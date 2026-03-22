@@ -1,8 +1,9 @@
 /**
- * SLOActions — client component for "Create SLO" button.
+ * SLOActions — client components for SLO CRUD operations.
  *
- * Submits new SLO definitions to POST /api/projects/:slug/slo.
- * In demo mode, the button is displayed but disabled.
+ * SLOActions: "Create SLO" button (POST /api/projects/:slug/slo).
+ * SLOItemActions: Edit/Delete buttons per SLO card (PUT/DELETE /api/projects/:slug/slo).
+ * In demo mode, buttons are displayed but disabled.
  */
 
 "use client";
@@ -13,6 +14,13 @@ import { Button } from "@/components/ui/button";
 
 interface SLOActionsProps {
   slug: string;
+  isDemo: boolean;
+}
+
+interface SLOItemActionsProps {
+  slug: string;
+  sloId: string;
+  sloName: string;
   isDemo: boolean;
 }
 
@@ -96,6 +104,103 @@ export function SLOActions({ slug, isDemo }: SLOActionsProps) {
         onClick={handleCreate}
       >
         {creating ? "Creating..." : "+ Create SLO"}
+      </Button>
+    </div>
+  );
+}
+
+/** Per-SLO edit and delete actions (GAP-007). */
+export function SLOItemActions({
+  slug,
+  sloId,
+  sloName,
+  isDemo,
+}: SLOItemActionsProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleEdit = async () => {
+    if (isDemo) return;
+    const targetStr = prompt(`New target value for "${sloName}":`);
+    if (!targetStr) return;
+    const targetValue = parseFloat(targetStr);
+    if (isNaN(targetValue)) {
+      alert("Target must be a number.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${INTERNAL_BASE}/api/projects/${slug}/slo`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: sloId, targetValue }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(
+          (body as Record<string, string>).error ??
+            `Request failed (${res.status})`,
+        );
+        return;
+      }
+      router.refresh();
+    } catch {
+      alert("Failed to update SLO.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isDemo) return;
+    const confirmed = confirm(
+      `Delete SLO "${sloName}"? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${INTERNAL_BASE}/api/projects/${slug}/slo`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: sloId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(
+          (body as Record<string, string>).error ??
+            `Request failed (${res.status})`,
+        );
+        return;
+      }
+      router.refresh();
+    } catch {
+      alert("Failed to delete SLO.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 px-2 text-[10px] text-foreground/50 hover:text-foreground/80"
+        disabled={isDemo || loading}
+        onClick={handleEdit}
+      >
+        Edit
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 px-2 text-[10px] text-red-400/60 hover:text-red-400"
+        disabled={isDemo || loading}
+        onClick={handleDelete}
+      >
+        Delete
       </Button>
     </div>
   );

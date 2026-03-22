@@ -17,7 +17,7 @@ import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
 import { PhaseTimeline } from "@/components/projects/phase-timeline";
 import { ConfidenceBreakdown, type ConfidenceFactors } from "@/components/projects/confidence-breakdown";
-import { BlockerList } from "@/components/projects/blocker-list";
+import { BlockerList, type Blocker } from "@/components/projects/blocker-list";
 import { ActivityFeed, type ActivityEvent } from "@/components/projects/activity-feed";
 import { isDemoMode } from "@/lib/env";
 import {
@@ -75,6 +75,42 @@ async function fetchConfidence(
   }
 }
 
+/** Shape returned by GET /api/projects/:slug/blockers. */
+interface ApiBlocker {
+  itemId: string;
+  itemTitle: string;
+  index: number;
+  description: string;
+  severity: "low" | "medium" | "high" | "critical";
+  owner: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+/** Fetch blockers for a project (GAP-004). */
+async function fetchBlockers(slug: string): Promise<Blocker[]> {
+  if (isDemoMode) return DEMO_BLOCKERS;
+  try {
+    const res = await fetch(
+      `${INTERNAL_BASE}/api/projects/${slug}/blockers`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as ApiBlocker[];
+    return data
+      .filter((b) => !b.resolved_at)
+      .map((b) => ({
+        id: `${b.itemId}-${b.index}`,
+        title: b.description,
+        severity: b.severity,
+        owner: b.owner,
+        context: b.itemTitle,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 /** Fetch recent activity events for a project (FE-010). */
 async function fetchActivity(slug: string): Promise<ActivityEvent[]> {
   if (isDemoMode) return DEMO_ACTIVITY;
@@ -123,14 +159,14 @@ export default async function ProjectDetailPage({
 
   // FE-011: Phases — no separate API; use demo data in demo mode, else empty
   const phases = isDemoMode ? DEMO_PHASES : [];
-  // FE-019: Blockers — same pattern; demo data only in demo mode
-  const blockers = isDemoMode ? DEMO_BLOCKERS : [];
 
   // FE-009: Confidence — wired to /api/projects/:slug/confidence
   // FE-010: Activity — wired to /api/projects/:slug/activity
-  const [confidence, activity] = await Promise.all([
+  // GAP-004: Blockers — wired to /api/projects/:slug/blockers
+  const [confidence, activity, blockers] = await Promise.all([
     fetchConfidence(slug),
     fetchActivity(slug),
+    fetchBlockers(slug),
   ]);
 
   return (

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
 import { DashboardRefresher } from "@/components/dashboard/dashboard-refresher";
+import { HealthSparklines } from "@/components/watchtower/health-sparklines";
 import { isDemoMode } from "@/lib/env";
 import { DEMO_HEALTH_PROJECTS } from "@/lib/demo-data";
 import type { HealthSummary } from "@/components/watchtower/health-card";
@@ -105,6 +106,9 @@ export default async function HealthDetailPage({
           </span>
         )}
       </div>
+
+      {/* Latency sparkline + Uptime chart */}
+      <HealthSparklines slug={slug} />
 
       {/* Component status table */}
       <Card className="bg-card border-glass-border backdrop-blur-lg">

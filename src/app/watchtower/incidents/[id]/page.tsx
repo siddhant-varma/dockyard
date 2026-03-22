@@ -16,6 +16,9 @@ import {
   type DemoIncident,
   type DemoTimelineEntry,
 } from "@/lib/demo-data";
+import { PostmortemSection } from "@/components/watchtower/postmortem-section";
+import { IncidentActions } from "./incident-actions";
+import { AddTimelineNote } from "./add-timeline-note";
 
 type Params = Promise<{ id: string }>;
 
@@ -116,6 +119,12 @@ export default async function IncidentDetailPage({
         <p className="mt-1 text-sm text-foreground/50">
           Affecting {incident.service} — Started {incident.startedAt}
         </p>
+        <div className="mt-3">
+          <IncidentActions
+            incidentId={incident.id}
+            currentStatus={incident.status}
+          />
+        </div>
       </div>
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[1fr_300px]">
@@ -151,6 +160,11 @@ export default async function IncidentDetailPage({
                 })}
               </div>
             )}
+
+            {/* Add timeline note form */}
+            <div className="mt-4 border-t border-glass-border pt-4">
+              <AddTimelineNote incidentId={incident.id} />
+            </div>
           </CardContent>
         </Card>
 
@@ -185,6 +199,13 @@ export default async function IncidentDetailPage({
           </Card>
         </div>
       </div>
+
+      {/* Postmortem section */}
+      <PostmortemSection
+        incidentId={incident.id}
+        incidentStatus={incident.status}
+        existingContent={null}
+      />
     </div>
   );
 }

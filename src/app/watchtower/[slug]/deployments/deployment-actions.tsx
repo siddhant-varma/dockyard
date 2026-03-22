@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useReAuth } from "@/components/auth/reauth-modal";
 
 /** Shape returned by the deployment diff API endpoint. */
 interface DeployDiff {
@@ -52,6 +53,7 @@ export function DeploymentActions({
 
   const [rollbackLoading, setRollbackLoading] = useState(false);
   const [rollbackResult, setRollbackResult] = useState<string | null>(null);
+  const { requireReAuth, ReAuthGate } = useReAuth();
 
   async function handleDiffClick() {
     if (diffOpen) {
@@ -81,8 +83,8 @@ export function DeploymentActions({
   }
 
   async function handleRollbackClick() {
-    const confirmed = window.confirm(
-      "Are you sure you want to rollback to this deployment? This will trigger a new deployment reverting to this version."
+    const confirmed = await requireReAuth(
+      "Roll back to this deployment? This will trigger a new deployment reverting to this version."
     );
     if (!confirmed) return;
 
@@ -134,6 +136,8 @@ export function DeploymentActions({
           </Button>
         )}
       </div>
+
+      <ReAuthGate />
 
       {/* Rollback result message */}
       {rollbackResult && (

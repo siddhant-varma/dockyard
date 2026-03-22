@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
+import { useReAuth } from "@/components/auth/reauth-modal";
 
 interface ConfigEntry {
   key: string;
@@ -127,6 +128,16 @@ export default function ConfigPage({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const { requireReAuth, ReAuthGate } = useReAuth();
+
+  // GAP-008: Auto-rollback toggle state
+  const [autoRollback, setAutoRollback] = useState(true);
+
+  // GAP-009: Template selection state
+  const [templates, setTemplates] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   /** Update a single config entry value in local state */
   const updateEntryValue = (
@@ -150,6 +161,11 @@ export default function ConfigPage({
 
   /** POST current config to apply endpoint and trigger redeploy */
   const handleApply = async () => {
+    const confirmed = await requireReAuth(
+      "Apply configuration changes and trigger a redeploy? This will restart the application with the new environment variables."
+    );
+    if (!confirmed) return;
+
     setApplying(true);
     setFeedback(null);
     try {
@@ -211,9 +227,78 @@ export default function ConfigPage({
     }
   };
 
+  /** GAP-008: Toggle auto-rollback setting for the project. */
+  const handleAutoRollbackToggle = async (enabled: boolean) => {
+    setAutoRollback(enabled);
+    try {
+      const base =
+        process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+      const res = await fetch(
+        `${base}/api/projects/${slug}/config/rollback`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled }),
+        },
+      );
+      if (!res.ok) {
+        setAutoRollback(!enabled);
+        setFeedback({
+          type: "error",
+          message: "Failed to update auto-rollback setting.",
+        });
+        return;
+      }
+      setFeedback({
+        type: "success",
+        message: `Auto-rollback ${enabled ? "enabled" : "disabled"}.`,
+      });
+    } catch {
+      setAutoRollback(!enabled);
+      setFeedback({
+        type: "error",
+        message: "Failed to update auto-rollback setting.",
+      });
+    }
+  };
+
+  /** GAP-009: Apply a config template to the project. */
+  const handleApplyTemplate = async () => {
+    if (!selectedTemplateId) return;
+    try {
+      const base =
+        process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+      const res = await fetch(
+        `${base}/api/projects/${slug}/config/templates`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "apply",
+            templateId: selectedTemplateId,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      setFeedback({ type: "success", message: "Template applied." });
+      // Reload config entries after applying template
+      const configRes = await fetch(`${base}/api/projects/${slug}/config`);
+      if (configRes.ok) {
+        const data = (await configRes.json()) as ApiConfigEntry[];
+        if (data.length > 0) {
+          setCategories(groupByCategory(data));
+        }
+      }
+    } catch {
+      setFeedback({ type: "error", message: "Failed to apply template." });
+    }
+  };
+
   useEffect(() => {
     const base =
       process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+    // Fetch config entries
     fetch(`${base}/api/projects/${slug}/config`)
       .then((res) => {
         if (!res.ok) return null;
@@ -227,6 +312,28 @@ export default function ConfigPage({
       .catch(() => {
         /* Keep DEMO_CATEGORIES as fallback */
       });
+
+    // GAP-008: Fetch auto-rollback config
+    fetch(`${base}/api/projects/${slug}/config/rollback`)
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json() as Promise<{ enabled: boolean }>;
+      })
+      .then((data) => {
+        if (data) setAutoRollback(data.enabled);
+      })
+      .catch(() => {});
+
+    // GAP-009: Fetch available templates
+    fetch(`${base}/api/projects/${slug}/config/templates`)
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json() as Promise<{ id: string; name: string }[]>;
+      })
+      .then((data) => {
+        if (data && Array.isArray(data)) setTemplates(data);
+      })
+      .catch(() => {});
   }, [slug]);
 
   const toggleCategory = (name: string) => {
@@ -254,11 +361,25 @@ export default function ConfigPage({
 
       {/* Template + Rollback bar */}
       <div className="glass flex flex-wrap items-center gap-3 rounded-xl px-5 py-3">
-        <Input
-          placeholder="Select template..."
-          className="max-w-[200px] bg-glass-input border-glass-border text-sm"
-        />
-        <Button variant="outline" size="sm" className="text-xs">
+        <select
+          value={selectedTemplateId}
+          onChange={(e) => setSelectedTemplateId(e.target.value)}
+          className="max-w-[200px] rounded-md bg-glass-input border border-glass-border px-3 py-1.5 text-sm text-foreground"
+        >
+          <option value="">Select template...</option>
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs"
+          disabled={!selectedTemplateId}
+          onClick={handleApplyTemplate}
+        >
           Apply
         </Button>
         <Button
@@ -271,7 +392,10 @@ export default function ConfigPage({
         </Button>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-foreground/50">Auto-Rollback</span>
-          <Switch defaultChecked />
+          <Switch
+            checked={autoRollback}
+            onCheckedChange={handleAutoRollbackToggle}
+          />
         </div>
       </div>
 
@@ -398,6 +522,8 @@ export default function ConfigPage({
           {applying ? "Applying..." : "Apply & Redeploy"}
         </Button>
       </div>
+
+      <ReAuthGate />
     </div>
   );
 }

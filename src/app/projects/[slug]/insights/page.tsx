@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ContextHandoff } from "@/components/projects/context-handoff";
 import { isDemoMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
@@ -141,6 +142,9 @@ export default async function InsightsPage({ params }: { params: Params }) {
           ))}
         </div>
       )}
+
+      {/* Context Handoff block */}
+      <ContextHandoff slug={slug} />
     </div>
   );
 }

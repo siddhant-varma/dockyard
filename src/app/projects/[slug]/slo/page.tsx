@@ -11,7 +11,7 @@ import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
-import { SLOActions } from "./slo-actions";
+import { SLOActions, SLOItemActions } from "./slo-actions";
 
 type Params = Promise<{ slug: string }>;
 
@@ -212,6 +212,12 @@ export default async function SLOPage({ params }: { params: Params }) {
 
                   <div className="flex items-center justify-between text-xs text-foreground/30">
                     <span>{slo.window}</span>
+                    <SLOItemActions
+                      slug={slug}
+                      sloId={slo.id}
+                      sloName={slo.name}
+                      isDemo={isDemoMode}
+                    />
                   </div>
                 </CardContent>
               </Card>

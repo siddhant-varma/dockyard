@@ -4,10 +4,8 @@
  * Server component. Vertical phase-by-phase roadmap with task items.
  * Matches WIREFRAMES.md §8 phase timeline (expanded view).
  *
- * No backend API exists for roadmap data yet. In demo mode, renders
- * static DEMO_ROADMAP data. In live mode, shows an empty state.
- * When a roadmap API is added, replace the `isDemoMode` guard with
- * a fetch call following the pattern in the SLO/Insights pages.
+ * In demo mode, renders static DEMO_ROADMAP data.
+ * In live mode, fetches from GET /api/projects/:slug/phases.
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +16,9 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
+
+const INTERNAL_BASE =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 interface RoadmapPhase {
   name: string;
@@ -73,9 +74,24 @@ const PHASE_BADGE: Record<string, string> = {
   planned: "bg-white/5 text-foreground/40 border-white/10",
 };
 
+/** Fetch roadmap phases from the backend or return demo data. */
+async function fetchPhases(slug: string): Promise<RoadmapPhase[]> {
+  if (isDemoMode) return DEMO_ROADMAP;
+  try {
+    const res = await fetch(
+      `${INTERNAL_BASE}/api/projects/${slug}/phases`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as RoadmapPhase[];
+  } catch {
+    return [];
+  }
+}
+
 export default async function RoadmapPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const phases = isDemoMode ? DEMO_ROADMAP : [];
+  const phases = await fetchPhases(slug);
 
   return (
     <div className="space-y-6">
