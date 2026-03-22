@@ -56,6 +56,10 @@ const envSchema = z.object({
   AUTH_GITHUB_SECRET: z.string().optional(),
   AUTH_URL: z.string().optional(),
 
+  // ── GitHub Discovery — org or username to scan repos from
+  GITHUB_ORG: z.string().optional(),
+  GITHUB_USER: z.string().optional(),
+
   // ── Dokploy — only needed when DOCKYARD_MODE=server
   DOKPLOY_API_URL: z.string().optional(),
   DOKPLOY_API_KEY: z.string().optional(),

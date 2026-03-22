@@ -6,7 +6,7 @@
  * signal event for newly found projects.
  */
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { discoverySources, projects } from "@/db/schema";
 import type {
@@ -32,13 +32,110 @@ export function registerSource(source: DiscoverySource): void {
 }
 
 /**
+ * Auto-create default discovery sources when the table is empty.
+ *
+ * Sources created depend on the operating mode (DOCKYARD_MODE env var):
+ * - local: filesystem source scanning sibling directories
+ * - server: Dokploy source (if API URL + key configured), GitHub source (if token available)
+ *
+ * This ensures discovery works out-of-the-box without manual DB seed or UI configuration.
+ * Only runs once — skips if any sources already exist.
+ */
+async function bootstrapDefaultSources(): Promise<void> {
+  const [{ count: sourceCount }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(discoverySources);
+
+  if (sourceCount > 0) return;
+
+  const mode = process.env.DOCKYARD_MODE ?? "local";
+  const toCreate: Array<{
+    type: "filesystem" | "dokploy" | "github" | "manual";
+    name: string;
+    config: Record<string, unknown>;
+    enabled: boolean;
+  }> = [];
+
+  if (mode === "local") {
+    toCreate.push({
+      type: "filesystem",
+      name: "Local Projects",
+      config: { path: "..", recursive: false },
+      enabled: true,
+    });
+    moduleLog.info(
+      { path: ".." },
+      "Auto-creating filesystem discovery source for local mode"
+    );
+  }
+
+  if (mode === "server") {
+    const dokployUrl = process.env.DOKPLOY_API_URL;
+    const dokployKey = process.env.DOKPLOY_API_KEY;
+    if (dokployUrl && dokployKey) {
+      toCreate.push({
+        type: "dokploy",
+        name: "Dokploy Instance",
+        config: { instanceUrl: dokployUrl, apiKey: dokployKey },
+        enabled: true,
+      });
+      moduleLog.info("Auto-creating Dokploy discovery source for server mode");
+    } else {
+      moduleLog.warn(
+        "Server mode but DOKPLOY_API_URL or DOKPLOY_API_KEY not set — skipping Dokploy source"
+      );
+    }
+  }
+
+  // GitHub works in both modes if a token is available
+  const githubToken = process.env.AUTH_GITHUB_SECRET;
+  const githubOrg = process.env.GITHUB_ORG;
+  const githubUser = process.env.GITHUB_USER;
+  if (githubToken && (githubOrg || githubUser)) {
+    toCreate.push({
+      type: "github",
+      name: githubOrg ? `GitHub (${githubOrg})` : `GitHub (${githubUser})`,
+      config: {
+        token: githubToken,
+        ...(githubOrg ? { org: githubOrg } : {}),
+        ...(githubUser ? { user: githubUser } : {}),
+      },
+      enabled: true,
+    });
+    moduleLog.info("Auto-creating GitHub discovery source");
+  }
+
+  // Always create manual source — preserves user-registered projects
+  toCreate.push({
+    type: "manual",
+    name: "Manual",
+    config: {},
+    enabled: true,
+  });
+
+  if (toCreate.length > 0) {
+    await db.insert(discoverySources).values(toCreate);
+    moduleLog.info(
+      { sources: toCreate.map((s) => s.type) },
+      "Default discovery sources bootstrapped"
+    );
+  }
+}
+
+/**
  * Run all enabled discovery sources and merge results into the database.
+ *
+ * On first run, auto-creates default sources based on DOCKYARD_MODE
+ * so discovery works out-of-the-box without manual configuration.
  *
  * @returns Summary of what was found, created, and updated
  */
 export async function scanAll(): Promise<ScanResult> {
   const log = getLogger().child({ module: "discovery.scanner" });
   const scanStart = performance.now();
+
+  // Auto-create default sources if table is empty
+  await bootstrapDefaultSources();
 
   const enabledSources = await db.query.discoverySources.findMany({
     where: eq(discoverySources.enabled, true),
