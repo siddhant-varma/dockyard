@@ -114,10 +114,10 @@ export default async function ProjectDetailPage({
         )}
       </div>
 
-      {/* Two-column layout: Main (65%) + Sidebar (35%) */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      {/* Two-column layout: Main + Sidebar */}
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[1fr_300px]">
         {/* Main column */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Description */}
           {project.description && (
             <Card className="bg-card border-glass-border backdrop-blur-lg">
@@ -173,7 +173,7 @@ export default async function ProjectDetailPage({
         </div>
 
         {/* Sidebar column */}
-        <div>
+        <div className="min-w-0">
           <ActivityFeed events={activity} />
         </div>
       </div>

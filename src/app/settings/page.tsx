@@ -14,13 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageTabs } from "@/components/layout/page-tabs";
-
-const HOME_TABS = [
-  { label: "Dashboard", href: "/" },
-  { label: "Settings", href: "/settings" },
-  { label: "Self-Health", href: "/self-health" },
-];
+import { ClientTabs } from "@/components/layout/page-tabs";
 
 const SETTINGS_TABS = [
   "General",
@@ -428,26 +422,11 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageTabs tabs={HOME_TABS} />
-
-      <h1 className="text-lg font-semibold text-foreground">Settings</h1>
-
-      {/* Settings sub-tabs */}
-      <div className="flex gap-1 overflow-x-auto border-b border-glass-border">
-        {SETTINGS_TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`shrink-0 px-3 py-2 text-sm transition-colors ${
-              activeTab === tab
-                ? "border-b-2 border-[var(--color-brand-500)] text-foreground"
-                : "text-foreground/40 hover:text-foreground/60"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      <ClientTabs
+        tabs={[...SETTINGS_TABS]}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as SettingsTab)}
+      />
 
       <Content />
     </div>

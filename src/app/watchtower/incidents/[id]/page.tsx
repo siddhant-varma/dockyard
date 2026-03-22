@@ -118,7 +118,7 @@ export default async function IncidentDetailPage({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[1fr_300px]">
         {/* Timeline */}
         <Card className="bg-card border-glass-border backdrop-blur-lg">
           <CardHeader className="pb-2">

@@ -39,7 +39,7 @@ export function PhaseTimeline({ phases }: PhaseTimelineProps) {
 
   return (
     <div className="overflow-x-auto">
-      <div className="flex items-center gap-1 min-w-max py-2">
+      <div className="flex items-center gap-1 py-2">
         {phases.map((phase, i) => (
           <div key={phase.name} className="flex items-center">
             <div className="flex flex-col items-center">

@@ -12,7 +12,6 @@ import { isDemoMode } from "@/lib/env";
 
 const HOME_TABS = [
   { label: "Dashboard", href: "/" },
-  { label: "Settings", href: "/settings" },
   { label: "Self-Health", href: "/self-health" },
 ];
 

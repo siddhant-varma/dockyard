@@ -9,6 +9,7 @@ import {
   ProjectCard,
   type ProjectSummary,
 } from "@/components/projects/project-card";
+import { PageTabs } from "@/components/layout/page-tabs";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
 import { isDemoMode } from "@/lib/env";
 import { DEMO_PROJECTS } from "@/lib/demo-data";
@@ -32,13 +33,15 @@ async function fetchProjects(): Promise<ProjectSummary[]> {
 export default async function ProjectsPage() {
   const projects = await fetchProjects();
 
+  // Build dynamic project tabs — "All" + each project name
+  const projectTabs = [
+    { label: "All", href: "/projects" },
+    ...projects.map((p) => ({ label: p.name, href: `/projects/${p.slug}` })),
+  ];
+
   return (
     <div>
-      <h1 className="mb-6 text-lg font-semibold text-foreground">
-        {projects.length === 0
-          ? "Projects"
-          : `${projects.length} Project${projects.length === 1 ? "" : "s"}`}
-      </h1>
+      <PageTabs tabs={projectTabs} />
 
       {projects.length === 0 ? (
         <div className="glass flex flex-col items-center justify-center rounded-xl py-20 text-center">

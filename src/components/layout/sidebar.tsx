@@ -106,7 +106,7 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
             }`}
           >
             <span className="text-sidebar-foreground/60">{SETTINGS_ICON}</span>
-            Admin
+            Settings
           </Link>
 
           <div className="mt-2 rounded-lg px-3 py-2">
@@ -148,7 +148,7 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
           }`}
         >
           {SETTINGS_ICON}
-          Admin
+          Settings
         </Link>
       </nav>
     </>

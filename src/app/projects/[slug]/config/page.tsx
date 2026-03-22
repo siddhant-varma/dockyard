@@ -142,7 +142,7 @@ export default function ConfigPage({
                       key={entry.key}
                       className="flex flex-wrap items-center gap-3 py-3"
                     >
-                      <span className="min-w-[160px] font-mono text-xs text-foreground/70">
+                      <span className="w-full font-mono text-xs text-foreground/70 sm:w-auto sm:min-w-[160px]">
                         {entry.key}
                       </span>
 
@@ -155,12 +155,12 @@ export default function ConfigPage({
                               revealedKeys.has(entry.key) ? "text" : "password"
                             }
                             defaultValue={entry.value}
-                            className="max-w-[300px] bg-glass-input border-glass-border text-sm"
+                            className="w-full bg-glass-input border-glass-border text-sm sm:max-w-[300px]"
                           />
                         ) : (
                           <Input
                             defaultValue={entry.value}
-                            className="max-w-[300px] bg-glass-input border-glass-border text-sm"
+                            className="w-full bg-glass-input border-glass-border text-sm sm:max-w-[300px]"
                           />
                         )}
 

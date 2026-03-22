@@ -8,6 +8,7 @@ import type { PageTab } from "@/components/layout/page-tabs";
 export function buildProjectTabs(slug: string): PageTab[] {
   const base = `/projects/${slug}`;
   return [
+    { label: "← Projects", href: "/projects" },
     { label: "Overview", href: base },
     { label: "Roadmap", href: `${base}/roadmap` },
     { label: "Config", href: `${base}/config` },
