@@ -5,6 +5,8 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { healthCheckResults } from "@/db/schema";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("health.trends");
 
 /**
  * Get average latency values bucketed by hour for sparkline display.
@@ -24,7 +26,14 @@ export async function getLatencyTrend(
     `
   );
 
-  return rows.map((r) => Math.round(Number(r.avg_latency)));
+  const trend = rows.map((r) => Math.round(Number(r.avg_latency)));
+
+  log.debug(
+    { projectId, hours, buckets: trend.length },
+    "Latency trend data retrieved"
+  );
+
+  return trend;
 }
 
 /**
@@ -48,6 +57,11 @@ export async function getStatusHistory(
     )
     .orderBy(desc(healthCheckResults.checkedAt))
     .limit(limit);
+
+  log.debug(
+    { projectId, limit, entries: rows.length },
+    "Status history retrieved"
+  );
 
   return rows;
 }

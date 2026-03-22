@@ -21,6 +21,9 @@
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { auditLogs } from "@/db/schema";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("auth.audit");
 
 /** Input for creating an audit log entry. */
 export interface AuditLogInput {
@@ -65,15 +68,28 @@ export async function logAudit(input: AuditLogInput): Promise<void> {
     actorUserAgent = input.request.headers.get("user-agent") ?? null;
   }
 
-  await db.insert(auditLogs).values({
-    actorId: input.actorId === "anonymous" ? null : input.actorId,
-    actorIp,
-    actorUserAgent,
-    action: input.action,
-    targetType: input.targetType,
-    targetId: input.targetId ?? null,
-    diff: input.diff ?? null,
-  });
+  try {
+    await db.insert(auditLogs).values({
+      actorId: input.actorId === "anonymous" ? null : input.actorId,
+      actorIp,
+      actorUserAgent,
+      action: input.action,
+      targetType: input.targetType,
+      targetId: input.targetId ?? null,
+      diff: input.diff ?? null,
+    });
+
+    log.info(
+      { actorId: input.actorId, action: input.action, targetType: input.targetType, targetId: input.targetId },
+      "audit event recorded"
+    );
+  } catch (err) {
+    log.error(
+      { err, actorId: input.actorId, action: input.action, targetType: input.targetType, targetId: input.targetId },
+      "failed to write audit log"
+    );
+    throw err;
+  }
 }
 
 /**

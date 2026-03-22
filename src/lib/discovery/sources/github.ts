@@ -15,6 +15,9 @@
 
 import type { DiscoveredProject, DiscoverySource } from "../types";
 import { generateSlug } from "../indicators";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("discovery.github");
 
 interface GitHubRepo {
   name: string;
@@ -32,15 +35,33 @@ export class GitHubSource implements DiscoverySource {
 
   async scan(config: Record<string, unknown>): Promise<DiscoveredProject[]> {
     const token = String(config.token ?? "");
-    if (!token) return [];
+    if (!token) {
+      log.warn("No GitHub token provided — skipping GitHub discovery");
+      return [];
+    }
 
     const org = config.org ? String(config.org) : undefined;
     const user = config.user ? String(config.user) : undefined;
 
-    const repos = await this.fetchRepos(token, org, user);
+    log.info(
+      { org: org ?? "(none)", user: user ?? "(none)", tokenLength: token.length },
+      "GitHub scan starting"
+    );
 
-    return repos
-      .filter((repo) => !repo.fork && !repo.archived)
+    const repos = await this.fetchRepos(token, org, user);
+    const filtered = repos.filter((repo) => !repo.fork && !repo.archived);
+
+    log.info(
+      {
+        totalRepos: repos.length,
+        afterFilter: filtered.length,
+        forksSkipped: repos.filter((r) => r.fork).length,
+        archivedSkipped: repos.filter((r) => r.archived).length,
+      },
+      "GitHub scan completed"
+    );
+
+    return filtered
       .map((repo) => ({
         name: repo.name,
         slug: generateSlug(repo.name),
@@ -74,7 +95,9 @@ export class GitHubSource implements DiscoverySource {
     try {
       // Paginate (GitHub defaults to 30, max 100 per page)
       let nextUrl: string | null = url;
+      let page = 1;
       while (nextUrl) {
+        log.debug({ url: nextUrl, page }, "Fetching GitHub repos page");
         const response = await fetch(nextUrl, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -83,16 +106,32 @@ export class GitHubSource implements DiscoverySource {
           signal: AbortSignal.timeout(15000),
         });
 
-        if (!response.ok) break;
+        if (!response.ok) {
+          log.error(
+            { status: response.status, statusText: response.statusText, url: nextUrl },
+            "GitHub API returned error"
+          );
+          break;
+        }
+
+        const rateRemaining = response.headers.get("x-ratelimit-remaining");
+        if (rateRemaining && parseInt(rateRemaining) < 100) {
+          log.warn(
+            { remaining: rateRemaining },
+            "GitHub API rate limit approaching"
+          );
+        }
 
         const repos = (await response.json()) as GitHubRepo[];
         allRepos.push(...repos);
+        log.debug({ page, reposOnPage: repos.length, totalSoFar: allRepos.length }, "GitHub page fetched");
 
         // Parse Link header for pagination
         nextUrl = this.getNextPageUrl(response.headers.get("link"));
+        page++;
       }
-    } catch {
-      // Graceful failure — return whatever we fetched so far
+    } catch (err) {
+      log.error({ err, fetchedSoFar: allRepos.length }, "GitHub API request failed — returning partial results");
     }
 
     return allRepos;

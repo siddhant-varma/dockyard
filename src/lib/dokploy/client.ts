@@ -25,6 +25,9 @@ import type {
   TimeRange,
 } from "../providers/types";
 import { fetchJSON } from "../http/client";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("dokploy.client");
 
 /* ================================================================
    Dokploy API Response Types (partial — fields we use)
@@ -81,6 +84,9 @@ export class DokployClient implements DeployProvider {
   }
 
   async listApplications(): Promise<ApplicationSummary[]> {
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/application.all + /compose.all" }, "Listing all applications");
+
     const [apps, composeServices] = await Promise.all([
       this.fetchApps(),
       this.fetchComposeServices(),
@@ -104,22 +110,34 @@ export class DokployClient implements DeployProvider {
       })
     );
 
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ durationMs, appCount: apps.length, composeCount: composeServices.length }, "Listed all applications");
+    log.debug({ appCount: appSummaries.length, composeCount: composeSummaries.length, totalCount: appSummaries.length + composeSummaries.length }, "Application summary counts");
+
     return [...appSummaries, ...composeSummaries];
   }
 
   async getApplication(id: string): Promise<ApplicationDetail> {
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/application.one", applicationId: id }, "Fetching application detail");
+
     // Try as application first, fall back to compose
     try {
       const app = await fetchJSON<DokployApplication>(
         this.url(`/application.one?applicationId=${id}`),
         { headers: this.authHeaders }
       );
+      const durationMs = Math.round(performance.now() - t0);
+      log.info({ method: "GET", endpoint: "/application.one", durationMs, status: 200 }, "Fetched application detail");
       return mapApplicationDetail(app);
-    } catch {
+    } catch (err) {
+      log.warn({ applicationId: id, err: err instanceof Error ? err.message : String(err) }, "Application lookup failed, falling back to compose");
       const compose = await fetchJSON<DokployCompose>(
         this.url(`/compose.one?composeId=${id}`),
         { headers: this.authHeaders }
       );
+      const durationMs = Math.round(performance.now() - t0);
+      log.info({ method: "GET", endpoint: "/compose.one", durationMs, status: 200 }, "Fetched compose detail (fallback)");
       return mapComposeDetail(compose);
     }
   }
@@ -133,18 +151,27 @@ export class DokployClient implements DeployProvider {
   }
 
   async start(id: string): Promise<void> {
+    log.info({ method: "POST", endpoint: `/application.start`, applicationId: id }, "Starting application");
     await this.postAction(id, "start");
+    log.info({ applicationId: id }, "Application start triggered");
   }
 
   async stop(id: string): Promise<void> {
+    log.info({ method: "POST", endpoint: `/application.stop`, applicationId: id }, "Stopping application");
     await this.postAction(id, "stop");
+    log.info({ applicationId: id }, "Application stop triggered");
   }
 
   async getEnvironment(id: string): Promise<string> {
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/application.one", applicationId: id }, "Fetching environment");
     const app = await fetchJSON<DokployApplication>(
       this.url(`/application.one?applicationId=${id}`),
       { headers: this.authHeaders }
     );
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: "/application.one", durationMs, status: 200 }, "Fetched environment");
+    log.debug({ applicationId: id, envLength: (app.env ?? "").length }, "Environment payload summary");
     return app.env ?? "";
   }
 
@@ -154,32 +181,52 @@ export class DokployClient implements DeployProvider {
    * After saving, you must call `redeploy()` separately.
    */
   async saveEnvironment(id: string, env: string): Promise<void> {
+    const t0 = performance.now();
+    log.info({ method: "POST", endpoint: "/application.saveEnvironment", applicationId: id }, "Saving environment");
     await fetchJSON<unknown>(this.url("/application.saveEnvironment"), {
       method: "POST",
       headers: this.authHeaders,
       body: { applicationId: id, env, buildArgs: "" },
     });
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "POST", endpoint: "/application.saveEnvironment", durationMs, status: 200 }, "Environment saved");
+    log.debug({ applicationId: id, envLength: env.length }, "Environment save payload summary");
   }
 
   async getLogs(id: string, options?: LogOptions): Promise<LogEntry[]> {
+    const t0 = performance.now();
     const params = new URLSearchParams({ applicationId: id });
     if (options?.tail) params.set("tail", String(options.tail));
 
+    log.info({ method: "GET", endpoint: "/application.readLogs", applicationId: id }, "Fetching logs");
     const data = await fetchJSON<DokployLogEntry[] | string>(
       this.url(`/application.readLogs?${params}`),
       { headers: this.authHeaders }
     );
 
-    return parseLogs(data);
+    const logs = parseLogs(data);
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: "/application.readLogs", durationMs, status: 200 }, "Fetched logs");
+    log.debug({ applicationId: id, logCount: logs.length }, "Log response summary");
+    return logs;
   }
 
   async getMetrics(id: string, _range: TimeRange): Promise<MetricSeries[]> {
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/application.readAppMonitoring", applicationId: id }, "Fetching metrics");
+
     const data = await fetchJSON<DokployMetricPoint[]>(
       this.url(`/application.readAppMonitoring?applicationId=${id}`),
       { headers: this.authHeaders }
     );
 
-    if (!Array.isArray(data) || data.length === 0) return [];
+    const durationMs = Math.round(performance.now() - t0);
+
+    if (!Array.isArray(data) || data.length === 0) {
+      log.info({ method: "GET", endpoint: "/application.readAppMonitoring", durationMs, status: 200 }, "Fetched metrics (empty)");
+      log.debug({ applicationId: id, dataPointCount: 0 }, "Metrics response summary");
+      return [];
+    }
 
     const cpuPoints: MetricDataPoint[] = [];
     const memoryPoints: MetricDataPoint[] = [];
@@ -192,6 +239,9 @@ export class DokployClient implements DeployProvider {
         value: point.memory.percentage,
       });
     }
+
+    log.info({ method: "GET", endpoint: "/application.readAppMonitoring", durationMs, status: 200 }, "Fetched metrics");
+    log.debug({ applicationId: id, dataPointCount: data.length }, "Metrics response summary");
 
     return [
       { name: "cpu", labels: { unit: "percent" }, dataPoints: cpuPoints },
@@ -214,7 +264,8 @@ export class DokployClient implements DeployProvider {
         { headers: this.authHeaders }
       );
       return Array.isArray(data) ? data : [];
-    } catch {
+    } catch (err) {
+      log.error({ method: "GET", endpoint: "/application.all", err: err instanceof Error ? err.message : String(err) }, "Failed to fetch applications");
       return [];
     }
   }
@@ -225,7 +276,8 @@ export class DokployClient implements DeployProvider {
         headers: this.authHeaders,
       });
       return Array.isArray(data) ? data : [];
-    } catch {
+    } catch (err) {
+      log.error({ method: "GET", endpoint: "/compose.all", err: err instanceof Error ? err.message : String(err) }, "Failed to fetch compose services");
       return [];
     }
   }
@@ -234,6 +286,9 @@ export class DokployClient implements DeployProvider {
     id: string,
     action: "deploy" | "redeploy"
   ): Promise<DeployResult> {
+    const t0 = performance.now();
+    log.info({ method: "POST", endpoint: `/application.${action}`, applicationId: id }, `Triggering ${action}`);
+
     // Try application endpoint first, then compose
     try {
       await fetchJSON<unknown>(this.url(`/application.${action}`), {
@@ -241,16 +296,24 @@ export class DokployClient implements DeployProvider {
         headers: this.authHeaders,
         body: { applicationId: id },
       });
-    } catch {
+      const durationMs = Math.round(performance.now() - t0);
+      log.info({ method: "POST", endpoint: `/application.${action}`, durationMs, status: 200 }, `Application ${action} triggered`);
+    } catch (err) {
+      log.warn({ endpoint: `/application.${action}`, applicationId: id, err: err instanceof Error ? err.message : String(err) }, `Application ${action} failed, falling back to compose`);
       await fetchJSON<unknown>(this.url(`/compose.${action}`), {
         method: "POST",
         headers: this.authHeaders,
         body: { composeId: id },
       });
+      const durationMs = Math.round(performance.now() - t0);
+      log.info({ method: "POST", endpoint: `/compose.${action}`, durationMs, status: 200 }, `Compose ${action} triggered (fallback)`);
     }
 
+    const deployId = `${action}-${id}-${Date.now()}`;
+    log.debug({ deployId, action, applicationId: id }, "Deploy result");
+
     return {
-      deployId: `${action}-${id}-${Date.now()}`,
+      deployId,
       status: "queued",
     };
   }
@@ -259,18 +322,24 @@ export class DokployClient implements DeployProvider {
     id: string,
     action: "start" | "stop"
   ): Promise<void> {
+    const t0 = performance.now();
     try {
       await fetchJSON<unknown>(this.url(`/application.${action}`), {
         method: "POST",
         headers: this.authHeaders,
         body: { applicationId: id },
       });
-    } catch {
+      const durationMs = Math.round(performance.now() - t0);
+      log.info({ method: "POST", endpoint: `/application.${action}`, durationMs, status: 200 }, `Application ${action} completed`);
+    } catch (err) {
+      log.warn({ endpoint: `/application.${action}`, applicationId: id, err: err instanceof Error ? err.message : String(err) }, `Application ${action} failed, falling back to compose`);
       await fetchJSON<unknown>(this.url(`/compose.${action}`), {
         method: "POST",
         headers: this.authHeaders,
         body: { composeId: id },
       });
+      const durationMs = Math.round(performance.now() - t0);
+      log.info({ method: "POST", endpoint: `/compose.${action}`, durationMs, status: 200 }, `Compose ${action} completed (fallback)`);
     }
   }
 }

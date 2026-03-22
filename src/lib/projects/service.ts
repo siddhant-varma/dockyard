@@ -7,8 +7,11 @@
  */
 
 import { and, eq, ilike, sql } from "drizzle-orm";
+import { createModuleLogger } from "@/lib/logger";
 import { db } from "@/db/connection";
 import { projects } from "@/db/schema";
+
+const log = createModuleLogger("projects.service");
 
 /** Filters for listing projects. */
 export interface ProjectFilters {
@@ -109,6 +112,9 @@ export async function createProject(data: CreateProjectData) {
       discoveredVia: data.discoveredVia ?? "manual",
     })
     .returning();
+
+  log.info({ slug: data.slug, name: data.name }, "Project created");
+
   return created;
 }
 
@@ -145,6 +151,10 @@ export async function updateProject(
     .where(eq(projects.slug, slug))
     .returning();
 
+  if (updated) {
+    log.info({ slug }, "Project updated");
+  }
+
   return updated;
 }
 
@@ -152,6 +162,7 @@ export async function updateProject(
  * Soft-delete a project by archiving it.
  */
 export async function deleteProject(slug: string) {
+  log.info({ slug }, "Project deleted (archived)");
   return updateProject(slug, { status: "archived" });
 }
 

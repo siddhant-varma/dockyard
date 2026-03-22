@@ -14,6 +14,8 @@ import { db } from "@/db/connection";
 import { incidents } from "@/db/schema";
 import { createIncident, addTimelineEntry } from "./service";
 import { ApiError } from "@/lib/api/errors";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("incidents.auto-create");
 
 /** Shape of an alert event passed to auto-creation. */
 export interface AlertEventInput {
@@ -54,6 +56,10 @@ export async function autoCreateIncident(
   const existing = await findRecentOpenIncident(projectId);
 
   if (existing) {
+    log.warn(
+      { projectId, alertId: alertEvent.id, existingIncidentId: existing.id },
+      "Skipped auto-create — linked alert to existing open incident (duplicate)"
+    );
     await linkAlertToIncident(existing.id, alertEvent);
     return existing;
   }
@@ -74,6 +80,11 @@ export async function autoCreateIncident(
     action: "incident.auto_created",
     note: `Auto-created from alert ${alertEvent.id}`,
   });
+
+  log.info(
+    { incidentId: incident.id, projectId, alertId: alertEvent.id, severity: alertEvent.severity },
+    "Auto-incident created from high-severity alert"
+  );
 
   return incident;
 }

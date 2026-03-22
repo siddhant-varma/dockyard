@@ -14,6 +14,9 @@ import {
   getProjectHealthSummary,
 } from "@/lib/health/storage";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.health-check");
 
 export const healthCheck = inngest.createFunction(
   {
@@ -24,12 +27,15 @@ export const healthCheck = inngest.createFunction(
   },
   async ({ step }) => {
     // All work in one step to avoid Date serialization across step boundaries
+    const startTime = Date.now();
     const summary = await step.run("poll-and-store", async () => {
       const urls = await resolveAllHealthUrls();
       const endpoints = [...urls.entries()].map(([projectId, ep]) => ({
         projectId,
         healthUrl: ep.healthUrl,
       }));
+
+      log.info({ projectCount: endpoints.length }, "Health poll started");
 
       if (endpoints.length === 0) {
         return { checked: 0, healthy: 0, degraded: 0, down: 0, changes: [] };
@@ -56,7 +62,12 @@ export const healthCheck = inngest.createFunction(
           const prev = await getProjectHealthSummary(result.projectId);
           const prevStatus = prev?.overallStatus ?? "unknown";
 
-          await storeHealthResult(result);
+          try {
+            await storeHealthResult(result);
+          } catch (err) {
+            log.error({ err, projectId: result.projectId }, "Failed to write health result to DB");
+            throw err;
+          }
 
           const updated = await getProjectHealthSummary(result.projectId);
           if (updated && updated.overallStatus !== prevStatus) {
@@ -79,6 +90,12 @@ export const healthCheck = inngest.createFunction(
         data: change,
       });
     }
+
+    const durationMs = Date.now() - startTime;
+    log.info(
+      { checked: summary.checked, healthy: summary.healthy, unhealthy: summary.degraded + summary.down, durationMs },
+      "Health poll complete"
+    );
 
     // Broadcast health update to connected dashboards
     await notifySSE("health.updated", {

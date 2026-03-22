@@ -16,6 +16,8 @@ import { db } from "@/db/connection";
 import { notificationChannels } from "@/db/schema";
 import { getChannel } from "@/lib/notifications/index";
 import type { NotificationPayload, SendResult } from "@/lib/notifications/types";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("incidents.notifications");
 
 /** Shape of an incident record for notification purposes. */
 export interface IncidentForNotification {
@@ -124,6 +126,18 @@ async function dispatchToChannels(
         name: channelConfig.name,
         result,
       });
+
+      if (result.success) {
+        log.info(
+          { incidentId, channelType: channelConfig.type, channelName: channelConfig.name },
+          "Incident notification sent"
+        );
+      } else {
+        log.error(
+          { incidentId, channelType: channelConfig.type, channelName: channelConfig.name, error: result.error },
+          "Incident notification failed"
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       results.push({
@@ -131,6 +145,11 @@ async function dispatchToChannels(
         name: channelConfig.name,
         result: { success: false, error: message },
       });
+
+      log.error(
+        { incidentId, channelType: channelConfig.type, channelName: channelConfig.name, err },
+        "Incident notification threw exception"
+      );
     }
   }
 

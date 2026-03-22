@@ -9,6 +9,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { signalEvents, projects, deploymentEvents } from "@/db/schema";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("ingestion.processor");
 
 /** Result of processing a signal event. */
 export interface ProcessResult {
@@ -51,9 +53,18 @@ export async function processSignalEvent(
       .set({ updatedAt: new Date() })
       .where(eq(projects.id, event.projectId));
 
+    log.info(
+      { eventId, action, source: event.source, eventType: event.eventType },
+      "Signal event processed"
+    );
+
     return { eventId, processed: true, action };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    log.error(
+      { eventId, err, source: event.source, eventType: event.eventType },
+      "Signal event processing failed"
+    );
     return { eventId, processed: false, error: message };
   }
 }

@@ -9,6 +9,8 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { healthCheckResults } from "@/db/schema";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("health.uptime");
 
 /** Uptime calculation result. */
 export interface UptimeResult {
@@ -51,6 +53,11 @@ export async function calculateUptime(
 
   const percentage =
     total > 0 ? Math.round((successful / total) * 10000) / 100 : 100;
+
+  log.debug(
+    { projectId, days, percentage, totalChecks: total, successfulChecks: successful },
+    "Uptime calculated"
+  );
 
   return {
     percentage,

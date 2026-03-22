@@ -12,6 +12,9 @@ import { db } from "@/db/connection";
 import { deploymentEvents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.deploy-tracker");
 
 export const deployTracker = inngest.createFunction(
   {
@@ -23,6 +26,8 @@ export const deployTracker = inngest.createFunction(
     const deployEventId = event.data.deployEventId as string;
     const dokployAppId = event.data.dokployAppId as string;
     const projectId = event.data.projectId as string;
+
+    log.info({ deployEventId, dokployAppId, projectId }, "Deploy tracking started");
 
     if (!deployEventId || !dokployAppId) {
       return { error: "Missing deployEventId or dokployAppId" };
@@ -44,6 +49,10 @@ export const deployTracker = inngest.createFunction(
         const app = await client.getApplication(dokployAppId);
         return app.status;
       });
+
+      if (status !== finalStatus) {
+        log.info({ deployEventId, previousStatus: finalStatus, newStatus: status, attempt }, "Deploy status changed");
+      }
 
       if (status === "running") {
         finalStatus = "success";
@@ -96,6 +105,12 @@ export const deployTracker = inngest.createFunction(
         name: "dockyard/config.auto-rollback.triggered",
         data: { projectId, deployEventId },
       });
+    }
+
+    if (finalStatus === "failed") {
+      log.info({ deployEventId, projectId }, "Deploy failed — triggering alert evaluation and auto-rollback");
+    } else {
+      log.info({ deployEventId, projectId, finalStatus }, "Deploy tracking complete");
     }
 
     // Broadcast deploy status to connected dashboards

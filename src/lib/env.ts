@@ -12,6 +12,7 @@
  */
 
 import { z } from "zod";
+import { rootLogger } from "@/lib/logger";
 
 const envSchema = z.object({
   // ── Deployment Mode ─────────────────────────────────────────
@@ -87,7 +88,7 @@ function validateEnv() {
     const formatted = result.error.issues
       .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
       .join("\n");
-    console.error(`Environment validation failed:\n${formatted}`);
+    rootLogger.fatal({ issues: result.error.issues }, `Environment validation failed:\n${formatted}`);
     throw new Error("Invalid environment variables");
   }
   return result.data;

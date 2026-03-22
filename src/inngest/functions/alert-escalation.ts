@@ -9,6 +9,9 @@
 import { inngest } from "../client";
 import { checkEscalations } from "@/lib/alerts/escalation";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.alert-escalation");
 
 export const alertEscalation = inngest.createFunction(
   {
@@ -17,9 +20,22 @@ export const alertEscalation = inngest.createFunction(
     triggers: [{ cron: "*/5 * * * *" }],
   },
   async ({ step }) => {
-    const result = await step.run("check-escalations", async () => {
-      return checkEscalations();
-    });
+    log.info("Escalation check started");
+
+    let result;
+    try {
+      result = await step.run("check-escalations", async () => {
+        return checkEscalations();
+      });
+    } catch (err) {
+      log.error({ err }, "Escalation check failed");
+      throw err;
+    }
+
+    log.info(
+      { escalated: result.escalated, checked: result.checked },
+      "Escalation check complete"
+    );
 
     if (result.escalated > 0) {
       await notifySSE("alert.escalated", {

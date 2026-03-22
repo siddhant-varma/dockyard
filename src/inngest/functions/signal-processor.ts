@@ -10,6 +10,9 @@ import { processSignalEvent } from "@/lib/ingestion/processor";
 import { db } from "@/db/connection";
 import { signalEvents } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.signal-processor");
 
 export const signalProcessor = inngest.createFunction(
   {
@@ -21,11 +24,12 @@ export const signalProcessor = inngest.createFunction(
     const eventId = event.data.eventId as string | undefined;
 
     if (eventId) {
-      // Process a specific event
-      const result = await step.run("process-event", async () => {
+      log.info({ eventId }, "Processing single signal event");
+      const singleResult = await step.run("process-event", async () => {
         return processSignalEvent(eventId);
       });
-      return result;
+      log.info({ eventId, processed: singleResult.processed }, "Signal event processed");
+      return singleResult;
     }
 
     // Batch: process all unprocessed events
@@ -39,17 +43,24 @@ export const signalProcessor = inngest.createFunction(
 
     const results = await step.run("process-batch", async () => {
       const processed = [];
-      for (const event of unprocessed) {
-        const result = await processSignalEvent(event.id);
+      for (const evt of unprocessed) {
+        const result = await processSignalEvent(evt.id);
         processed.push(result);
       }
       return processed;
     });
 
+    const processedCount = results.filter((r: { processed: boolean }) => r.processed).length;
+    const failedCount = results.filter((r: { processed: boolean }) => !r.processed).length;
+    log.info(
+      { total: results.length, processed: processedCount, failed: failedCount },
+      "Signal batch processing complete"
+    );
+
     return {
       total: results.length,
-      processed: results.filter((r) => r.processed).length,
-      failed: results.filter((r) => !r.processed).length,
+      processed: processedCount,
+      failed: failedCount,
     };
   }
 );

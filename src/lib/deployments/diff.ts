@@ -11,6 +11,8 @@ import { eq, and, lt, gte, lte, desc } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { deploymentEvents, configAuditLog, signalEvents } from "@/db/schema";
 import { resolveProjectId } from "@/lib/auth/permissions";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("deployments.diff");
 
 /** A config change that occurred between two deployments. */
 export interface ConfigChange {
@@ -93,6 +95,17 @@ export async function getDeployDiff(
     currentDeploy.projectId,
     previousDeploy?.deployedAt ?? null,
     currentDeploy.deployedAt
+  );
+
+  log.info(
+    {
+      deployEventId,
+      previousDeployEventId: previousDeploy?.id ?? null,
+      commitCount: commitMessages.length,
+      filesChangedCount,
+      configChangeCount: configChanges.length,
+    },
+    "Deployment diff generated"
   );
 
   return {

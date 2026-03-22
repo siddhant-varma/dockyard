@@ -9,6 +9,10 @@
  * and should never block the main job.
  */
 
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("sse.notify");
+
 const BROADCAST_URL =
   process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -33,8 +37,9 @@ export async function notifySSE(
       headers,
       body: JSON.stringify({ event, data }),
     });
+    log.debug({ event }, "Broadcast sent");
   } catch (err) {
     // Best-effort: log but don't fail the Inngest job
-    console.error("[SSE notify] Failed to broadcast:", err);
+    log.error({ err, event }, "Broadcast failed");
   }
 }

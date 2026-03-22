@@ -9,6 +9,7 @@
  */
 
 import { eq, and, gte } from "drizzle-orm";
+import { createModuleLogger } from "@/lib/logger";
 import { db } from "@/db/connection";
 import {
   signalEvents,
@@ -20,6 +21,8 @@ import {
   projects,
 } from "@/db/schema";
 import { calculateVelocity } from "./velocity";
+
+const log = createModuleLogger("ai.summaries");
 
 /** Weekly summary structure. */
 export interface WeeklySummary {
@@ -124,6 +127,8 @@ export async function generateWeeklySummary(
     generatedAt: new Date(),
   });
 
+  log.info({ project: projectName, type: "weekly_summary" }, "Summary generated");
+
   return summary;
 }
 
@@ -183,6 +188,8 @@ export async function generateMilestoneWrapUp(
     format: "milestone_wrapup",
     generatedAt: new Date(),
   });
+
+  log.info({ project: wrapUp.projectName, type: "milestone_wrapup", phase }, "Summary generated");
 
   return wrapUp;
 }

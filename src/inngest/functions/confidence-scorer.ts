@@ -12,6 +12,9 @@ import { db } from "@/db/connection";
 import { projects, checkpoints } from "@/db/schema";
 import { calculateConfidence } from "@/lib/ai/confidence";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.confidence-scorer");
 
 export const confidenceScorer = inngest.createFunction(
   {
@@ -20,6 +23,8 @@ export const confidenceScorer = inngest.createFunction(
     triggers: [{ cron: "0 */6 * * *" }],
   },
   async ({ step }) => {
+    log.info("Confidence scoring started");
+
     const activeProjects = await step.run("load-active-projects", async () => {
       return db.query.projects.findMany({
         where: eq(projects.status, "active"),
@@ -28,6 +33,7 @@ export const confidenceScorer = inngest.createFunction(
     });
 
     if (activeProjects.length === 0) {
+      log.info("No active projects found — skipping confidence scoring");
       return { projectsScored: 0 };
     }
 
@@ -71,12 +77,17 @@ export const confidenceScorer = inngest.createFunction(
       }
     });
 
+    const scoresSummary = results.map(
+      (r: { projectId: string; score: number }) => ({ projectId: r.projectId, score: r.score })
+    );
+    log.info(
+      { projectsScored: results.length, scores: scoresSummary },
+      "Confidence scoring complete"
+    );
+
     return {
       projectsScored: results.length,
-      scores: results.map((r) => ({
-        projectId: r.projectId,
-        score: r.score,
-      })),
+      scores: scoresSummary,
     };
   }
 );

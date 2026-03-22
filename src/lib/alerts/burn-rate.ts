@@ -16,6 +16,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { sloBudgets, alertEvents, alertRules } from "@/db/schema";
 import { calculateBudget } from "@/lib/slo/calculator";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("alerts.burn-rate");
 
 /** Burn-rate threshold configuration. */
 interface BurnRateThreshold {
@@ -72,6 +75,11 @@ export async function evaluateBurnRateAlerts(
     const budget = await calculateBudget(slo.id);
     if (!budget) continue;
 
+    log.debug(
+      { projectId, sloId: slo.id, metricName: slo.metricName, burnRate: budget.burnRate, budgetRemaining: budget.budgetRemaining },
+      "burn-rate calculation"
+    );
+
     const matchedThreshold = THRESHOLDS.find(
       (t) => budget.burnRate >= t.burnRate
     );
@@ -100,6 +108,11 @@ export async function evaluateBurnRateAlerts(
         budgetRemaining: budget.budgetRemaining,
       },
     });
+
+    log.info(
+      { projectId, sloId: slo.id, metricName: slo.metricName, burnRate: budget.burnRate, severity: matchedThreshold.severity },
+      "burn-rate alert triggered"
+    );
 
     result.alertsFired++;
     result.alerts.push({

@@ -11,9 +11,12 @@
  */
 
 import { eq, and } from "drizzle-orm";
+import { createModuleLogger } from "@/lib/logger";
 import { db } from "@/db/connection";
 import { sloBudgets } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
+
+const log = createModuleLogger("slo.service");
 
 /** Supported SLO metric types. */
 export type SloMetric = "availability" | "latency_p99" | "error_rate";
@@ -77,6 +80,8 @@ export async function createSLO(projectId: string, input: CreateSloInput) {
     })
     .returning();
 
+  log.info({ projectId, metric: input.metricName, target: input.targetValue }, "SLO created");
+
   return slo;
 }
 
@@ -109,6 +114,10 @@ export async function updateSLO(id: string, input: UpdateSloInput) {
     .set(updates)
     .where(eq(sloBudgets.id, id))
     .returning();
+
+  if (updated) {
+    log.info({ sloId: id, updates: input }, "SLO updated");
+  }
 
   return updated ?? null;
 }

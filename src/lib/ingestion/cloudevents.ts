@@ -12,6 +12,9 @@
  * @see https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md
  */
 
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("ingestion.cloudevents");
+
 /** CloudEvents v1.0 required and optional attributes. */
 export interface CloudEvent<T = unknown> {
   /** CloudEvents specification version (must be "1.0"). */
@@ -66,11 +69,35 @@ export function parseCloudEvent<T = unknown>(
 
   // Structured content mode: all attributes in JSON body
   if (contentType.includes("application/cloudevents+json")) {
-    return parseStructuredMode<T>(body);
+    const result = parseStructuredMode<T>(body);
+    if (result.ok) {
+      log.info(
+        { eventId: result.event.id, type: result.event.type, source: result.event.source, mode: "structured" },
+        "CloudEvent received"
+      );
+    } else {
+      log.warn(
+        { errors: result.errors, mode: "structured" },
+        "CloudEvent validation failed"
+      );
+    }
+    return result;
   }
 
   // Binary content mode: attributes in ce-* headers, data in body
-  return parseBinaryMode<T>(headers, body);
+  const result = parseBinaryMode<T>(headers, body);
+  if (result.ok) {
+    log.info(
+      { eventId: result.event.id, type: result.event.type, source: result.event.source, mode: "binary" },
+      "CloudEvent received"
+    );
+  } else {
+    log.warn(
+      { errors: result.errors, mode: "binary" },
+      "CloudEvent validation failed"
+    );
+  }
+  return result;
 }
 
 /**

@@ -11,6 +11,9 @@ import { db } from "@/db/connection";
 import { calculateBudget } from "@/lib/slo/calculator";
 import { evaluateBurnRateAlerts } from "@/lib/alerts/burn-rate";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.slo-calculator");
 
 export const sloCalculator = inngest.createFunction(
   {
@@ -19,11 +22,14 @@ export const sloCalculator = inngest.createFunction(
     triggers: [{ cron: "*/5 * * * *" }],
   },
   async ({ step }) => {
+    log.info("SLO budget recalculation started");
+
     const slos = await step.run("load-active-slos", async () => {
       return db.query.sloBudgets.findMany();
     });
 
     if (slos.length === 0) {
+      log.info("No active SLOs found — skipping recalculation");
       return { slosProcessed: 0, alertsFired: 0 };
     }
 
@@ -36,7 +42,7 @@ export const sloCalculator = inngest.createFunction(
       return results;
     });
 
-    const projectIds = [...new Set(budgets.map((b) => b.projectId))];
+    const projectIds = [...new Set(budgets.map((b: { projectId: string }) => b.projectId))] as string[];
 
     const alertResults = await step.run(
       "evaluate-burn-rate-alerts",
@@ -63,9 +69,15 @@ export const sloCalculator = inngest.createFunction(
       }
     });
 
+    const totalAlertsFired = alertResults.reduce((sum: number, r: { alertsFired: number }) => sum + r.alertsFired, 0);
+    log.info(
+      { slosProcessed: budgets.length, alertsFired: totalAlertsFired },
+      "SLO budget recalculation complete"
+    );
+
     return {
       slosProcessed: budgets.length,
-      alertsFired: alertResults.reduce((sum, r) => sum + r.alertsFired, 0),
+      alertsFired: totalAlertsFired,
     };
   }
 );

@@ -15,6 +15,9 @@ import type {
   DiscoverySourceType,
   ScanResult,
 } from "./types";
+import { getLogger, createModuleLogger } from "@/lib/logger";
+
+const moduleLog = createModuleLogger("discovery.scanner");
 
 /** Registry of available discovery source implementations. */
 const sourceRegistry = new Map<DiscoverySourceType, DiscoverySource>();
@@ -25,6 +28,7 @@ const sourceRegistry = new Map<DiscoverySourceType, DiscoverySource>();
  */
 export function registerSource(source: DiscoverySource): void {
   sourceRegistry.set(source.type, source);
+  moduleLog.debug({ sourceType: source.type }, "Discovery source registered");
 }
 
 /**
@@ -33,9 +37,21 @@ export function registerSource(source: DiscoverySource): void {
  * @returns Summary of what was found, created, and updated
  */
 export async function scanAll(): Promise<ScanResult> {
+  const log = getLogger().child({ module: "discovery.scanner" });
+  const scanStart = performance.now();
+
   const enabledSources = await db.query.discoverySources.findMany({
     where: eq(discoverySources.enabled, true),
   });
+
+  log.info(
+    {
+      enabledSourceCount: enabledSources.length,
+      registeredTypes: [...sourceRegistry.keys()],
+      sourceNames: enabledSources.map((s) => `${s.type}:${s.name}`),
+    },
+    "Discovery scan starting"
+  );
 
   const allDiscovered: DiscoveredProject[] = [];
   const sourceSummaries: ScanResult["sources"] = [];
@@ -43,6 +59,10 @@ export async function scanAll(): Promise<ScanResult> {
   for (const source of enabledSources) {
     const impl = sourceRegistry.get(source.type);
     if (!impl) {
+      log.warn(
+        { sourceType: source.type, sourceName: source.name },
+        "No implementation registered for source type — skipping"
+      );
       sourceSummaries.push({
         type: source.type,
         name: source.name,
@@ -52,9 +72,32 @@ export async function scanAll(): Promise<ScanResult> {
       continue;
     }
 
+    const sourceStart = performance.now();
     try {
       const config = source.config as Record<string, unknown>;
+      log.info(
+        {
+          sourceType: source.type,
+          sourceName: source.name,
+          configKeys: Object.keys(config),
+        },
+        "Running discovery source"
+      );
+
       const discovered = await impl.scan(config);
+      const sourceDuration = Math.round(performance.now() - sourceStart);
+
+      log.info(
+        {
+          sourceType: source.type,
+          sourceName: source.name,
+          found: discovered.length,
+          slugs: discovered.map((d) => d.slug),
+          duration: sourceDuration,
+        },
+        "Discovery source completed"
+      );
+
       allDiscovered.push(...discovered);
       sourceSummaries.push({
         type: source.type,
@@ -71,7 +114,12 @@ export async function scanAll(): Promise<ScanResult> {
         })
         .where(eq(discoverySources.id, source.id));
     } catch (err) {
+      const sourceDuration = Math.round(performance.now() - sourceStart);
       const message = err instanceof Error ? err.message : String(err);
+      log.error(
+        { sourceType: source.type, sourceName: source.name, err, duration: sourceDuration },
+        "Discovery source failed"
+      );
       sourceSummaries.push({
         type: source.type,
         name: source.name,
@@ -82,7 +130,24 @@ export async function scanAll(): Promise<ScanResult> {
   }
 
   const merged = mergeBySlug(allDiscovered);
+  log.debug(
+    { beforeMerge: allDiscovered.length, afterMerge: merged.length },
+    "Projects merged by slug"
+  );
+
   const { created, updated } = await upsertProjects(merged);
+  const totalDuration = Math.round(performance.now() - scanStart);
+
+  log.info(
+    {
+      found: merged.length,
+      created,
+      updated,
+      sourceCount: enabledSources.length,
+      duration: totalDuration,
+    },
+    "Discovery scan completed"
+  );
 
   return {
     found: merged.length,
@@ -106,16 +171,19 @@ export async function scanSource(
   });
 
   if (!source) {
+    moduleLog.error({ sourceId }, "Discovery source not found");
     throw new Error(`Discovery source not found: ${sourceId}`);
   }
 
   const impl = sourceRegistry.get(source.type);
   if (!impl) {
+    moduleLog.error({ sourceType: source.type }, "No implementation registered");
     throw new Error(
       `No implementation registered for source type: ${source.type}`
     );
   }
 
+  moduleLog.info({ sourceId, sourceType: source.type }, "Scanning single source");
   const config = source.config as Record<string, unknown>;
   return impl.scan(config);
 }

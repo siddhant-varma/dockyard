@@ -9,6 +9,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { getLogger } from "@/lib/logger";
 import { ApiError } from "./errors";
 
 /** Shape of a successful API response. */
@@ -77,7 +78,7 @@ export function withErrorHandler(
       }
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred";
-      console.error("Unhandled API error:", err);
+      getLogger().error({ err }, "Unhandled API error");
       return apiError("INTERNAL_ERROR", message, 500);
     }
   };

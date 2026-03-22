@@ -12,6 +12,9 @@ import {
   executeAutoRollback,
 } from "@/lib/config/rollback";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.auto-rollback");
 
 export const autoRollback = inngest.createFunction(
   {
@@ -23,6 +26,8 @@ export const autoRollback = inngest.createFunction(
     const projectId = event.data.projectId as string;
     const deployEventId = event.data.deployEventId as string;
 
+    log.info({ projectId, deployEventId }, "Auto-rollback triggered");
+
     if (!projectId || !deployEventId) {
       return { error: "Missing projectId or deployEventId" };
     }
@@ -32,6 +37,7 @@ export const autoRollback = inngest.createFunction(
     });
 
     if (!config.enabled) {
+      log.warn({ projectId }, "Auto-rollback skipped — not enabled for project");
       return { skipped: true, reason: "Auto-rollback not enabled" };
     }
 
@@ -42,9 +48,20 @@ export const autoRollback = inngest.createFunction(
       timestamp: new Date().toISOString(),
     });
 
-    const result = await step.run("execute-rollback", async () => {
-      return executeAutoRollback(projectId, deployEventId);
-    });
+    let result;
+    try {
+      result = await step.run("execute-rollback", async () => {
+        return executeAutoRollback(projectId, deployEventId);
+      });
+    } catch (err) {
+      log.error({ err, projectId, deployEventId }, "Auto-rollback execution failed");
+      throw err;
+    }
+
+    log.info(
+      { projectId, deployEventId, rolledBack: result.rolledBack, entries: result.entries },
+      "Auto-rollback complete"
+    );
 
     await notifySSE("config.rollback.completed", {
       projectId,

@@ -17,6 +17,9 @@
  * }
  */
 
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("health.poller");
+
 /** Component-level health check from the /healthz response. */
 export interface ComponentCheck {
   name: string;
@@ -64,6 +67,10 @@ export async function pollHealth(
     const latencyMs = Math.round(performance.now() - startTime);
 
     if (!response.ok) {
+      log.info(
+        { projectId, responseCode: response.status, latencyMs },
+        "Health poll returned non-OK — marking down"
+      );
       return {
         projectId,
         overallStatus: "down",
@@ -76,16 +83,29 @@ export async function pollHealth(
     }
 
     const body = await response.json().catch(() => null);
-    return parseHealthResponse(
+    const result = parseHealthResponse(
       projectId,
       body,
       response.status,
       latencyMs,
       checkedAt
     );
+
+    log.debug(
+      { projectId, status: result.overallStatus, latencyMs, components: result.components.length },
+      "Health poll completed"
+    );
+
+    return result;
   } catch (err) {
     const latencyMs = Math.round(performance.now() - startTime);
     const message = err instanceof Error ? err.message : String(err);
+    const errorMsg = message.includes("abort") ? "Timeout (5s)" : message;
+
+    log.info(
+      { projectId, error: errorMsg, latencyMs },
+      "Health poll failed — marking down"
+    );
 
     return {
       projectId,
@@ -93,7 +113,7 @@ export async function pollHealth(
       responseCode: 0,
       latencyMs,
       components: [],
-      error: message.includes("abort") ? "Timeout (5s)" : message,
+      error: errorMsg,
       checkedAt,
     };
   }

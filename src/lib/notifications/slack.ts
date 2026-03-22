@@ -12,6 +12,9 @@ import type {
   NotificationPayload,
   SendResult,
 } from "./types";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("notifications.slack");
 
 const SEVERITY_COLORS: Record<string, string> = {
   sev1: "#dc2626",
@@ -61,15 +64,27 @@ export class SlackChannel implements NotificationChannel {
 
       if (!response.ok) {
         const text = await response.text().catch(() => "");
+        log.error(
+          { status: response.status, responseBody: text, severity: payload.severity },
+          "Slack webhook error"
+        );
         return {
           success: false,
           error: `Slack API: ${response.status} ${text}`,
         };
       }
 
+      log.info(
+        { severity: payload.severity, title: payload.title },
+        "Slack message sent"
+      );
       return { success: true, messageId: `slack-${Date.now()}` };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      log.error(
+        { err, severity: payload.severity },
+        "Slack webhook send failed"
+      );
       return { success: false, error: message };
     }
   }

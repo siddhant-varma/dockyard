@@ -13,6 +13,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { projects } from "@/db/schema";
 import type { DiscoveredProject, DiscoverySource } from "../types";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("discovery.manual");
 
 export class ManualSource implements DiscoverySource {
   readonly type = "manual" as const;
@@ -21,6 +24,8 @@ export class ManualSource implements DiscoverySource {
     const manualProjects = await db.query.projects.findMany({
       where: eq(projects.discoveredVia, "manual"),
     });
+
+    log.info({ count: manualProjects.length }, "Manual sources loaded");
 
     return manualProjects.map((p) => ({
       name: p.name,

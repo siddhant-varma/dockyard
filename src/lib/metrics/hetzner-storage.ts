@@ -10,6 +10,8 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { hetznerSnapshots } from "@/db/schema";
 import type { MetricSeries } from "@/lib/providers/types";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("metrics.hetzner-storage");
 
 /**
  * Store Hetzner server metrics into the hypertable.
@@ -24,21 +26,34 @@ export async function storeHetznerMetrics(
 ): Promise<number> {
   let stored = 0;
 
-  for (const series of metricSeries) {
-    if (series.dataPoints.length === 0) continue;
+  try {
+    for (const series of metricSeries) {
+      if (series.dataPoints.length === 0) continue;
 
-    const values = series.dataPoints.map((dp) => ({
-      serverId,
-      metricType: series.name,
-      value: dp.value,
-      recordedAt: dp.timestamp,
-    }));
+      const values = series.dataPoints.map((dp) => ({
+        serverId,
+        metricType: series.name,
+        value: dp.value,
+        recordedAt: dp.timestamp,
+      }));
 
-    await db.insert(hetznerSnapshots).values(values);
-    stored += values.length;
+      await db.insert(hetznerSnapshots).values(values);
+      stored += values.length;
+    }
+
+    log.debug(
+      { serverId, seriesCount: metricSeries.length, pointsStored: stored },
+      "Hetzner metrics stored"
+    );
+
+    return stored;
+  } catch (err) {
+    log.error(
+      { serverId, seriesCount: metricSeries.length, err },
+      "Failed to store Hetzner metrics"
+    );
+    throw err;
   }
-
-  return stored;
 }
 
 /**

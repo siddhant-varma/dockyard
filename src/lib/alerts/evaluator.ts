@@ -17,6 +17,9 @@ import { db } from "@/db/connection";
 import { alertRules, alertEvents, projectHealth } from "@/db/schema";
 import { isDuplicate } from "./deduplication";
 import { groupAlerts, type AlertGroup } from "./grouping";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("alerts.evaluator");
 
 /** Result of evaluating alerts for a project. */
 export interface AlertEvaluationResult {
@@ -53,6 +56,12 @@ export async function evaluateAlerts(
 
   for (const rule of applicableRules) {
     const breached = await isThresholdBreached(projectId, rule);
+
+    log.debug(
+      { projectId, ruleId: rule.id, ruleName: rule.name, metric: rule.metric, operator: rule.operator, threshold: rule.threshold, breached },
+      "rule evaluation"
+    );
+
     if (!breached) continue;
 
     const duplicate = await isDuplicate(rule.id, projectId);
@@ -78,6 +87,11 @@ export async function evaluateAlerts(
       })
       .returning();
 
+    log.info(
+      { projectId, alertId: alert.id, ruleId: rule.id, ruleName: rule.name, severity: rule.severity },
+      "alert fired"
+    );
+
     alertIds.push(alert.id);
     pendingAlerts.push({
       id: alert.id,
@@ -89,6 +103,11 @@ export async function evaluateAlerts(
   }
 
   const groups = await groupAlerts(pendingAlerts);
+
+  log.info(
+    { projectId, rulesEvaluated: applicableRules.length, alertsFired: alertIds.length, deduplicated },
+    "alert evaluation completed"
+  );
 
   return {
     projectId,

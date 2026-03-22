@@ -24,7 +24,9 @@ import type {
   TimeRange,
   VolumeSummary,
 } from "../providers/types";
-import { fetchJSON } from "../http/client";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("hetzner.client");
 
 /* ================================================================
    Hetzner API Response Types (partial — only fields we use)
@@ -106,21 +108,73 @@ export class HetznerClient implements InfraProvider {
     return { Authorization: `Bearer ${this.apiToken}` };
   }
 
+  /**
+   * Fetch JSON from the Hetzner API and check rate limit headers.
+   * Wraps fetchJSON with rate-limit-remaining header inspection.
+   */
+  private async fetchWithRateLimit<T>(endpointPath: string, options?: { params?: string }): Promise<T> {
+    const url = options?.params
+      ? `${this.baseUrl}${endpointPath}?${options.params}`
+      : `${this.baseUrl}${endpointPath}`;
+
+    // Use raw fetch to access headers, then parse JSON
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        ...this.authHeaders,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    // Check rate limit headers
+    const remaining = parseInt(response.headers.get("ratelimit-remaining") ?? response.headers.get("x-ratelimit-remaining") ?? "", 10);
+    if (!isNaN(remaining) && remaining < 100) {
+      const resetHeader = response.headers.get("ratelimit-reset") ?? response.headers.get("x-ratelimit-reset");
+      const resetAt = resetHeader ? new Date(parseInt(resetHeader, 10) * 1000) : null;
+      log.warn({ endpoint: endpointPath, rateLimitRemaining: remaining, resetAt: resetAt?.toISOString() }, "Hetzner rate limit approaching");
+    }
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const status = response.status;
+      if (status === 401 || status === 403) {
+        log.error({ endpoint: endpointPath, status }, "Hetzner auth failure");
+      } else {
+        log.error({ endpoint: endpointPath, status, body }, "Hetzner API error");
+      }
+      throw new Error(`Hetzner API error: HTTP ${status} from ${endpointPath}`);
+    }
+
+    return (await response.json()) as T;
+  }
+
   async listServers(): Promise<ServerSummary[]> {
-    const data = await fetchJSON<{ servers: HetznerServer[] }>(
-      `${this.baseUrl}/servers`,
-      { headers: this.authHeaders }
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/servers" }, "Listing servers");
+
+    const data = await this.fetchWithRateLimit<{ servers: HetznerServer[] }>(
+      "/servers"
     );
+
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: "/servers", durationMs, status: 200 }, "Listed servers");
+    log.debug({ serverCount: data.servers.length }, "Server list response summary");
     return data.servers.map(mapServerSummary);
   }
 
   async getServer(id: string): Promise<ServerDetail> {
-    const data = await fetchJSON<{ server: HetznerServer }>(
-      `${this.baseUrl}/servers/${id}`,
-      { headers: this.authHeaders }
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: `/servers/${id}` }, "Fetching server detail");
+
+    const data = await this.fetchWithRateLimit<{ server: HetznerServer }>(
+      `/servers/${id}`
     );
     const volumes = await this.getVolumes();
     const serverVolumes = volumes.filter((v) => v.serverId === id);
+
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: `/servers/${id}`, durationMs, status: 200 }, "Fetched server detail");
+    log.debug({ serverId: id, volumeCount: serverVolumes.length }, "Server detail response summary");
     return mapServerDetail(data.server, serverVolumes);
   }
 
@@ -129,6 +183,7 @@ export class HetznerClient implements InfraProvider {
     type: ServerMetricType | ServerMetricType[],
     range: TimeRange
   ): Promise<MetricSeries[]> {
+    const t0 = performance.now();
     const types = Array.isArray(type) ? type.join(",") : type;
     const params = new URLSearchParams({
       type: types,
@@ -137,19 +192,32 @@ export class HetznerClient implements InfraProvider {
     });
     if (range.step) params.set("step", String(range.step));
 
-    const data = await fetchJSON<HetznerMetricsResponse>(
-      `${this.baseUrl}/servers/${id}/metrics?${params}`,
-      { headers: this.authHeaders }
+    log.info({ method: "GET", endpoint: `/servers/${id}/metrics`, metricTypes: types }, "Fetching server metrics");
+
+    const data = await this.fetchWithRateLimit<HetznerMetricsResponse>(
+      `/servers/${id}/metrics`,
+      { params: params.toString() }
     );
 
-    return parseHetznerMetrics(data);
+    const series = parseHetznerMetrics(data);
+    const durationMs = Math.round(performance.now() - t0);
+    const totalPoints = series.reduce((sum, s) => sum + s.dataPoints.length, 0);
+    log.info({ method: "GET", endpoint: `/servers/${id}/metrics`, durationMs, status: 200 }, "Fetched server metrics");
+    log.debug({ serverId: id, seriesCount: series.length, metricCount: totalPoints }, "Metrics response summary");
+    return series;
   }
 
   async getVolumes(): Promise<VolumeSummary[]> {
-    const data = await fetchJSON<{ volumes: HetznerVolume[] }>(
-      `${this.baseUrl}/volumes`,
-      { headers: this.authHeaders }
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/volumes" }, "Fetching volumes");
+
+    const data = await this.fetchWithRateLimit<{ volumes: HetznerVolume[] }>(
+      "/volumes"
     );
+
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: "/volumes", durationMs, status: 200 }, "Fetched volumes");
+    log.debug({ volumeCount: data.volumes.length }, "Volumes response summary");
     return data.volumes.map((v) => ({
       id: String(v.id),
       name: v.name,
@@ -160,10 +228,16 @@ export class HetznerClient implements InfraProvider {
   }
 
   async getFloatingIps(): Promise<FloatingIpSummary[]> {
-    const data = await fetchJSON<{ floating_ips: HetznerFloatingIp[] }>(
-      `${this.baseUrl}/floating_ips`,
-      { headers: this.authHeaders }
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/floating_ips" }, "Fetching floating IPs");
+
+    const data = await this.fetchWithRateLimit<{ floating_ips: HetznerFloatingIp[] }>(
+      "/floating_ips"
     );
+
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: "/floating_ips", durationMs, status: 200 }, "Fetched floating IPs");
+    log.debug({ floatingIpCount: data.floating_ips.length }, "Floating IPs response summary");
     return data.floating_ips.map((ip) => ({
       id: String(ip.id),
       ip: ip.ip,
@@ -174,10 +248,16 @@ export class HetznerClient implements InfraProvider {
   }
 
   async getLoadBalancers(): Promise<LoadBalancerSummary[]> {
-    const data = await fetchJSON<{ load_balancers: HetznerLoadBalancer[] }>(
-      `${this.baseUrl}/load_balancers`,
-      { headers: this.authHeaders }
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/load_balancers" }, "Fetching load balancers");
+
+    const data = await this.fetchWithRateLimit<{ load_balancers: HetznerLoadBalancer[] }>(
+      "/load_balancers"
     );
+
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: "/load_balancers", durationMs, status: 200 }, "Fetched load balancers");
+    log.debug({ loadBalancerCount: data.load_balancers.length }, "Load balancers response summary");
     return data.load_balancers.map((lb) => ({
       id: String(lb.id),
       name: lb.name,
@@ -188,10 +268,16 @@ export class HetznerClient implements InfraProvider {
   }
 
   async getPricing(): Promise<PricingInfo> {
-    const data = await fetchJSON<HetznerPricingResponse>(
-      `${this.baseUrl}/pricing`,
-      { headers: this.authHeaders }
+    const t0 = performance.now();
+    log.info({ method: "GET", endpoint: "/pricing" }, "Fetching pricing");
+
+    const data = await this.fetchWithRateLimit<HetznerPricingResponse>(
+      "/pricing"
     );
+
+    const durationMs = Math.round(performance.now() - t0);
+    log.info({ method: "GET", endpoint: "/pricing", durationMs, status: 200 }, "Fetched pricing");
+    log.debug({ serverTypeCount: data.pricing.server_types.length, currency: data.pricing.currency }, "Pricing response summary");
 
     return {
       serverTypes: data.pricing.server_types.map((st) => {

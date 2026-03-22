@@ -15,6 +15,8 @@ import { eq, and, gte } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { deploymentEvents, signalEvents, incidents } from "@/db/schema";
 import { resolveProjectId } from "@/lib/auth/permissions";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("metrics.dora");
 
 /** Performance level classification per DORA benchmarks. */
 export type DoraPerformanceLevel = "elite" | "high" | "medium" | "low";
@@ -328,6 +330,18 @@ export async function getAllDoraMetrics(
       getMTTR(projectId, windowDays),
       getChangeFailureRate(projectId, windowDays),
     ]);
+
+  log.info(
+    {
+      projectId,
+      windowDays,
+      deployFrequencyLevel: deployFrequency.level,
+      leadTimeLevel: leadTime.level,
+      mttrLevel: mttr.level,
+      changeFailureRateLevel: changeFailureRate.level,
+    },
+    "DORA metrics calculated"
+  );
 
   return { deployFrequency, leadTime, mttr, changeFailureRate };
 }

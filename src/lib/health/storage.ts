@@ -14,6 +14,8 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { healthCheckResults, projectHealth } from "@/db/schema";
 import type { HealthPollResult } from "./poller";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("health.storage");
 
 /** Number of consecutive failures before marking a project as down. */
 const FAILURE_THRESHOLD = 3;
@@ -25,34 +27,47 @@ const FAILURE_THRESHOLD = 3;
 export async function storeHealthResult(
   result: HealthPollResult
 ): Promise<void> {
-  // Insert per-component results into the hypertable
-  if (result.components.length > 0) {
-    for (const component of result.components) {
+  try {
+    // Insert per-component results into the hypertable
+    if (result.components.length > 0) {
+      for (const component of result.components) {
+        await db.insert(healthCheckResults).values({
+          projectId: result.projectId,
+          component: component.name,
+          status: component.status,
+          latencyMs: component.latencyMs,
+          responseCode: result.responseCode,
+          message: component.message,
+          checkedAt: result.checkedAt,
+        });
+      }
+    } else {
+      // No component breakdown — store overall result as "api" component
       await db.insert(healthCheckResults).values({
         projectId: result.projectId,
-        component: component.name,
-        status: component.status,
-        latencyMs: component.latencyMs,
+        component: "api",
+        status: result.overallStatus === "ok" ? "ok" : result.overallStatus,
+        latencyMs: result.latencyMs,
         responseCode: result.responseCode,
-        message: component.message,
+        message: result.error,
         checkedAt: result.checkedAt,
       });
     }
-  } else {
-    // No component breakdown — store overall result as "api" component
-    await db.insert(healthCheckResults).values({
-      projectId: result.projectId,
-      component: "api",
-      status: result.overallStatus === "ok" ? "ok" : result.overallStatus,
-      latencyMs: result.latencyMs,
-      responseCode: result.responseCode,
-      message: result.error,
-      checkedAt: result.checkedAt,
-    });
-  }
 
-  // Update the aggregate project health
-  await updateProjectHealth(result);
+    log.debug(
+      { projectId: result.projectId, status: result.overallStatus, components: result.components.length },
+      "Health result stored"
+    );
+
+    // Update the aggregate project health
+    await updateProjectHealth(result);
+  } catch (err) {
+    log.error(
+      { projectId: result.projectId, err },
+      "Failed to write health result to TimescaleDB"
+    );
+    throw err;
+  }
 }
 
 /**
@@ -88,6 +103,12 @@ async function updateProjectHealth(result: HealthPollResult): Promise<void> {
   };
 
   if (existing) {
+    if (existing.overallStatus !== overallStatus) {
+      log.info(
+        { projectId: result.projectId, from: existing.overallStatus, to: overallStatus },
+        "Health state transition"
+      );
+    }
     await db
       .update(projectHealth)
       .set(values)

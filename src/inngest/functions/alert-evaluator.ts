@@ -13,6 +13,9 @@ import { db } from "@/db/connection";
 import { alertEvents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.alert-evaluator");
 
 export const alertEvaluator = inngest.createFunction(
   {
@@ -27,9 +30,22 @@ export const alertEvaluator = inngest.createFunction(
     const projectId = event.data.projectId as string;
     if (!projectId) return { error: "No projectId in event" };
 
-    const result = await step.run("evaluate-rules", async () => {
-      return evaluateAlerts(projectId);
-    });
+    log.info({ projectId, trigger: event.name }, "Alert evaluation triggered");
+
+    let result;
+    try {
+      result = await step.run("evaluate-rules", async () => {
+        return evaluateAlerts(projectId);
+      });
+    } catch (err) {
+      log.error({ err, projectId }, "Alert evaluation failed");
+      throw err;
+    }
+
+    log.info(
+      { projectId, rulesEvaluated: result.rulesEvaluated, alertsFired: result.alertsFired, deduplicated: result.deduplicated },
+      "Alert evaluation complete"
+    );
 
     if (result.alertsFired === 0) {
       return { ...result, notified: 0 };

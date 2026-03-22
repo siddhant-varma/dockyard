@@ -14,6 +14,9 @@ import { eq, and, isNull, lte } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { alertEvents } from "@/db/schema";
 import { dispatchAlert } from "@/lib/notifications/dispatcher";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("alerts.escalation");
 
 /** Escalation rules keyed by severity. */
 interface EscalationRule {
@@ -70,13 +73,25 @@ export async function checkEscalations(): Promise<EscalationResult> {
         })
         .where(eq(alertEvents.id, alert.id));
 
-      await dispatchAlert({
-        id: alert.id,
-        ruleId: alert.ruleId,
-        projectId: alert.projectId,
-        severity: alert.severity,
-        message: `[ESCALATION L${alert.escalationLvl + 1}] ${alert.message ?? "Alert unacknowledged"}`,
-      });
+      log.info(
+        { alertId: alert.id, severity: alert.severity, escalationLvl: alert.escalationLvl + 1, projectId: alert.projectId },
+        "alert escalated"
+      );
+
+      try {
+        await dispatchAlert({
+          id: alert.id,
+          ruleId: alert.ruleId,
+          projectId: alert.projectId,
+          severity: alert.severity,
+          message: `[ESCALATION L${alert.escalationLvl + 1}] ${alert.message ?? "Alert unacknowledged"}`,
+        });
+      } catch (err) {
+        log.warn(
+          { err, alertId: alert.id, severity: alert.severity, escalationLvl: alert.escalationLvl + 1 },
+          "escalation notification dispatch failed"
+        );
+      }
 
       result.escalated++;
       result.escalatedAlerts.push(alert.id);

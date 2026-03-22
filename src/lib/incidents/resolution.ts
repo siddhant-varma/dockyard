@@ -11,6 +11,8 @@ import { db } from "@/db/connection";
 import { incidents, alertEvents } from "@/db/schema";
 import { addTimelineEntry } from "./service";
 import { ApiError } from "@/lib/api/errors";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("incidents.resolution");
 
 /** Statuses that indicate an alert is still active. */
 const ACTIVE_ALERT_STATUSES = ["firing", "acknowledged"] as const;
@@ -75,6 +77,12 @@ export async function resolveIncident(
       note: `${resolvedAlerts} related alert(s) auto-resolved`,
     });
   }
+
+  const mttrMinutes = Math.round(mttrSeconds / 60);
+  log.info(
+    { incidentId, mttrSeconds, mttrMinutes, resolvedAlerts, severity: incident.severity },
+    "Incident resolved with MTTR"
+  );
 
   return db.query.incidents.findFirst({
     where: eq(incidents.id, incidentId),

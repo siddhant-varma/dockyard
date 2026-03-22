@@ -13,8 +13,11 @@
  */
 
 import { eq, and, gte } from "drizzle-orm";
+import { createModuleLogger } from "@/lib/logger";
 import { db } from "@/db/connection";
 import { signalEvents, roadmapItems } from "@/db/schema";
+
+const log = createModuleLogger("ai.velocity");
 
 /** Trend direction of project velocity. */
 export type VelocityTrend = "accelerating" | "decelerating" | "stable";
@@ -85,7 +88,7 @@ export async function calculateVelocity(
 
   const trend = calculateTrend(projectId, since, weeks);
 
-  return {
+  const result = {
     projectId,
     windowDays,
     commitsPerWeek,
@@ -94,6 +97,13 @@ export async function calculateVelocity(
     trend: await trend,
     calculatedAt: new Date(),
   };
+
+  log.debug(
+    { projectId, windowDays, commitsPerWeek, itemsCompletedPerWeek, trend: result.trend },
+    "Velocity calculated"
+  );
+
+  return result;
 }
 
 /**

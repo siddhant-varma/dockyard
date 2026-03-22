@@ -11,6 +11,9 @@ import { db } from "@/db/connection";
 import { alertRules, notificationChannels } from "@/db/schema";
 import { getChannel } from "./index";
 import type { NotificationPayload, SendResult } from "./types";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("notifications.dispatcher");
 
 /** Result of dispatching an alert to all configured channels. */
 export interface DispatchResult {
@@ -75,6 +78,18 @@ export async function dispatchAlert(alertEvent: {
         name: channelConfig.name,
         result,
       });
+
+      if (result.success) {
+        log.info(
+          { alertEventId: alertEvent.id, channel: channelConfig.type, channelName: channelConfig.name, severity: alertEvent.severity },
+          "notification sent"
+        );
+      } else {
+        log.error(
+          { alertEventId: alertEvent.id, channel: channelConfig.type, channelName: channelConfig.name, error: result.error },
+          "notification dispatch failed"
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       results.push({
@@ -82,6 +97,11 @@ export async function dispatchAlert(alertEvent: {
         name: channelConfig.name,
         result: { success: false, error: message },
       });
+
+      log.error(
+        { err, alertEventId: alertEvent.id, channel: channelConfig.type, channelName: channelConfig.name },
+        "notification dispatch failed with exception"
+      );
     }
   }
 

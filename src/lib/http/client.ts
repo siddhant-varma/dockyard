@@ -10,6 +10,10 @@
  * Used by HetznerClient and DokployClient to call their respective APIs.
  */
 
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("http.client");
+
 /** Options for a fetch request. */
 export interface FetchOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -81,13 +85,23 @@ export async function fetchJSON<T>(
   };
 
   let lastError: Error | null = null;
+  const urlPath = safeUrlPath(url);
+
+  log.info({ method, url: urlPath }, "Outbound request start");
+  log.debug({ method, url: urlPath, timeout, maxRetries, hasBody: !!body }, "Request details");
+
+  const t0 = performance.now();
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url, requestInit);
 
       if (response.ok) {
-        return (await response.json()) as T;
+        const durationMs = Math.round(performance.now() - t0);
+        const data = (await response.json()) as T;
+        log.info({ method, url: urlPath, status: response.status, durationMs }, "Outbound request complete");
+        log.debug({ method, url: urlPath, responseType: typeof data, isArray: Array.isArray(data) }, "Response details");
+        return data;
       }
 
       const responseBody = await response.text().catch(() => "");
@@ -104,6 +118,10 @@ export async function fetchJSON<T>(
         attempt < maxRetries
       ) {
         const retryAfter = getRetryDelay(response, attempt);
+        log.warn(
+          { method, url: urlPath, status: response.status, attempt: attempt + 1, maxRetries, retryAfterMs: retryAfter },
+          "Retrying request after error"
+        );
         await sleep(retryAfter);
         lastError = error;
         continue;
@@ -111,15 +129,31 @@ export async function fetchJSON<T>(
 
       throw error;
     } catch (err) {
-      if (err instanceof HttpError) throw err;
+      if (err instanceof HttpError) {
+        const durationMs = Math.round(performance.now() - t0);
+        log.error(
+          { method, url: urlPath, status: err.status, durationMs, err },
+          "Request failed with HTTP error"
+        );
+        throw err;
+      }
 
       // Network/timeout errors — retry
       if (attempt < maxRetries) {
+        log.warn(
+          { method, url: urlPath, attempt: attempt + 1, maxRetries, err: err instanceof Error ? err.message : String(err) },
+          "Retrying request after network/timeout error"
+        );
         await sleep(1000 * Math.pow(2, attempt));
         lastError = err instanceof Error ? err : new Error(String(err));
         continue;
       }
 
+      const durationMs = Math.round(performance.now() - t0);
+      log.error(
+        { method, url: urlPath, durationMs, err: err instanceof Error ? err.message : String(err) },
+        "Request failed after all retries exhausted"
+      );
       throw err;
     }
   }
@@ -175,4 +209,14 @@ function tryParseJSON(text: string): unknown {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Extract the pathname from a URL, stripping the origin for safe logging. */
+function safeUrlPath(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
 }

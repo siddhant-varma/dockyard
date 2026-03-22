@@ -1,6 +1,10 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import { queryLogger } from "@/lib/logger/drizzle";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("db");
 
 /**
  * PostgreSQL connection string from environment variables.
@@ -14,10 +18,17 @@ const connectionString =
  * Raw postgres.js connection — used by Drizzle and for raw queries if needed.
  * Connection pool is managed by postgres.js internally.
  */
-const client = postgres(connectionString);
+let client: ReturnType<typeof postgres>;
+try {
+  client = postgres(connectionString);
+  log.info("Database connection initialized");
+} catch (err) {
+  log.fatal({ err }, "Failed to create database connection");
+  throw err;
+}
 
 /**
- * Drizzle ORM instance with full schema awareness.
+ * Drizzle ORM instance with full schema awareness and query logging.
  * Import this in service-layer code to run typed queries.
  *
  * @example
@@ -26,4 +37,4 @@ const client = postgres(connectionString);
  * const projects = await db.query.projects.findMany();
  * ```
  */
-export const db = drizzle(client, { schema });
+export const db = drizzle(client, { schema, logger: queryLogger });

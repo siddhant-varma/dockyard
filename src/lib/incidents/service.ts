@@ -9,6 +9,8 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { incidents } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("incidents.service");
 
 /** Timeline entry stored in the incidents.timeline JSONB array. */
 export interface TimelineEntry {
@@ -49,6 +51,11 @@ export async function createIncident(input: CreateIncidentInput) {
       relatedAlerts: input.relatedAlertIds ?? [],
     })
     .returning();
+
+  log.info(
+    { incidentId: incident.id, projectId: input.projectId, severity: input.severity, title: input.title },
+    "Incident created"
+  );
 
   return incident;
 }
@@ -115,6 +122,11 @@ export async function updateIncidentStatus(
   }
 
   await db.update(incidents).set(updates).where(eq(incidents.id, incidentId));
+
+  log.info(
+    { incidentId, from: incident.status, to: newStatus, actor },
+    "Incident status updated"
+  );
 
   return db.query.incidents.findFirst({ where: eq(incidents.id, incidentId) });
 }

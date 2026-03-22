@@ -14,6 +14,7 @@
  */
 
 import { eq, and, desc } from "drizzle-orm";
+import { createModuleLogger } from "@/lib/logger";
 import { db } from "@/db/connection";
 import {
   roadmapItems,
@@ -21,6 +22,8 @@ import {
   projectHealth,
 } from "@/db/schema";
 import { calculateVelocity } from "./velocity";
+
+const log = createModuleLogger("ai.confidence");
 
 /** Breakdown of factors contributing to the confidence score. */
 export interface ConfidenceBreakdown {
@@ -89,7 +92,7 @@ export async function calculateConfidence(
       : Infinity;
 
     if (daysSinceManual <= 7) {
-      return {
+      const result = {
         projectId,
         score: clampScore(manualScore),
         breakdown: {
@@ -102,13 +105,15 @@ export async function calculateConfidence(
         decayWarning: false,
         calculatedAt: new Date(),
       };
+      log.debug({ projectId, score: result.score, breakdown: result.breakdown }, "Score breakdown (manual override)");
+      return result;
     }
   }
 
   const rawScore =
     velocityFactor - blockerPenalty - recencyPenalty - healthPenalty;
 
-  return {
+  const result = {
     projectId,
     score: clampScore(rawScore),
     breakdown: {
@@ -121,6 +126,10 @@ export async function calculateConfidence(
     decayWarning,
     calculatedAt: new Date(),
   };
+
+  log.debug({ projectId, score: result.score, breakdown: result.breakdown }, "Score breakdown");
+
+  return result;
 }
 
 function calculateVelocityFactor(

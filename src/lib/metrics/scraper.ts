@@ -12,6 +12,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { projects, metricPoints } from "@/db/schema";
 import { parsePrometheusText, type ParsedMetric } from "./prometheus-parser";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("metrics.scraper");
 
 /** Timeout for metrics scrape requests (5 seconds). */
 const SCRAPE_TIMEOUT_MS = 5000;
@@ -47,6 +49,8 @@ export async function scrapeMetrics(projectId: string): Promise<ScrapeSummary> {
   const startTime = performance.now();
 
   try {
+    log.info({ projectId }, "Metrics scrape started");
+
     const metricsUrl = await resolveMetricsEndpoint(projectId);
     if (!metricsUrl) {
       return {
@@ -65,11 +69,16 @@ export async function scrapeMetrics(projectId: string): Promise<ScrapeSummary> {
     });
 
     if (!response.ok) {
+      const durationMs = Math.round(performance.now() - startTime);
+      log.error(
+        { projectId, responseCode: response.status, durationMs },
+        "Metrics scrape failed — non-OK response"
+      );
       return {
         projectId,
         success: false,
         pointsStored: 0,
-        durationMs: Math.round(performance.now() - startTime),
+        durationMs,
         error: `HTTP ${response.status} ${response.statusText}`,
         scrapedAt,
       };
@@ -78,23 +87,36 @@ export async function scrapeMetrics(projectId: string): Promise<ScrapeSummary> {
     const body = await response.text();
     const parsed = parsePrometheusText(body);
     const pointsStored = await storeMetrics(projectId, parsed, scrapedAt);
+    const durationMs = Math.round(performance.now() - startTime);
+
+    log.info(
+      { projectId, pointsStored, durationMs },
+      "Metrics scrape completed"
+    );
 
     return {
       projectId,
       success: true,
       pointsStored,
-      durationMs: Math.round(performance.now() - startTime),
+      durationMs,
       scrapedAt,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const errorMsg = message.includes("abort") ? "Timeout (5s)" : message;
+    const durationMs = Math.round(performance.now() - startTime);
+
+    log.error(
+      { projectId, error: errorMsg, durationMs },
+      "Metrics scrape failed"
+    );
 
     return {
       projectId,
       success: false,
       pointsStored: 0,
-      durationMs: Math.round(performance.now() - startTime),
-      error: message.includes("abort") ? "Timeout (5s)" : message,
+      durationMs,
+      error: errorMsg,
       scrapedAt,
     };
   }

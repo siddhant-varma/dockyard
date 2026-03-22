@@ -12,6 +12,8 @@ import { db } from "@/db/connection";
 import { deploymentEvents, auditLogs } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
 import { resolveProjectId } from "@/lib/auth/permissions";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("deployments.rollback");
 
 /** Result of a rollback operation. */
 export interface RollbackResult {
@@ -58,6 +60,12 @@ export async function triggerRollback(
   options: TriggerRollbackOptions = {}
 ): Promise<RollbackResult> {
   const projectId = await resolveProjectId(projectSlug);
+
+  log.info(
+    { projectSlug, projectId, targetDeployEventId, triggeredBy: options.triggeredBy },
+    "Rollback initiated"
+  );
+
   return rollbackToDeployment(projectId, targetDeployEventId, options);
 }
 
@@ -94,6 +102,10 @@ export async function rollbackToDeployment(
   }
 
   if (targetDeploy.status !== "success") {
+    log.warn(
+      { projectId, targetDeployEventId, targetStatus: targetDeploy.status },
+      "Rollback rejected — target deployment is not successful"
+    );
     throw new ApiError(
       "BAD_REQUEST",
       `Cannot roll back to a deployment with status "${targetDeploy.status}" — only successful deployments are valid rollback targets`
@@ -129,6 +141,17 @@ export async function rollbackToDeployment(
       targetCommitSha: targetDeploy.commitSha,
     },
   });
+
+  log.info(
+    {
+      rollbackEventId: rollbackEvent.id,
+      projectId,
+      targetDeployEventId,
+      targetVersion: targetDeploy.version,
+      targetCommitSha: targetDeploy.commitSha,
+    },
+    "Rollback completed"
+  );
 
   return {
     id: rollbackEvent.id,

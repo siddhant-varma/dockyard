@@ -15,6 +15,9 @@ import { db } from "@/db/connection";
 import { mfaCredentials } from "@/db/schema";
 import { verifyAuthentication } from "./webauthn";
 import { verifyTotp } from "./totp";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("auth.jit-reauth");
 
 /** Re-auth window in milliseconds (5 minutes). */
 const REAUTH_WINDOW_MS = 5 * 60 * 1000;
@@ -47,11 +50,13 @@ export async function requireReAuth(userId: string): Promise<ReAuthStatus> {
     const expiresInSecs = Math.ceil(
       (REAUTH_WINDOW_MS - (now - lastReAuth)) / 1000
     );
+    log.info({ userId, expiresInSecs }, "re-auth not required: within active window");
     return { required: false, methods: [], expiresInSecs };
   }
 
   const methods = await getAvailableMethods(userId);
 
+  log.info({ userId, methods }, "re-auth required for destructive action");
   return { required: true, methods, expiresInSecs: 0 };
 }
 
@@ -104,6 +109,9 @@ export async function confirmReAuth(
 
   if (result.verified) {
     reAuthTimestamps.set(userId, Date.now());
+    log.info({ userId, method }, "re-auth verified successfully");
+  } else {
+    log.warn({ userId, method, error: result.error }, "re-auth verification failed");
   }
 
   return result;

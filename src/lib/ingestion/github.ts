@@ -7,6 +7,8 @@
  */
 
 import { createHmac, timingSafeEqual } from "crypto";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("ingestion.github");
 
 /** Normalized signal event ready for storage. */
 export interface NormalizedSignalEvent {
@@ -78,6 +80,11 @@ export function normalizeGitHubEvent(
   const projectSlug = repoFullName?.split("/").pop() ?? null;
 
   const mapped = `cc.dockyard.github.${eventType}`;
+
+  log.info(
+    { eventType, repository: repoFullName, projectSlug },
+    "GitHub webhook received"
+  );
 
   return {
     source: "github",

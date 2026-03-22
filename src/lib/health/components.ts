@@ -13,6 +13,8 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { healthCheckResults } from "@/db/schema";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("health.components");
 
 /** Health summary for a single project component. */
 export interface ComponentHealthSummary {
@@ -80,6 +82,11 @@ export async function getComponentHealth(
   const latestChecks = await getLatestCheckPerComponent(
     projectId,
     componentNames
+  );
+
+  log.debug(
+    { projectId, lookbackHours, componentCount: aggregates.length },
+    "Component health breakdown calculated"
   );
 
   // Merge aggregate stats with latest status

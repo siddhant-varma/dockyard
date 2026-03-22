@@ -11,6 +11,9 @@
 
 import type { DiscoveredProject, DiscoverySource } from "../types";
 import { generateSlug } from "../indicators";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("discovery.dokploy");
 
 interface DokployApp {
   applicationId?: string;
@@ -28,14 +31,24 @@ export class DokploySource implements DiscoverySource {
     const apiKey = String(config.apiKey ?? "");
 
     if (!instanceUrl || !apiKey) {
+      log.warn(
+        { hasInstanceUrl: !!instanceUrl, hasApiKey: !!apiKey },
+        "Missing instanceUrl or apiKey — skipping Dokploy discovery"
+      );
       return [];
     }
 
     const baseUrl = instanceUrl.replace(/\/$/, "");
+    log.info({ baseUrl }, "Dokploy scan starting");
     const discovered: DiscoveredProject[] = [];
 
     const applications = await this.fetchApps(baseUrl, apiKey, "application");
     const composeServices = await this.fetchApps(baseUrl, apiKey, "compose");
+
+    log.info(
+      { applications: applications.length, composeServices: composeServices.length },
+      "Dokploy API responses received"
+    );
 
     for (const app of applications) {
       const name = app.appName ?? app.name ?? "unknown";
@@ -69,22 +82,36 @@ export class DokploySource implements DiscoverySource {
     apiKey: string,
     type: "application" | "compose"
   ): Promise<DokployApp[]> {
+    const endpoint =
+      type === "application"
+        ? `${baseUrl}/api/application.all`
+        : `${baseUrl}/api/compose.all`;
+
     try {
-      const endpoint =
-        type === "application"
-          ? `${baseUrl}/api/application.all`
-          : `${baseUrl}/api/compose.all`;
+      log.debug({ endpoint, type }, "Fetching from Dokploy API");
 
       const response = await fetch(endpoint, {
         headers: { "x-api-key": apiKey },
         signal: AbortSignal.timeout(10000),
       });
 
-      if (!response.ok) return [];
+      if (!response.ok) {
+        log.error(
+          { endpoint, status: response.status, statusText: response.statusText },
+          "Dokploy API returned error"
+        );
+        return [];
+      }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
+      const apps = Array.isArray(data) ? data : [];
+      log.debug({ endpoint, count: apps.length }, "Dokploy API responded");
+      return apps;
+    } catch (err) {
+      log.error(
+        { endpoint, err },
+        "Dokploy API request failed — check instance URL and connectivity"
+      );
       return [];
     }
   }

@@ -17,6 +17,9 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { users, projectMemberships, projects } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("auth.permissions");
 
 /** Actions that can be checked against project-scoped permissions. */
 export type ProjectAction =
@@ -51,6 +54,7 @@ export async function checkProjectPermission(
   action: ProjectAction
 ): Promise<boolean> {
   if (userId === "anonymous") {
+    log.info({ userId, projectId, action, allowed: true }, "permission check: anonymous bypass");
     return true;
   }
 
@@ -59,10 +63,12 @@ export async function checkProjectPermission(
   });
 
   if (!user) {
+    log.warn({ userId, projectId, action, allowed: false }, "permission check denied: user not found");
     return false;
   }
 
   if (user.role === "superadmin") {
+    log.info({ userId, projectId, action, allowed: true }, "permission check: superadmin bypass");
     return true;
   }
 
@@ -75,13 +81,21 @@ export async function checkProjectPermission(
 
   if (membership) {
     const allowed = ROLE_ACTIONS[membership.role] ?? [];
-    return allowed.includes(action);
+    const result = allowed.includes(action);
+    if (result) {
+      log.info({ userId, projectId, action, role: membership.role, allowed: true }, "permission check allowed via membership");
+    } else {
+      log.warn({ userId, projectId, action, role: membership.role, allowed: false }, "permission check denied: action not in role");
+    }
+    return result;
   }
 
   if (user.role === "viewer" && action === "read") {
+    log.info({ userId, projectId, action, allowed: true }, "permission check: global viewer read access");
     return true;
   }
 
+  log.warn({ userId, projectId, action, role: user.role, allowed: false }, "permission check denied: no membership or matching role");
   return false;
 }
 

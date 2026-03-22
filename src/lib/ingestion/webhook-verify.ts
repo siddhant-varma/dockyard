@@ -15,6 +15,8 @@
  */
 
 import { createHmac, timingSafeEqual } from "crypto";
+import { createModuleLogger } from "@/lib/logger";
+const log = createModuleLogger("ingestion.webhook-verify");
 
 /** Maximum allowed age of a webhook timestamp (5 minutes in milliseconds). */
 const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
@@ -52,6 +54,7 @@ export function verifyWebhookSignature(
   // Validate timestamp is present and numeric
   const tsSeconds = parseInt(timestamp, 10);
   if (isNaN(tsSeconds)) {
+    log.warn({ msgId }, "Webhook verification failed — invalid timestamp");
     return { valid: false, reason: "Invalid timestamp: not a number" };
   }
 
@@ -60,6 +63,7 @@ export function verifyWebhookSignature(
   const now = Date.now();
 
   if (Math.abs(now - timestampMs) > TIMESTAMP_TOLERANCE_MS) {
+    log.warn({ msgId, ageMs: Math.abs(now - timestampMs) }, "Webhook verification failed — timestamp outside tolerance");
     return {
       valid: false,
       reason: "Timestamp outside tolerance window (5 minutes)",
@@ -99,6 +103,7 @@ export function verifyWebhookSignature(
         sigBuffer.length === expectedBuffer.length &&
         timingSafeEqual(sigBuffer, expectedBuffer)
       ) {
+        log.info({ msgId }, "Webhook signature verified");
         return { valid: true };
       }
     } catch {
@@ -107,6 +112,7 @@ export function verifyWebhookSignature(
     }
   }
 
+  log.warn({ msgId }, "Webhook verification failed — signature mismatch");
   return { valid: false, reason: "Signature mismatch" };
 }
 

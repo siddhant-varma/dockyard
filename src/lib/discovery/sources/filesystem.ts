@@ -25,6 +25,9 @@ import {
   isDockYard,
   isProject,
 } from "../indicators";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("discovery.filesystem");
 
 /** Shape of the .dockyard.json file a project can optionally include. */
 interface DockYardConfig {
@@ -41,36 +44,64 @@ export class FilesystemSource implements DiscoverySource {
   readonly type = "filesystem" as const;
 
   async scan(config: Record<string, unknown>): Promise<DiscoveredProject[]> {
-    const scanPath = resolve(String(config.path ?? ".."));
+    const rawPath = String(config.path ?? "..");
+    const scanPath = resolve(rawPath);
     const discovered: DiscoveredProject[] = [];
+
+    log.info({ configPath: rawPath, resolvedPath: scanPath }, "Filesystem scan starting");
 
     let entries: string[];
     try {
       entries = await readdir(scanPath);
-    } catch {
+    } catch (err) {
+      log.error(
+        { path: scanPath, err },
+        "Cannot read scan directory — check path exists and has read permissions"
+      );
       return [];
     }
+
+    log.debug({ path: scanPath, entryCount: entries.length }, "Directory entries read");
 
     for (const entry of entries) {
       const entryPath = join(scanPath, entry);
 
       const entryStat = await safeStat(entryPath);
-      if (!entryStat?.isDirectory()) continue;
+      if (!entryStat?.isDirectory()) {
+        log.debug({ entry, path: entryPath }, "Skipping non-directory entry");
+        continue;
+      }
 
       const files = await safeReaddir(entryPath);
-      if (!files) continue;
+      if (!files) {
+        log.debug({ entry, path: entryPath }, "Cannot read directory contents — skipping");
+        continue;
+      }
 
       // Skip DockYard's own directory
-      if (isDockYard(await getDeepIndicators(entryPath))) continue;
+      const deepIndicators = await getDeepIndicators(entryPath);
+      if (isDockYard(deepIndicators)) {
+        log.debug({ entry }, "Skipping DockYard's own directory");
+        continue;
+      }
 
       // Check for project indicators
-      if (!isProject(files)) continue;
+      if (!isProject(files)) {
+        log.debug(
+          { entry, fileCount: files.length, sampleFiles: files.slice(0, 10) },
+          "No project indicators found — skipping"
+        );
+        continue;
+      }
 
       // Read optional .dockyard.json
       const dockyardConfig = await readDockYardConfig(entryPath);
 
       // Skip if explicitly ignored
-      if (dockyardConfig?.ignore) continue;
+      if (dockyardConfig?.ignore) {
+        log.info({ entry }, "Project explicitly ignored via .dockyard.json");
+        continue;
+      }
 
       const dirName = basename(entryPath);
       const techStack = [
@@ -95,7 +126,22 @@ export class FilesystemSource implements DiscoverySource {
       // Try to enrich from package.json
       const enriched = await enrichFromPackageJson(entryPath, project);
       discovered.push(enriched);
+
+      log.info(
+        {
+          name: enriched.name,
+          slug: enriched.slug,
+          techStack: enriched.techStack,
+          hasDockYardConfig: !!dockyardConfig,
+        },
+        "Project discovered"
+      );
     }
+
+    log.info(
+      { path: scanPath, totalEntries: entries.length, projectsFound: discovered.length },
+      "Filesystem scan completed"
+    );
 
     return discovered;
   }

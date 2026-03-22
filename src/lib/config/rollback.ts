@@ -17,6 +17,9 @@ import {
   projects,
 } from "@/db/schema";
 import { upsertConfigEntry } from "./service";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("config.rollback");
 
 /** Auto-rollback configuration stored in project settings. */
 interface RollbackConfig {
@@ -89,6 +92,8 @@ export async function executeAutoRollback(
   projectId: string,
   deployEventId: string
 ): Promise<{ rolledBack: number; entries: string[] }> {
+  log.info({ projectId, deployEventId }, "auto-rollback initiated");
+
   const recentChanges = await db
     .select()
     .from(configAuditLog)
@@ -103,6 +108,11 @@ export async function executeAutoRollback(
       !c.changeReason?.includes("rollback")
   );
 
+  if (changesToRevert.length === 0) {
+    log.warn({ projectId, deployEventId }, "auto-rollback skipped: no recent changes to revert");
+    return { rolledBack: 0, entries: [] };
+  }
+
   const rolledBackEntries: string[] = [];
 
   for (const change of changesToRevert) {
@@ -112,12 +122,21 @@ export async function executeAutoRollback(
 
     if (!entry) continue;
 
-    await upsertConfigEntry(projectId, entry.key, "", {
-      changeReason: `Auto-rollback after failed deploy ${deployEventId}`,
-    });
+    try {
+      await upsertConfigEntry(projectId, entry.key, "", {
+        changeReason: `Auto-rollback after failed deploy ${deployEventId}`,
+      });
 
-    rolledBackEntries.push(entry.key);
+      rolledBackEntries.push(entry.key);
+    } catch (err) {
+      log.error({ err, projectId, key: entry.key, deployEventId }, "auto-rollback failed for config entry");
+    }
   }
+
+  log.info(
+    { projectId, deployEventId, rolledBack: rolledBackEntries.length, entries: rolledBackEntries },
+    "auto-rollback completed"
+  );
 
   return {
     rolledBack: rolledBackEntries.length,

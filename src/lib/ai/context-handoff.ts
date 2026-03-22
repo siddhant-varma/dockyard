@@ -10,6 +10,7 @@
 
 import { createHash } from "crypto";
 import { eq, desc } from "drizzle-orm";
+import { createModuleLogger } from "@/lib/logger";
 import { db } from "@/db/connection";
 import {
   projects,
@@ -21,6 +22,8 @@ import {
 import { calculateConfidence } from "./confidence";
 import { calculateVelocity } from "./velocity";
 import { calculateUptime } from "@/lib/health/uptime";
+
+const log = createModuleLogger("ai.context-handoff");
 
 /** Format options for handoff block output. */
 export type HandoffFormat = "json" | "markdown";
@@ -159,6 +162,8 @@ export async function generateHandoffBlock(
 
   const content = JSON.stringify(block);
   block.validationHash = createHash("sha256").update(content).digest("hex");
+
+  log.info({ project: block.project.slug, format }, "Handoff block generated");
 
   if (format === "markdown") {
     return renderMarkdown(block);

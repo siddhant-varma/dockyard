@@ -19,6 +19,9 @@ import { db } from "@/db/connection";
 import { configEntries, configAuditLog } from "@/db/schema";
 import { encrypt, decrypt } from "@/lib/crypto/aes";
 import { createHash } from "crypto";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("config.service");
 
 /** Decrypted config entry for API/UI consumption. */
 export interface ConfigEntryView {
@@ -77,7 +80,13 @@ export async function upsertConfigEntry(
     changeReason?: string;
   } = {}
 ): Promise<void> {
-  const encrypted = encrypt(value);
+  let encrypted: string;
+  try {
+    encrypted = encrypt(value);
+  } catch (err) {
+    log.error({ err, projectId, key }, "config encryption failed");
+    throw err;
+  }
   const newHash = hashValue(value);
 
   const existing = await db.query.configEntries.findFirst({
@@ -87,59 +96,68 @@ export async function upsertConfigEntry(
     ),
   });
 
-  if (existing) {
-    const oldHash = existing.valueEncrypted
-      ? hashValue(decrypt(existing.valueEncrypted))
-      : null;
+  try {
+    if (existing) {
+      const oldHash = existing.valueEncrypted
+        ? hashValue(decrypt(existing.valueEncrypted))
+        : null;
 
-    await db
-      .update(configEntries)
-      .set({
-        valueEncrypted: encrypted,
-        isSecret: options.isSecret ?? existing.isSecret,
-        category: options.category ?? existing.category,
-        displayName: options.displayName ?? existing.displayName,
-        description: options.description ?? existing.description,
-        inputType: options.inputType ?? existing.inputType,
-        inputOptions: options.inputOptions ?? existing.inputOptions,
-        updatedBy: options.changedBy,
-        updatedAt: new Date(),
-      })
-      .where(eq(configEntries.id, existing.id));
+      await db
+        .update(configEntries)
+        .set({
+          valueEncrypted: encrypted,
+          isSecret: options.isSecret ?? existing.isSecret,
+          category: options.category ?? existing.category,
+          displayName: options.displayName ?? existing.displayName,
+          description: options.description ?? existing.description,
+          inputType: options.inputType ?? existing.inputType,
+          inputOptions: options.inputOptions ?? existing.inputOptions,
+          updatedBy: options.changedBy,
+          updatedAt: new Date(),
+        })
+        .where(eq(configEntries.id, existing.id));
 
-    await db.insert(configAuditLog).values({
-      configEntryId: existing.id,
-      projectId,
-      oldValueHash: oldHash,
-      newValueHash: newHash,
-      changedBy: options.changedBy,
-      changeReason: options.changeReason,
-    });
-  } else {
-    const [created] = await db
-      .insert(configEntries)
-      .values({
+      await db.insert(configAuditLog).values({
+        configEntryId: existing.id,
         projectId,
-        key,
-        valueEncrypted: encrypted,
-        isSecret: options.isSecret ?? false,
-        category: options.category,
-        displayName: options.displayName,
-        description: options.description,
-        inputType: options.inputType ?? "text",
-        inputOptions: options.inputOptions,
-        updatedBy: options.changedBy,
-      })
-      .returning();
+        oldValueHash: oldHash,
+        newValueHash: newHash,
+        changedBy: options.changedBy,
+        changeReason: options.changeReason,
+      });
 
-    await db.insert(configAuditLog).values({
-      configEntryId: created.id,
-      projectId,
-      oldValueHash: null,
-      newValueHash: newHash,
-      changedBy: options.changedBy,
-      changeReason: options.changeReason ?? "Initial creation",
-    });
+      log.info({ projectId, key, changedBy: options.changedBy }, "config entry updated");
+    } else {
+      const [created] = await db
+        .insert(configEntries)
+        .values({
+          projectId,
+          key,
+          valueEncrypted: encrypted,
+          isSecret: options.isSecret ?? false,
+          category: options.category,
+          displayName: options.displayName,
+          description: options.description,
+          inputType: options.inputType ?? "text",
+          inputOptions: options.inputOptions,
+          updatedBy: options.changedBy,
+        })
+        .returning();
+
+      await db.insert(configAuditLog).values({
+        configEntryId: created.id,
+        projectId,
+        oldValueHash: null,
+        newValueHash: newHash,
+        changedBy: options.changedBy,
+        changeReason: options.changeReason ?? "Initial creation",
+      });
+
+      log.info({ projectId, key, changedBy: options.changedBy }, "config entry created");
+    }
+  } catch (err) {
+    log.error({ err, projectId, key }, "config upsert DB operation failed");
+    throw err;
   }
 }
 
@@ -157,6 +175,7 @@ export async function buildEnvString(projectId: string): Promise<string> {
  */
 export async function deleteConfigEntry(entryId: string): Promise<void> {
   await db.delete(configEntries).where(eq(configEntries.id, entryId));
+  log.info({ entryId }, "config entry deleted");
 }
 
 /** SHA-256 hash of a value (for audit log — never store plaintext). */

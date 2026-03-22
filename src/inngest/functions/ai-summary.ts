@@ -11,6 +11,9 @@ import { db } from "@/db/connection";
 import { projects, roadmapItems } from "@/db/schema";
 import { generateWeeklySummary, generateMilestoneWrapUp } from "@/lib/ai/summaries";
 import { notifySSE } from "@/lib/sse/notify";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("inngest.ai-summary");
 
 export const aiSummary = inngest.createFunction(
   {
@@ -19,6 +22,8 @@ export const aiSummary = inngest.createFunction(
     triggers: [{ cron: "0 9 * * 1" }],
   },
   async ({ step }) => {
+    log.info("AI weekly summary generation started");
+
     const activeProjects = await step.run("load-active-projects", async () => {
       return db.query.projects.findMany({
         where: eq(projects.status, "active"),
@@ -27,17 +32,24 @@ export const aiSummary = inngest.createFunction(
     });
 
     if (activeProjects.length === 0) {
+      log.info("No active projects found — skipping summary generation");
       return { summariesGenerated: 0, milestoneWrapUps: 0 };
     }
 
-    const summaries = await step.run("generate-weekly-summaries", async () => {
-      const results = [];
-      for (const project of activeProjects) {
-        const summary = await generateWeeklySummary(project.id);
-        results.push(summary);
-      }
-      return results;
-    });
+    let summaries;
+    try {
+      summaries = await step.run("generate-weekly-summaries", async () => {
+        const results = [];
+        for (const project of activeProjects) {
+          const summary = await generateWeeklySummary(project.id);
+          results.push(summary);
+        }
+        return results;
+      });
+    } catch (err) {
+      log.error({ err }, "AI summary generation failed");
+      throw err;
+    }
 
     const wrapUps = await step.run("check-milestone-completions", async () => {
       const results = [];
@@ -75,6 +87,11 @@ export const aiSummary = inngest.createFunction(
         });
       }
     });
+
+    log.info(
+      { summariesGenerated: summaries.length, milestoneWrapUps: wrapUps.length },
+      "AI weekly summary generation complete"
+    );
 
     return {
       summariesGenerated: summaries.length,

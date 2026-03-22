@@ -12,6 +12,9 @@ import type {
   NotificationPayload,
   SendResult,
 } from "./types";
+import { createModuleLogger } from "@/lib/logger";
+
+const log = createModuleLogger("notifications.email");
 
 const SEVERITY_COLORS: Record<string, string> = {
   sev1: "#dc2626",
@@ -28,6 +31,7 @@ export class EmailChannel implements NotificationChannel {
   async send(payload: NotificationPayload): Promise<SendResult> {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
+      log.error("RESEND_API_KEY not configured — cannot send email");
       return { success: false, error: "RESEND_API_KEY not configured" };
     }
 
@@ -70,6 +74,10 @@ export class EmailChannel implements NotificationChannel {
 
       if (!response.ok) {
         const text = await response.text().catch(() => "");
+        log.error(
+          { to: this.config.email, status: response.status, responseBody: text, severity: payload.severity },
+          "Resend API error"
+        );
         return {
           success: false,
           error: `Resend API: ${response.status} ${text}`,
@@ -77,9 +85,17 @@ export class EmailChannel implements NotificationChannel {
       }
 
       const data = (await response.json()) as { id?: string };
+      log.info(
+        { to: this.config.email, messageId: data.id, severity: payload.severity },
+        "email sent"
+      );
       return { success: true, messageId: data.id };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      log.error(
+        { err, to: this.config.email, severity: payload.severity },
+        "email send failed"
+      );
       return { success: false, error: message };
     }
   }
