@@ -85,7 +85,7 @@ export default async function InsightsPage({ params }: { params: Params }) {
                 </p>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed text-foreground/60">
+                <p className="max-w-prose text-sm leading-relaxed text-foreground/60">
                   {insight.summary}
                 </p>
               </CardContent>

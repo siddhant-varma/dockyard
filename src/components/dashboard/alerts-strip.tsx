@@ -50,6 +50,12 @@ export function AlertsStrip({ alerts }: AlertsStripProps) {
           className="flex items-center justify-between gap-4 px-5 py-3"
         >
           <div className="flex items-center gap-3 min-w-0">
+            {alert.severity === "sev1" && (
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+              </span>
+            )}
             <Badge
               variant="outline"
               className={`shrink-0 ${SEV_STYLES[alert.severity]}`}

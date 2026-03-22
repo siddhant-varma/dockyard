@@ -14,20 +14,10 @@ export function HeaderBar() {
       {/* Left column — matches sidebar width, brand inside */}
       <div className="hidden sm:flex w-56 shrink-0 items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="text-[var(--color-brand-500)]"
-          >
-            <path
-              d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+            <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" stroke="var(--color-brand-500)" strokeWidth="1.5" fill="none"/>
+            <path d="M16 8 L22 16 L16 24 L10 16 Z" fill="var(--color-brand-500)" opacity="0.8"/>
+            <circle cx="16" cy="16" r="2" fill="#fff" opacity="0.9"/>
           </svg>
           <span className="text-base font-semibold text-foreground">
             DockYard
@@ -38,20 +28,10 @@ export function HeaderBar() {
       {/* Mobile brand — visible only on small screens */}
       <div className="flex sm:hidden items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="text-[var(--color-brand-500)]"
-          >
-            <path
-              d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+            <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" stroke="var(--color-brand-500)" strokeWidth="1.5" fill="none"/>
+            <path d="M16 8 L22 16 L16 24 L10 16 Z" fill="var(--color-brand-500)" opacity="0.8"/>
+            <circle cx="16" cy="16" r="2" fill="#fff" opacity="0.9"/>
           </svg>
           <span className="text-base font-semibold text-foreground">
             DockYard

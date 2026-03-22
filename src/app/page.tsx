@@ -21,6 +21,7 @@ import { BillingCard } from "@/components/dashboard/billing-card";
 import { MetricsGrid, type MetricSeries } from "@/components/dashboard/metrics-grid";
 import { BillingHistory } from "@/components/dashboard/billing-history";
 import { TrafficCard } from "@/components/dashboard/traffic-card";
+import { Logstream } from "@/components/dashboard/logstream";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
 import { isDemoMode } from "@/lib/env";
 import {
@@ -31,6 +32,7 @@ import {
   DEMO_ALERTS,
   DEMO_BILLING_HISTORY,
   DEMO_TRAFFIC,
+  DEMO_LOGS,
 } from "@/lib/demo-data";
 
 const INTERNAL_BASE =
@@ -125,12 +127,18 @@ export default async function HomePage() {
 
   const demoBilling = isDemoMode ? DEMO_BILLING : null;
 
+  const logEntries = isDemoMode ? DEMO_LOGS : [];
+
   return (
     <div className="space-y-6">
       <PageTabs tabs={HOME_TABS} />
       <AlertsStrip alerts={alerts} />
       <QuickActions projects={projects} />
 
+      {/* Metrics first (per Stitch wireframe ordering) */}
+      <MetricsGrid metrics={metrics} serverName={serverStatus?.name} />
+
+      {/* Server status + Billing side by side */}
       <AnimatedGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <AnimatedItem>
           {serverStatus ? (
@@ -160,8 +168,10 @@ export default async function HomePage() {
         </AnimatedItem>
       </AnimatedGrid>
 
-      <MetricsGrid metrics={metrics} serverName={serverStatus?.name} />
+      {/* Real-time Logstream (from Stitch wireframe) */}
+      <Logstream entries={logEntries} />
 
+      {/* Billing history + Traffic */}
       <AnimatedGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2" stagger={0.1}>
         <AnimatedItem>
           <BillingHistory data={billingHistory} />

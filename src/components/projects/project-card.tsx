@@ -32,18 +32,11 @@ interface ProjectCardProps {
   project: ProjectSummary;
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  active: "bg-green-500/20 text-green-300 border-green-500/40",
-  discovered: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-  paused: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40",
-  archived: "bg-white/10 text-foreground/60 border-white/15",
-};
-
-const HEALTH_DOT: Record<string, string> = {
-  healthy: "bg-green-400",
-  degraded: "bg-yellow-400",
-  down: "bg-red-400",
-  unknown: "bg-muted-foreground",
+const HEALTH_BADGE: Record<string, string> = {
+  healthy: "bg-green-500/20 text-green-300 border-green-500/40",
+  degraded: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40",
+  down: "bg-red-500/20 text-red-300 border-red-500/40",
+  unknown: "bg-white/10 text-foreground/50 border-white/15",
 };
 
 function formatRelative(isoDate: string): string {
@@ -63,7 +56,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const confidencePct = confidence != null ? Math.round(confidence * 100) : null;
 
   return (
-    <Link href={`/projects/${project.slug}`} className="group block">
+    <Link href={`/projects/${project.slug}`} className="group block transition-transform duration-100 active:scale-[0.98]">
       <Card className="h-full border-glass-border bg-card backdrop-blur-lg transition-all duration-200 group-hover:border-glass-border-strong group-hover:shadow-[0_0_20px_rgba(12,140,233,0.08)]">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
@@ -72,9 +65,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </CardTitle>
             <Badge
               variant="outline"
-              className={`shrink-0 text-[10px] ${STATUS_BADGE[project.status] ?? STATUS_BADGE.archived}`}
+              className={`shrink-0 text-[10px] ${HEALTH_BADGE[health]}`}
             >
-              {project.status}
+              {health}
             </Badge>
           </div>
         </CardHeader>
@@ -87,20 +80,17 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </p>
           )}
 
-          {/* Health + Confidence */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className={`h-2 w-2 rounded-full ${HEALTH_DOT[health]}`} />
-              <span className="text-xs capitalize text-foreground/70">
-                {health}
+          {/* Confidence — prominent */}
+          {confidencePct != null && (
+            <div className="flex items-center gap-2">
+              <span className="font-data text-lg font-semibold tabular-nums text-foreground">
+                {confidencePct}%
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                confidence
               </span>
             </div>
-            {confidencePct != null && (
-              <span className="text-xs font-medium tabular-nums text-muted-foreground">
-                [{confidencePct}%]
-              </span>
-            )}
-          </div>
+          )}
 
           {/* Tech stack pills */}
           {tags.length > 0 && (

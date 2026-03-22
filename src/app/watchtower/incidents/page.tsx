@@ -87,7 +87,7 @@ export default async function IncidentsPage() {
             <Link
               key={inc.id}
               href={`/watchtower/incidents/${inc.id}`}
-              className="group block"
+              className="group block transition-transform duration-100 active:scale-[0.98]"
             >
               <Card className="bg-card border-glass-border backdrop-blur-lg transition-all duration-200 group-hover:border-glass-border-strong">
                 <CardContent className="py-4">

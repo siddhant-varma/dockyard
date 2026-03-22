@@ -13,6 +13,7 @@ import type { ConfidenceFactors } from "@/components/projects/confidence-breakdo
 import type { Blocker } from "@/components/projects/blocker-list";
 import type { ActivityEvent } from "@/components/projects/activity-feed";
 import type { HealthSummary } from "@/components/watchtower/health-card";
+import type { LogEntry } from "@/components/dashboard/logstream";
 import type { AlertEvent, AlertRule } from "@/components/watchtower/alert-types";
 
 export const DEMO_SERVER_STATUS = {
@@ -156,6 +157,15 @@ export const DEMO_ALERTS = [
     projectName: "Nebula Gateway",
     timeAgo: "18m ago",
   },
+];
+
+export const DEMO_LOGS: LogEntry[] = [
+  { timestamp: "18:53:12", level: "warn", message: "Backup process for 'hetzner-cx31' retry 1/3" },
+  { timestamp: "18:52:45", level: "info", message: "Health check passed — all components healthy" },
+  { timestamp: "18:52:10", level: "info", message: "SSE broadcast: health_updated for 3 subscribers" },
+  { timestamp: "18:51:30", level: "error", message: "Redis connection refused on port 6379" },
+  { timestamp: "18:51:12", level: "info", message: "Deploy #142 succeeded — v1.2.3 live" },
+  { timestamp: "18:50:45", level: "warn", message: "Memory usage 88% — approaching threshold (90%)" },
 ];
 
 export const DEMO_BILLING_HISTORY = [

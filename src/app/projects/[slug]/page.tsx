@@ -122,7 +122,7 @@ export default async function ProjectDetailPage({
           {project.description && (
             <Card className="bg-card border-glass-border backdrop-blur-lg">
               <CardContent className="pt-5">
-                <p className="text-sm leading-relaxed text-foreground/70">
+                <p className="max-w-prose text-sm leading-relaxed text-foreground/70">
                   {project.description}
                 </p>
               </CardContent>

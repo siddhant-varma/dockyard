@@ -10,6 +10,7 @@ import {
   type ProjectSummary,
 } from "@/components/projects/project-card";
 import { PageTabs } from "@/components/layout/page-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
 import { isDemoMode } from "@/lib/env";
 import { DEMO_PROJECTS } from "@/lib/demo-data";
@@ -44,27 +45,11 @@ export default async function ProjectsPage() {
       <PageTabs tabs={projectTabs} />
 
       {projects.length === 0 ? (
-        <div className="glass flex flex-col items-center justify-center rounded-xl py-20 text-center">
-          <svg
-            className="mb-3 h-8 w-8 text-muted-foreground/30"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-            />
-          </svg>
-          <p className="text-sm text-muted-foreground">
-            No projects discovered
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground/50">
-            Connect a discovery source in Settings to get started.
-          </p>
-        </div>
+        <EmptyState
+          icon="folder"
+          title="No projects discovered"
+          description="Connect a discovery source in Settings to get started."
+        />
       ) : (
         <AnimatedGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (

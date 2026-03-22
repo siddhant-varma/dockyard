@@ -69,7 +69,7 @@ export default async function LogsPage({ params }: { params: Params }) {
               No logs available.
             </p>
           ) : (
-            <div className="space-y-0.5 font-mono text-xs">
+            <div className="space-y-0.5 font-data text-xs">
               {logs.map((log, i) => (
                 <div key={i} className="flex gap-2">
                   <span className="shrink-0 text-foreground/20">

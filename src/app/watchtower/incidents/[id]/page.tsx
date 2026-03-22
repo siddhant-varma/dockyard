@@ -145,7 +145,7 @@ export default async function IncidentDetailPage({
                       <p className="text-xs text-foreground/40 mb-0.5">
                         {entry.time}
                       </p>
-                      <p className="text-sm text-foreground/70">{entry.text}</p>
+                      <p className="max-w-prose text-sm text-foreground/70">{entry.text}</p>
                     </div>
                   );
                 })}

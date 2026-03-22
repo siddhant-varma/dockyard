@@ -42,6 +42,7 @@
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
   --font-heading: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
 
   /* ── Animation ─────────────────────────────────────────── */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
@@ -212,7 +213,7 @@
   --glass-divider: rgba(255, 255, 255, 0.06);
   --glass-input: rgba(255, 255, 255, 0.06);
 
-  --background: #0f172a;
+  --background: #070d1a;
   --foreground: #f8fafc;
   --card: #1b2336;
   --card-foreground: #f8fafc;
@@ -250,6 +251,13 @@
    ================================================================ */
 
 @layer utilities {
+  /* Data-dense monospace — JetBrains Mono for metrics, tables, timestamps */
+  .font-data {
+    font-family: var(--font-data);
+    font-feature-settings: "tnum" 1, "zero" 1;
+    letter-spacing: -0.01em;
+  }
+
   /* Frosted glass card — primary surface treatment */
   .glass {
     background: oklch(0.97 0.005 250 / 0.8);
@@ -343,6 +351,16 @@
   .animate-pulse-ring {
     animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  /* Breathing glow for healthy status dots */
+  .animate-breathe {
+    animation: breathe 3s ease-in-out infinite;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* ================================================================

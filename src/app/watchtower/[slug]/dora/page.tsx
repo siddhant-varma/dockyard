@@ -75,7 +75,7 @@ export default async function DORAPage({ params }: { params: Params }) {
               </CardHeader>
               <CardContent>
                 <div className="flex items-end gap-2">
-                  <span className="text-2xl font-bold tabular-nums text-foreground">
+                  <span className="font-data text-2xl font-bold tabular-nums text-foreground">
                     {m.value}
                   </span>
                   <span className={`text-lg ${TREND_COLOR[m.trend]}`}>

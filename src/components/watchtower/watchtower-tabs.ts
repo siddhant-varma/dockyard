@@ -8,6 +8,7 @@ import type { PageTab } from "@/components/layout/page-tabs";
 export function buildHealthTabs(slug: string): PageTab[] {
   const base = `/watchtower/${slug}`;
   return [
+    { label: "← Watchtower", href: "/watchtower" },
     { label: "Health", href: base },
     { label: "Deployments", href: `${base}/deployments` },
     { label: "Logs", href: `${base}/logs` },

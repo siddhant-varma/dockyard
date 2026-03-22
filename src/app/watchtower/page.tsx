@@ -8,6 +8,7 @@
 import { PageTabs } from "@/components/layout/page-tabs";
 import { HealthCard, type HealthSummary } from "@/components/watchtower/health-card";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
 import { DEMO_HEALTH_PROJECTS } from "@/lib/demo-data";
 
@@ -79,12 +80,11 @@ export default async function WatchtowerPage() {
 
       {/* Health card grid */}
       {projects.length === 0 ? (
-        <div className="glass flex flex-col items-center justify-center rounded-xl py-20 text-center">
-          <p className="text-sm text-foreground/50">No projects monitored.</p>
-          <p className="mt-1 text-xs text-foreground/30">
-            Add projects via Settings to start monitoring.
-          </p>
-        </div>
+        <EmptyState
+          icon="server"
+          title="No projects monitored"
+          description="Add projects via Settings to start monitoring."
+        />
       ) : (
         <AnimatedGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sorted.map((project) => (

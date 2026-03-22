@@ -71,7 +71,7 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar — sticky within the flex container */}
-      <aside className="sticky top-0 hidden h-[calc(100vh-3rem)] w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar sm:flex">
+      <aside className="sticky top-12 hidden h-[calc(100vh-3rem)] w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar sm:flex">
         {/* Nav items */}
         <nav className="flex-1 space-y-1 p-3 pt-5">
           {NAV_ITEMS.map((item) => {
@@ -130,7 +130,7 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] ${
+              className={`flex flex-col items-center gap-0.5 px-3 py-2 text-[10px] ${
                 active ? "text-sidebar-primary" : "text-sidebar-foreground/60"
               }`}
             >
