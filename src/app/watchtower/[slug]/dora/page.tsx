@@ -9,15 +9,87 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
+
+const INTERNAL_BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 interface DORAMetric {
   name: string;
   rating: "elite" | "high" | "medium" | "low";
   value: string;
   trend: "↑" | "→" | "↓";
+}
+
+/** API response shape from GET /api/projects/:slug/dora */
+interface ApiDORAResponse {
+  deployFrequency: { value: number; unit: string; rating: string; trend: string };
+  leadTime: { value: number; unit: string; rating: string; trend: string };
+  mttr: { value: number; unit: string; rating: string; trend: string };
+  changeFailureRate: { value: number; unit: string; rating: string; trend: string };
+}
+
+/** Map trend string from API to display arrow */
+function mapTrend(trend: string): "↑" | "→" | "↓" {
+  if (trend === "up" || trend === "improving") return "↑";
+  if (trend === "down" || trend === "degrading") return "↓";
+  return "→";
+}
+
+/** Map rating string from API to typed rating */
+function mapRating(rating: string): "elite" | "high" | "medium" | "low" {
+  if (rating === "elite") return "elite";
+  if (rating === "high") return "high";
+  if (rating === "medium") return "medium";
+  return "low";
+}
+
+/**
+ * Fetch DORA metrics for a project.
+ * In demo mode, returns static sample data. In live mode, fetches from the API.
+ */
+async function fetchDORA(slug: string): Promise<DORAMetric[]> {
+  if (isDemoMode) return DEMO_DORA;
+
+  try {
+    const res = await fetch(`${INTERNAL_BASE}/api/projects/${slug}/dora`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+
+    const data: ApiDORAResponse = await res.json();
+    return [
+      {
+        name: "Deploy Frequency",
+        rating: mapRating(data.deployFrequency.rating),
+        value: `${data.deployFrequency.value}/${data.deployFrequency.unit}`,
+        trend: mapTrend(data.deployFrequency.trend),
+      },
+      {
+        name: "Lead Time",
+        rating: mapRating(data.leadTime.rating),
+        value: `${data.leadTime.value}${data.leadTime.unit}`,
+        trend: mapTrend(data.leadTime.trend),
+      },
+      {
+        name: "MTTR",
+        rating: mapRating(data.mttr.rating),
+        value: `${data.mttr.value}${data.mttr.unit}`,
+        trend: mapTrend(data.mttr.trend),
+      },
+      {
+        name: "Change Failure Rate",
+        rating: mapRating(data.changeFailureRate.rating),
+        value: `${data.changeFailureRate.value}${data.changeFailureRate.unit}`,
+        trend: mapTrend(data.changeFailureRate.trend),
+      },
+    ];
+  } catch {
+    return [];
+  }
 }
 
 const DEMO_DORA: DORAMetric[] = [
@@ -42,7 +114,7 @@ const TREND_COLOR: Record<string, string> = {
 
 export default async function DORAPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const metrics = isDemoMode ? DEMO_DORA : [];
+  const metrics = await fetchDORA(slug);
 
   return (
     <div className="space-y-6">
@@ -50,11 +122,11 @@ export default async function DORAPage({ params }: { params: Params }) {
       <h1 className="text-lg font-semibold text-foreground">DORA Metrics</h1>
 
       {metrics.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">
-            Not enough data to calculate DORA metrics.
-          </p>
-        </div>
+        <EmptyState
+          icon="chart"
+          title="Not enough data to calculate DORA metrics"
+          description="DORA metrics require deployment and incident data to generate insights."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {metrics.map((m) => (

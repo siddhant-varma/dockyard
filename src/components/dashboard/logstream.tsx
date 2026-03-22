@@ -3,6 +3,13 @@
  *
  * Shows recent log entries with severity-colored timestamps and level badges.
  * Matches Stitch wireframe "Real-time Logstream" section.
+ *
+ * The "Live" indicator reflects actual SSE connection status:
+ * - Green pulsing dot + "Live" when SSE is connected
+ * - Grey dot + "Static" when SSE is not connected
+ *
+ * Use `<LiveLogstream>` (client component) on pages with SSE wiring,
+ * or `<Logstream>` directly for static rendering.
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +22,8 @@ export interface LogEntry {
 
 interface LogstreamProps {
   entries: LogEntry[];
+  /** Whether the SSE connection is active. Controls the Live/Static indicator. */
+  isLive?: boolean;
 }
 
 const LEVEL_COLOR: Record<string, string> = {
@@ -31,7 +40,7 @@ const LEVEL_BADGE: Record<string, string> = {
   fail: "text-red-400",
 };
 
-export function Logstream({ entries }: LogstreamProps) {
+export function Logstream({ entries, isLive = false }: LogstreamProps) {
   return (
     <Card className="bg-[#060b14] border-glass-border">
       <CardHeader className="pb-2">
@@ -39,10 +48,17 @@ export function Logstream({ entries }: LogstreamProps) {
           <CardTitle className="font-data text-xs text-foreground/40">
             Real-time Logstream
           </CardTitle>
-          <span className="flex items-center gap-1.5 text-[10px] text-green-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-            Live
-          </span>
+          {isLive ? (
+            <span className="flex items-center gap-1.5 text-[10px] text-green-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+              Live
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-[10px] text-foreground/30">
+              <span className="h-1.5 w-1.5 rounded-full bg-foreground/30" />
+              Static
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent>

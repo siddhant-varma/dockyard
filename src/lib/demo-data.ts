@@ -149,6 +149,7 @@ export const DEMO_ALERTS = [
     message: "API down — connection refused on port 8080",
     projectName: "Void Proxy",
     timeAgo: "3m ago",
+    incidentId: "inc-001",
   },
   {
     id: "a2",

@@ -6,9 +6,11 @@
  */
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
+import { AlertActions } from "@/components/watchtower/alert-actions";
+import { CreateRuleForm } from "@/components/watchtower/create-rule-form";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
 import { DEMO_ALERT_EVENTS, DEMO_ALERT_RULES } from "@/lib/demo-data";
 import type { AlertEvent, AlertRule } from "@/components/watchtower/alert-types";
@@ -32,7 +34,7 @@ async function fetchAlerts(): Promise<{
   try {
     const [evRes, ruRes] = await Promise.all([
       fetch(`${INTERNAL_BASE}/api/alerts/events`, { cache: "no-store" }),
-      fetch(`${INTERNAL_BASE}/api/alerts/rules`, { cache: "no-store" }),
+      fetch(`${INTERNAL_BASE}/api/alerts`, { cache: "no-store" }),
     ]);
     const events = evRes.ok
       ? ((await evRes.json()) as AlertEvent[])
@@ -117,16 +119,7 @@ export default async function AlertsPage() {
                       {alert.source} — firing for {alert.firingFor}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    {alert.status === "firing" && (
-                      <Button variant="outline" size="sm" className="text-xs">
-                        Acknowledge
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm" className="text-xs">
-                      Resolve
-                    </Button>
-                  </div>
+                  <AlertActions id={alert.id} status={alert.status} />
                 </div>
               </CardContent>
             </Card>
@@ -135,11 +128,11 @@ export default async function AlertsPage() {
       )}
 
       {events.length === 0 && (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">
-            No active alerts. All systems nominal.
-          </p>
-        </div>
+        <EmptyState
+          icon="shield"
+          title="No active alerts"
+          description="All systems nominal. Alerts will appear here when thresholds are breached."
+        />
       )}
 
       {/* Alert Rules table */}
@@ -147,9 +140,7 @@ export default async function AlertsPage() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">Alert Rules</CardTitle>
-            <Button variant="outline" size="sm" className="text-xs">
-              + Create Rule
-            </Button>
+            <CreateRuleForm />
           </div>
         </CardHeader>
         <CardContent>

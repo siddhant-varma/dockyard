@@ -12,10 +12,45 @@ import { isDemoMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
 
+const INTERNAL_BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 interface LogEntry {
   timestamp: string;
   level: "info" | "warn" | "error";
   message: string;
+}
+
+/** API response shape from GET /api/projects/:slug/logs */
+interface ApiLogEntry {
+  timestamp: string;
+  message: string;
+  level: "info" | "warn" | "error";
+  source: string;
+}
+
+/**
+ * Fetch log entries for a project.
+ * In demo mode, returns static sample data. In live mode, fetches from the API.
+ */
+async function fetchLogs(slug: string): Promise<LogEntry[]> {
+  if (isDemoMode) return DEMO_LOGS;
+
+  try {
+    const res = await fetch(`${INTERNAL_BASE}/api/projects/${slug}/logs?tail=100`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+
+    const entries: ApiLogEntry[] = await res.json();
+    return entries.map((e) => ({
+      timestamp: e.timestamp,
+      level: e.level,
+      message: e.message,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 const DEMO_LOGS: LogEntry[] = [
@@ -45,7 +80,7 @@ const LEVEL_BADGE: Record<string, string> = {
 
 export default async function LogsPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const logs = isDemoMode ? DEMO_LOGS : [];
+  const logs = await fetchLogs(slug);
 
   return (
     <div className="space-y-6">

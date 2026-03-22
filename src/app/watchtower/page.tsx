@@ -9,6 +9,7 @@ import { PageTabs } from "@/components/layout/page-tabs";
 import { HealthCard, type HealthSummary } from "@/components/watchtower/health-card";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import { DashboardRefresher } from "@/components/dashboard/dashboard-refresher";
 import { isDemoMode } from "@/lib/env";
 import { DEMO_HEALTH_PROJECTS } from "@/lib/demo-data";
 
@@ -49,6 +50,14 @@ export default async function WatchtowerPage() {
 
   return (
     <div className="space-y-6">
+      <DashboardRefresher
+        events={[
+          "health.updated",
+          "alert.fired",
+          "alert.resolved",
+          "deploy.completed",
+        ]}
+      />
       <PageTabs tabs={WT_TABS} />
 
       {/* Status summary strip */}

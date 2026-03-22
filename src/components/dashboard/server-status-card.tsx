@@ -4,6 +4,10 @@
  * Matches the Stitch wireframe "Server Details" card structure:
  * server name, status badge, UUID, region, IPv4, uptime, kernel,
  * and restart/console action buttons.
+ *
+ * The Restart button calls the Hetzner Cloud API reset endpoint
+ * (POST /api/hetzner/servers/:id/actions/reset) to trigger a hard reset.
+ * Only enabled in VPS mode when a serverId is present.
  */
 
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RestartButton } from "@/components/dashboard/restart-button";
 
 interface ServerStatusCardProps {
   name: string;
@@ -69,9 +74,19 @@ export function ServerStatusCard({
         <DetailRow label="OS" value={osVersion} />
 
         <div className="flex gap-2 pt-3">
-          <Button variant="outline" size="sm" className="text-xs">
-            Restart
-          </Button>
+          {serverId ? (
+            <RestartButton serverId={serverId} />
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              disabled
+              title="Restart requires a Hetzner server — VPS mode only"
+            >
+              Restart (VPS only)
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="text-xs">
             Console
           </Button>

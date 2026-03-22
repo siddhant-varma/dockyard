@@ -7,11 +7,12 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
+import { CreateIncidentForm } from "@/components/watchtower/create-incident-form";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
-import { DEMO_INCIDENTS, type DemoIncident } from "@/lib/demo-data";
+import { DEMO_INCIDENTS, DEMO_PROJECTS, type DemoIncident } from "@/lib/demo-data";
 
 const WT_TABS = [
   { label: "Overview", href: "/watchtower" },
@@ -22,6 +23,11 @@ const WT_TABS = [
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
+interface ProjectOption {
+  id: string;
+  name: string;
+}
+
 async function fetchIncidents(): Promise<DemoIncident[]> {
   if (isDemoMode) return DEMO_INCIDENTS;
   try {
@@ -30,6 +36,22 @@ async function fetchIncidents(): Promise<DemoIncident[]> {
     });
     if (!res.ok) return [];
     return res.json() as Promise<DemoIncident[]>;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchProjects(): Promise<ProjectOption[]> {
+  if (isDemoMode) {
+    return DEMO_PROJECTS.map((p) => ({ id: p.id, name: p.name }));
+  }
+  try {
+    const res = await fetch(`${INTERNAL_BASE}/api/projects`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as Array<{ id: string; name: string }>;
+    return data.map((p) => ({ id: p.id, name: p.name }));
   } catch {
     return [];
   }
@@ -49,7 +71,10 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default async function IncidentsPage() {
-  const incidents = await fetchIncidents();
+  const [incidents, projects] = await Promise.all([
+    fetchIncidents(),
+    fetchProjects(),
+  ]);
 
   const openCount = incidents.filter(
     (i) => i.status !== "resolved"
@@ -69,18 +94,16 @@ export default async function IncidentsPage() {
               : "No active incidents"}
           </p>
         </div>
-        <Button variant="outline" size="sm" className="text-xs">
-          + Create Incident
-        </Button>
+        <CreateIncidentForm projects={projects} />
       </div>
 
       {/* Incident list */}
       {incidents.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">
-            No incidents recorded.
-          </p>
-        </div>
+        <EmptyState
+          icon="alert"
+          title="No incidents recorded"
+          description="Incidents will be created automatically from alert escalations or manually."
+        />
       ) : (
         <div className="space-y-3">
           {incidents.map((inc) => (

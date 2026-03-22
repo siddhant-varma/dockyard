@@ -2,6 +2,7 @@
  * Project AI Insights page — /projects/[slug]/insights
  *
  * Server component. AI-generated summaries and predictions.
+ * Fetches from GET /api/projects/:slug/summaries in live mode.
  * Matches Stitch "AI Insights" section from combined wireframe.
  */
 
@@ -9,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
@@ -21,15 +23,28 @@ interface InsightEntry {
   generatedAt: string;
 }
 
+/** Shape returned by GET /api/projects/:slug/summaries */
+interface ApiSnapshot {
+  id: string;
+  projectId: string;
+  snapshotType?: string;
+  title?: string;
+  summary?: string;
+  content?: string;
+  dateRange?: string;
+  generatedAt: string;
+  createdAt?: string;
+}
+
 const DEMO_INSIGHTS: InsightEntry[] = [
   {
     id: "ins-1",
     title: "Weekly Summary",
-    dateRange: "Mar 14 – 20, 2026",
+    dateRange: "Mar 14 \u2013 20, 2026",
     summary:
       "Development velocity increased 15% this week with 23 commits merged. " +
       "The database connection pool issue (B-204) remains the primary blocker. " +
-      "Infrastructure costs are stable at €14.72/mo. Phase 2 is 71% complete — " +
+      "Infrastructure costs are stable at \u20AC14.72/mo. Phase 2 is 71% complete \u2014 " +
       "at current velocity, estimated completion is April 8. Risk: the Redis " +
       "cache timeout could delay the SLO dashboard by 3-5 days if not resolved.",
     generatedAt: "Mon 09:00",
@@ -47,9 +62,46 @@ const DEMO_INSIGHTS: InsightEntry[] = [
   },
 ];
 
+const INTERNAL_BASE =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/** Map an API snapshot to the display InsightEntry shape. */
+function toInsight(api: ApiSnapshot): InsightEntry {
+  return {
+    id: api.id,
+    title: api.title ?? api.snapshotType ?? "Summary",
+    dateRange: api.dateRange ?? "",
+    summary: api.summary ?? api.content ?? "",
+    generatedAt: api.generatedAt
+      ? new Date(api.generatedAt).toLocaleDateString("en-US", {
+          weekday: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "Auto-generated",
+  };
+}
+
+/** Fetch AI summaries from the backend or return demo data. */
+async function fetchInsights(slug: string): Promise<InsightEntry[]> {
+  if (isDemoMode) return DEMO_INSIGHTS;
+  try {
+    const res = await fetch(
+      `${INTERNAL_BASE}/api/projects/${slug}/summaries`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items: ApiSnapshot[] = data.data ?? data;
+    return items.map(toInsight);
+  } catch {
+    return [];
+  }
+}
+
 export default async function InsightsPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const insights = isDemoMode ? DEMO_INSIGHTS : [];
+  const insights = await fetchInsights(slug);
 
   return (
     <div className="space-y-6">
@@ -57,15 +109,11 @@ export default async function InsightsPage({ params }: { params: Params }) {
       <h1 className="text-lg font-semibold text-foreground">AI Insights</h1>
 
       {insights.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">
-            No insights generated yet.
-          </p>
-          <p className="mt-1 text-xs text-foreground/30">
-            Insights are generated automatically once the project has enough
-            activity data.
-          </p>
-        </div>
+        <EmptyState
+          icon="search"
+          title="No insights generated yet"
+          description="Insights are generated automatically once the project has enough activity data."
+        />
       ) : (
         <div className="space-y-4">
           {insights.map((insight) => (

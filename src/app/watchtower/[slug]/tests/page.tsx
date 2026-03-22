@@ -2,24 +2,53 @@
  * Watchtower Tests — /watchtower/[slug]/tests
  *
  * Server component. Test suites with recent run results.
+ * Fetches test results from GET /api/projects/:slug/tests/results
+ * and test configuration from GET /api/projects/:slug/tests/config.
+ * In demo mode, renders static DEMO data without API calls.
  * Matches WIREFRAMES.md §11 "Tests Tab".
  */
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
+import { RunTestButton } from "./run-test-button";
 
 type Params = Promise<{ slug: string }>;
+
+interface TestRun {
+  passed: boolean;
+  duration: string;
+  error?: string;
+}
 
 interface TestSuite {
   name: string;
   type: "smoke" | "integration" | "e2e";
   trigger: "post-deploy" | "scheduled" | "manual";
   enabled: boolean;
-  recentRuns: { passed: boolean; duration: string; error?: string }[];
+  recentRuns: TestRun[];
+}
+
+/** API response shape for GET /api/projects/:slug/tests/results */
+interface TestResultsResponse {
+  suites: {
+    name: string;
+    type: string;
+    recentRuns: { passed: boolean; durationMs: number; error?: string }[];
+  }[];
+}
+
+/** API response shape for GET /api/projects/:slug/tests/config */
+interface TestConfigResponse {
+  suites: {
+    name: string;
+    type: string;
+    trigger: string;
+    enabled: boolean;
+  }[];
 }
 
 const DEMO_TESTS: TestSuite[] = [
@@ -55,6 +84,81 @@ const DEMO_TESTS: TestSuite[] = [
   },
 ];
 
+const INTERNAL_BASE =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/** Format milliseconds into a human-readable duration string. */
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(0)}s`;
+}
+
+/**
+ * Fetch test results and config from the API, merge into TestSuite[].
+ * Returns an empty array on any failure so the page degrades gracefully.
+ */
+async function fetchTests(slug: string): Promise<TestSuite[]> {
+  if (isDemoMode) return DEMO_TESTS;
+
+  try {
+    const [resultsRes, configRes] = await Promise.all([
+      fetch(`${INTERNAL_BASE}/api/projects/${slug}/tests/results`, {
+        next: { revalidate: 15 },
+      }),
+      fetch(`${INTERNAL_BASE}/api/projects/${slug}/tests/config`, {
+        next: { revalidate: 30 },
+      }),
+    ]);
+
+    if (!resultsRes.ok && !configRes.ok) return [];
+
+    const results: TestResultsResponse = resultsRes.ok
+      ? await resultsRes.json()
+      : { suites: [] };
+    const config: TestConfigResponse = configRes.ok
+      ? await configRes.json()
+      : { suites: [] };
+
+    // Index config suites by name for O(1) lookup
+    const configMap = new Map(
+      config.suites.map((s) => [s.name, s]),
+    );
+
+    // Merge results with config — results are the primary list
+    const merged: TestSuite[] = results.suites.map((rs) => {
+      const cfg = configMap.get(rs.name);
+      return {
+        name: rs.name,
+        type: (cfg?.type ?? rs.type) as TestSuite["type"],
+        trigger: (cfg?.trigger ?? "manual") as TestSuite["trigger"],
+        enabled: cfg?.enabled ?? true,
+        recentRuns: rs.recentRuns.map((run) => ({
+          passed: run.passed,
+          duration: formatDuration(run.durationMs),
+          error: run.error,
+        })),
+      };
+    });
+
+    // Add any config-only suites that have no results yet
+    for (const [name, cfg] of configMap) {
+      if (!results.suites.some((rs) => rs.name === name)) {
+        merged.push({
+          name,
+          type: cfg.type as TestSuite["type"],
+          trigger: cfg.trigger as TestSuite["trigger"],
+          enabled: cfg.enabled,
+          recentRuns: [],
+        });
+      }
+    }
+
+    return merged;
+  } catch {
+    return [];
+  }
+}
+
 const TYPE_BADGE: Record<string, string> = {
   smoke: "bg-green-500/15 text-green-300 border-green-500/30",
   integration: "bg-blue-500/15 text-blue-300 border-blue-500/30",
@@ -63,7 +167,7 @@ const TYPE_BADGE: Record<string, string> = {
 
 export default async function TestsPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const tests = isDemoMode ? DEMO_TESTS : [];
+  const tests = await fetchTests(slug);
 
   return (
     <div className="space-y-6">
@@ -71,9 +175,11 @@ export default async function TestsPage({ params }: { params: Params }) {
       <h1 className="text-lg font-semibold text-foreground">Tests</h1>
 
       {tests.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">No test suites defined.</p>
-        </div>
+        <EmptyState
+          icon="shield"
+          title="No test suites defined"
+          description="Configure smoke, integration, or e2e test suites to track results here."
+        />
       ) : (
         <div className="space-y-4">
           {tests.map((suite) => (
@@ -102,9 +208,11 @@ export default async function TestsPage({ params }: { params: Params }) {
                     <span className="text-[10px] text-foreground/40">
                       {suite.enabled ? "Enabled" : "Disabled"}
                     </span>
-                    <Button variant="outline" size="sm" className="text-xs">
-                      Run Now
-                    </Button>
+                    <RunTestButton
+                      slug={slug}
+                      suiteName={suite.name}
+                      isDemo={isDemoMode}
+                    />
                   </div>
                 </div>
               </CardHeader>

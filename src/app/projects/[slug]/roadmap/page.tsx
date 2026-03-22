@@ -3,12 +3,18 @@
  *
  * Server component. Vertical phase-by-phase roadmap with task items.
  * Matches WIREFRAMES.md §8 phase timeline (expanded view).
+ *
+ * No backend API exists for roadmap data yet. In demo mode, renders
+ * static DEMO_ROADMAP data. In live mode, shows an empty state.
+ * When a roadmap API is added, replace the `isDemoMode` guard with
+ * a fetch call following the pattern in the SLO/Insights pages.
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
@@ -77,9 +83,11 @@ export default async function RoadmapPage({ params }: { params: Params }) {
       <h1 className="text-lg font-semibold text-foreground">Roadmap</h1>
 
       {phases.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">No roadmap defined.</p>
-        </div>
+        <EmptyState
+          icon="chart"
+          title="No roadmap defined"
+          description="Add a roadmap API or enable demo mode to see phase planning."
+        />
       ) : (
         <div className="space-y-4">
           {phases.map((phase) => (

@@ -2,7 +2,7 @@
  * Home dashboard page — /
  *
  * Server component. In demo mode (DOCKYARD_DEMO=true), uses static data.
- * Otherwise fetches from API routes.
+ * Otherwise fetches from API routes via `@/lib/dashboard-data`.
  *
  * Section order (matching WIREFRAMES.md + Stitch):
  *   1. Page tabs (Dashboard / Settings / Self-Health)
@@ -18,119 +18,54 @@ import { AlertsStrip } from "@/components/dashboard/alerts-strip";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { ServerStatusCard } from "@/components/dashboard/server-status-card";
 import { BillingCard } from "@/components/dashboard/billing-card";
-import { MetricsGrid, type MetricSeries } from "@/components/dashboard/metrics-grid";
+import { MetricsGrid } from "@/components/dashboard/metrics-grid";
 import { BillingHistory } from "@/components/dashboard/billing-history";
 import { TrafficCard } from "@/components/dashboard/traffic-card";
-import { Logstream } from "@/components/dashboard/logstream";
+import { LiveLogstream } from "@/components/dashboard/live-logstream";
+import { DashboardRefresher } from "@/components/dashboard/dashboard-refresher";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
 import { isDemoMode } from "@/lib/env";
+import { DEMO_BILLING } from "@/lib/demo-data";
 import {
-  DEMO_SERVER_STATUS,
-  DEMO_BILLING,
-  DEMO_METRICS,
-  DEMO_PROJECTS,
-  DEMO_ALERTS,
-  DEMO_BILLING_HISTORY,
-  DEMO_TRAFFIC,
-  DEMO_LOGS,
-} from "@/lib/demo-data";
-
-const INTERNAL_BASE =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  fetchServerStatus,
+  fetchBilling,
+  fetchProjects,
+  fetchMetrics,
+  fetchAlerts,
+  fetchLogs,
+  fetchBillingHistory,
+  fetchTraffic,
+} from "@/lib/dashboard-data";
 
 const HOME_TABS = [
   { label: "Dashboard", href: "/" },
   { label: "Self-Health", href: "/self-health" },
 ];
 
-/* ── Fetch helpers (skipped in demo mode) ─────────────── */
-
-interface ServerStatus {
-  id: string;
-  name: string;
-  status: string;
-  publicIpv4?: string;
-  serverType: string;
-  datacenter?: string;
-  uptime?: string;
-  osVersion?: string;
-}
-
-interface BillingResponse {
-  serverCost: string | null;
-  volumeCost: string | null;
-  totalCost: string | null;
-}
-
-async function fetchServerStatus(): Promise<ServerStatus | null> {
-  if (isDemoMode) return DEMO_SERVER_STATUS;
-  try {
-    const res = await fetch(`${INTERNAL_BASE}/api/hetzner/status`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as ServerStatus;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchBilling(): Promise<BillingResponse | null> {
-  if (isDemoMode) return DEMO_BILLING;
-  try {
-    const res = await fetch(`${INTERNAL_BASE}/api/hetzner/billing`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as BillingResponse;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchProjects(): Promise<{ slug: string; name: string }[]> {
-  if (isDemoMode) return DEMO_PROJECTS.map((p) => ({ slug: p.slug, name: p.name }));
-  try {
-    const res = await fetch(`${INTERNAL_BASE}/api/projects`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return [];
-    return (await res.json()) as { slug: string; name: string }[];
-  } catch {
-    return [];
-  }
-}
-
 /* ── Page component ───────────────────────────────────── */
 
 export default async function HomePage() {
+  // Phase 1: fetch data that other fetches depend on
   const [serverStatus, billing, projects] = await Promise.all([
     fetchServerStatus(),
     fetchBilling(),
     fetchProjects(),
   ]);
 
-  const metrics: MetricSeries[] = isDemoMode ? DEMO_METRICS : [
-    { label: "CPU", currentValue: 0, unit: "%", history: [0], color: "#6366f1" },
-    { label: "Memory", currentValue: 0, unit: "%", history: [0], color: "#22c55e" },
-    { label: "Network In/Out", currentValue: 0, unit: "MB/s", history: [0], color: "#38bdf8" },
-    { label: "Disk I/O", currentValue: 0, unit: "IOPS", history: [0], color: "#f59e0b" },
-  ];
-
-  const alerts = isDemoMode ? DEMO_ALERTS : [];
-  const billingHistory = isDemoMode ? DEMO_BILLING_HISTORY : [
-    { month: "Oct", cost: 0 }, { month: "Nov", cost: 0 },
-    { month: "Dec", cost: 0 }, { month: "Jan", cost: 0 },
-    { month: "Feb", cost: 0 }, { month: "Mar", cost: 0, projected: true },
-  ];
-  const traffic = isDemoMode ? DEMO_TRAFFIC : { inboundGb: 0, outboundGb: 0, limitGb: 20 };
+  // Phase 2: fetch data that depends on Phase 1 results
+  const [metrics, alerts, logEntries, billingHistory, traffic] = await Promise.all([
+    fetchMetrics(serverStatus?.id ?? null),
+    fetchAlerts(),
+    fetchLogs(),
+    fetchBillingHistory(billing),
+    fetchTraffic(serverStatus),
+  ]);
 
   const demoBilling = isDemoMode ? DEMO_BILLING : null;
 
-  const logEntries = isDemoMode ? DEMO_LOGS : [];
-
   return (
     <div className="space-y-6">
+      <DashboardRefresher />
       <PageTabs tabs={HOME_TABS} />
       <AlertsStrip alerts={alerts} />
       <QuickActions projects={projects} />
@@ -169,7 +104,7 @@ export default async function HomePage() {
       </AnimatedGrid>
 
       {/* Real-time Logstream (from Stitch wireframe) */}
-      <Logstream entries={logEntries} />
+      <LiveLogstream entries={logEntries} />
 
       {/* Billing history + Traffic */}
       <AnimatedGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2" stagger={0.1}>

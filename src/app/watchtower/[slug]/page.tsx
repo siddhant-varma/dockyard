@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
+import { DashboardRefresher } from "@/components/dashboard/dashboard-refresher";
 import { isDemoMode } from "@/lib/env";
 import { DEMO_HEALTH_PROJECTS } from "@/lib/demo-data";
 import type { HealthSummary } from "@/components/watchtower/health-card";
@@ -73,6 +74,15 @@ export default async function HealthDetailPage({
 
   return (
     <div className="space-y-6">
+      <DashboardRefresher
+        events={[
+          "health.updated",
+          "alert.fired",
+          "alert.resolved",
+          "deploy.completed",
+          "deploy.started",
+        ]}
+      />
       <PageTabs tabs={buildHealthTabs(slug)} />
 
       {/* Header */}

@@ -3,16 +3,24 @@
  *
  * Server component. Deployment history timeline.
  * Matches WIREFRAMES.md §11 "Deployments Tab".
+ *
+ * In demo mode, renders static demo data. In live mode, fetches from the
+ * deployments API. Interactive Diff/Rollback buttons are handled by the
+ * `DeploymentActions` client component.
  */
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
+import { DeploymentActions } from "./deployment-actions";
 
 type Params = Promise<{ slug: string }>;
+
+const INTERNAL_BASE =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 interface Deployment {
   id: string;
@@ -21,6 +29,17 @@ interface Deployment {
   message: string;
   duration: string;
   status: "success" | "failed" | "rolled-back";
+}
+
+/** Raw deployment record from the API (mirrors the DB schema). */
+interface ApiDeployment {
+  id: string;
+  version: string | null;
+  commitSha: string | null;
+  commitMessage: string | null;
+  status: string;
+  durationSecs: number | null;
+  deployedAt: string;
 }
 
 const DEMO_DEPLOYS: Deployment[] = [
@@ -32,20 +51,61 @@ const DEMO_DEPLOYS: Deployment[] = [
 ];
 
 const STATUS_ICON: Record<string, { symbol: string; color: string }> = {
-  success: { symbol: "✓", color: "text-green-400" },
-  failed: { symbol: "✗", color: "text-red-400" },
-  "rolled-back": { symbol: "↩", color: "text-yellow-400" },
+  success: { symbol: "\u2713", color: "text-green-400" },
+  failed: { symbol: "\u2717", color: "text-red-400" },
+  "rolled-back": { symbol: "\u21A9", color: "text-yellow-400" },
+  rolled_back: { symbol: "\u21A9", color: "text-yellow-400" },
 };
 
 const STATUS_BADGE: Record<string, string> = {
   success: "bg-green-500/15 text-green-300 border-green-500/30",
   failed: "bg-red-500/15 text-red-300 border-red-500/30",
   "rolled-back": "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  rolled_back: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
 };
+
+/** Normalize DB status values (e.g. `rolled_back`) to display values (`rolled-back`). */
+function normalizeStatus(status: string): Deployment["status"] {
+  if (status === "rolled_back") return "rolled-back";
+  if (status === "success" || status === "failed") return status;
+  return "failed";
+}
+
+/**
+ * Fetch deployment history for a project.
+ *
+ * In demo mode returns static sample data. In live mode calls
+ * `GET /api/projects/:slug/deployments` and maps the API response
+ * to the local `Deployment` shape.
+ */
+async function fetchDeployments(slug: string): Promise<Deployment[]> {
+  if (isDemoMode) return DEMO_DEPLOYS;
+
+  try {
+    const res = await fetch(
+      `${INTERNAL_BASE}/api/projects/${slug}/deployments`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+
+    const data: ApiDeployment[] = await res.json();
+
+    return data.map((d) => ({
+      id: d.id,
+      version: d.version ?? "unknown",
+      commitHash: d.commitSha ? d.commitSha.slice(0, 7) : "—",
+      message: d.commitMessage ?? "",
+      duration: d.durationSecs != null ? `${d.durationSecs}s` : "—",
+      status: normalizeStatus(d.status),
+    }));
+  } catch {
+    return [];
+  }
+}
 
 export default async function DeploymentsPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const deploys = isDemoMode ? DEMO_DEPLOYS : [];
+  const deploys = await fetchDeployments(slug);
 
   return (
     <div className="space-y-6">
@@ -53,13 +113,15 @@ export default async function DeploymentsPage({ params }: { params: Params }) {
       <h1 className="text-lg font-semibold text-foreground">Deployments</h1>
 
       {deploys.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">No deployments recorded.</p>
-        </div>
+        <EmptyState
+          icon="server"
+          title="No deployments recorded"
+          description="Deployments will appear here once your project has its first deploy via Dokploy."
+        />
       ) : (
         <div className="space-y-3">
           {deploys.map((d) => {
-            const icon = STATUS_ICON[d.status];
+            const icon = STATUS_ICON[d.status] ?? STATUS_ICON.failed;
             return (
               <Card
                 key={d.id}
@@ -81,7 +143,7 @@ export default async function DeploymentsPage({ params }: { params: Params }) {
                           </span>
                           <Badge
                             variant="outline"
-                            className={`text-[10px] ${STATUS_BADGE[d.status]}`}
+                            className={`text-[10px] ${STATUS_BADGE[d.status] ?? ""}`}
                           >
                             {d.status}
                           </Badge>
@@ -91,16 +153,11 @@ export default async function DeploymentsPage({ params }: { params: Params }) {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="text-xs">
-                        Diff
-                      </Button>
-                      {d.status === "success" && (
-                        <Button variant="outline" size="sm" className="text-xs">
-                          Rollback
-                        </Button>
-                      )}
-                    </div>
+                    <DeploymentActions
+                      slug={slug}
+                      deploymentId={d.id}
+                      showRollback={d.status === "success"}
+                    />
                   </div>
                 </CardContent>
               </Card>

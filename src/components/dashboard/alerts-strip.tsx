@@ -5,10 +5,15 @@
  * and an action button (View Incident / Acknowledge).
  * Glass card container. Matches Stitch wireframe critical alert banner
  * and WIREFRAMES.md multi-alert strip.
+ *
+ * - SEV1 alerts render a "View Incident" link that navigates to the
+ *   incident detail page at /watchtower/incidents/:id.
+ * - SEV2/SEV3 alerts render an "Acknowledge" button that calls
+ *   PUT /api/alerts/events/:id to update the alert status.
  */
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { AlertStripActions } from "@/components/dashboard/alert-strip-actions";
 
 interface AlertItem {
   id: string;
@@ -16,6 +21,8 @@ interface AlertItem {
   message: string;
   projectName: string;
   timeAgo: string;
+  /** Optional incident ID for SEV1 alerts that already have an incident created. */
+  incidentId?: string;
 }
 
 interface AlertsStripProps {
@@ -72,9 +79,11 @@ export function AlertsStrip({ alerts }: AlertsStripProps) {
               {alert.timeAgo}
             </span>
           </div>
-          <Button variant="ghost" size="sm" className="shrink-0 text-xs">
-            {alert.severity === "sev1" ? "View Incident" : "Acknowledge"}
-          </Button>
+          <AlertStripActions
+            alertId={alert.id}
+            severity={alert.severity}
+            incidentId={alert.incidentId}
+          />
         </div>
       ))}
     </div>

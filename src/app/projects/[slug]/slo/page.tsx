@@ -1,19 +1,21 @@
 /**
  * Project SLO page — /projects/[slug]/slo
  *
- * Server component. SLO cards with budget, burn rate, and trend.
+ * Server component. Fetches SLO definitions from backend API (or demo data).
+ * Delegates the "Create SLO" action to the SLOList client component.
  * Matches Stitch "Service Level Objectives" section from combined wireframe.
  */
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
+import { EmptyState } from "@/components/shared/empty-state";
 import { isDemoMode } from "@/lib/env";
+import { SLOActions } from "./slo-actions";
 
 type Params = Promise<{ slug: string }>;
 
-interface SLODefinition {
+export interface SLODefinition {
   id: string;
   name: string;
   target: string;
@@ -23,11 +25,23 @@ interface SLODefinition {
   window: string;
 }
 
+/** Shape returned by GET /api/projects/:slug/slo */
+interface ApiSLO {
+  id: string;
+  metricName: string;
+  targetValue: number;
+  windowDays: number;
+  currentValue: number | null;
+  budgetRemaining: number | null;
+  burnRate: number | null;
+  updatedAt: string;
+}
+
 const DEMO_SLOS: SLODefinition[] = [
   {
     id: "slo-1",
     name: "API Availability",
-    target: "≥ 99.9%",
+    target: "\u2265 99.9%",
     budgetRemaining: 72,
     burnRate: 1.2,
     trend: "stable",
@@ -36,7 +50,7 @@ const DEMO_SLOS: SLODefinition[] = [
   {
     id: "slo-2",
     name: "p99 Latency",
-    target: "≤ 200ms",
+    target: "\u2264 200ms",
     budgetRemaining: 45,
     burnRate: 3.8,
     trend: "rising",
@@ -44,10 +58,62 @@ const DEMO_SLOS: SLODefinition[] = [
   },
 ];
 
+const INTERNAL_BASE =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/** Human-readable metric label. */
+function metricLabel(name: string): string {
+  switch (name) {
+    case "availability":
+      return "API Availability";
+    case "latency_p99":
+      return "p99 Latency";
+    case "error_rate":
+      return "Error Rate";
+    default:
+      return name;
+  }
+}
+
+/** Format a target value based on metric type. */
+function formatTarget(metricName: string, value: number): string {
+  switch (metricName) {
+    case "availability":
+      return `\u2265 ${value}%`;
+    case "latency_p99":
+      return `\u2264 ${value}ms`;
+    case "error_rate":
+      return `\u2264 ${value}%`;
+    default:
+      return `${value}`;
+  }
+}
+
+/** Derive a simple trend from burn rate. */
+function deriveTrend(burnRate: number | null): "stable" | "rising" | "falling" {
+  if (burnRate === null) return "stable";
+  if (burnRate > 3) return "rising";
+  if (burnRate < 0.5) return "falling";
+  return "stable";
+}
+
+/** Map an API SLO record to the display shape. */
+function toSLODefinition(api: ApiSLO): SLODefinition {
+  return {
+    id: api.id,
+    name: metricLabel(api.metricName),
+    target: formatTarget(api.metricName, api.targetValue),
+    budgetRemaining: api.budgetRemaining ?? 100,
+    burnRate: api.burnRate ?? 0,
+    trend: deriveTrend(api.burnRate),
+    window: `${api.windowDays} Days`,
+  };
+}
+
 const TREND_ICON: Record<string, { symbol: string; color: string }> = {
-  stable: { symbol: "→", color: "text-foreground/40" },
-  rising: { symbol: "↑", color: "text-red-400" },
-  falling: { symbol: "↓", color: "text-green-400" },
+  stable: { symbol: "\u2192", color: "text-foreground/40" },
+  rising: { symbol: "\u2191", color: "text-red-400" },
+  falling: { symbol: "\u2193", color: "text-green-400" },
 };
 
 function burnRateColor(rate: number): string {
@@ -62,30 +128,39 @@ function budgetColor(pct: number): string {
   return "bg-green-400";
 }
 
+/** Fetch SLO definitions from the backend or return demo data. */
+async function fetchSLOs(slug: string): Promise<SLODefinition[]> {
+  if (isDemoMode) return DEMO_SLOS;
+  try {
+    const res = await fetch(
+      `${INTERNAL_BASE}/api/projects/${slug}/slo`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    const items: ApiSLO[] = data.data ?? data;
+    return items.map(toSLODefinition);
+  } catch {
+    return [];
+  }
+}
+
 export default async function SLOPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const slos = isDemoMode ? DEMO_SLOS : [];
+  const slos = await fetchSLOs(slug);
 
   return (
     <div className="space-y-6">
       <PageTabs tabs={buildProjectTabs(slug)} />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">
-          Service Level Objectives
-        </h1>
-        <Button variant="outline" size="sm" className="text-xs">
-          + Create SLO
-        </Button>
-      </div>
+      <SLOActions slug={slug} isDemo={isDemoMode} />
 
       {slos.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-sm text-foreground/50">No SLOs defined.</p>
-          <p className="mt-1 text-xs text-foreground/30">
-            Define availability or latency targets to track error budgets.
-          </p>
-        </div>
+        <EmptyState
+          icon="chart"
+          title="No SLOs defined"
+          description="Define availability or latency targets to track error budgets."
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {slos.map((slo) => {

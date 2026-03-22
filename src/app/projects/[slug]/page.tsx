@@ -16,9 +16,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
 import { PhaseTimeline } from "@/components/projects/phase-timeline";
-import { ConfidenceBreakdown } from "@/components/projects/confidence-breakdown";
+import { ConfidenceBreakdown, type ConfidenceFactors } from "@/components/projects/confidence-breakdown";
 import { BlockerList } from "@/components/projects/blocker-list";
-import { ActivityFeed } from "@/components/projects/activity-feed";
+import { ActivityFeed, type ActivityEvent } from "@/components/projects/activity-feed";
 import { isDemoMode } from "@/lib/env";
 import {
   DEMO_PROJECTS,
@@ -46,6 +46,47 @@ async function fetchProject(slug: string): Promise<ProjectSummary | null> {
     return res.json() as Promise<ProjectSummary>;
   } catch {
     return null;
+  }
+}
+
+/** Fetch confidence breakdown for a project (FE-009). */
+async function fetchConfidence(
+  slug: string
+): Promise<ConfidenceFactors | null> {
+  if (isDemoMode) return DEMO_CONFIDENCE;
+  try {
+    const res = await fetch(
+      `${INTERNAL_BASE}/api/projects/${slug}/confidence`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Map ConfidenceResult from API to ConfidenceFactors expected by component
+    return {
+      velocity: data.breakdown?.velocityFactor ?? 0,
+      blockers: data.breakdown?.blockerPenalty ?? 0,
+      recency: data.breakdown?.recencyPenalty ?? 0,
+      health: data.breakdown?.healthPenalty ?? 0,
+      overall: data.score ?? 0,
+      decaying: data.decayWarning ?? false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch recent activity events for a project (FE-010). */
+async function fetchActivity(slug: string): Promise<ActivityEvent[]> {
+  if (isDemoMode) return DEMO_ACTIVITY;
+  try {
+    const res = await fetch(
+      `${INTERNAL_BASE}/api/projects/${slug}/activity?limit=20`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as ActivityEvent[];
+  } catch {
+    return [];
   }
 }
 
@@ -80,10 +121,17 @@ export default async function ProjectDetailPage({
       ? Math.round(project.confidenceScore * 100)
       : null;
 
+  // FE-011: Phases — no separate API; use demo data in demo mode, else empty
   const phases = isDemoMode ? DEMO_PHASES : [];
-  const confidence = isDemoMode ? DEMO_CONFIDENCE : null;
+  // FE-019: Blockers — same pattern; demo data only in demo mode
   const blockers = isDemoMode ? DEMO_BLOCKERS : [];
-  const activity = isDemoMode ? DEMO_ACTIVITY : [];
+
+  // FE-009: Confidence — wired to /api/projects/:slug/confidence
+  // FE-010: Activity — wired to /api/projects/:slug/activity
+  const [confidence, activity] = await Promise.all([
+    fetchConfidence(slug),
+    fetchActivity(slug),
+  ]);
 
   return (
     <div>
