@@ -16,6 +16,7 @@
 | Auth | `src/lib/auth/` | OAuth2, MFA (WebAuthn/TOTP), RBAC, project-scoped permissions, audit logging, JIT re-auth |
 | Projects | `src/lib/projects/` | Project CRUD, phase timeline, blocker tracking |
 | Crypto | `src/lib/crypto/` | AES-256-GCM encryption for config values |
+| Logger | `src/lib/logger/` | Pino structured logging with request context, Drizzle query logging, Inngest job logging, log sampling |
 
 ### Watchtower (Observation Plane)
 
@@ -114,6 +115,12 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | GET | `/api/projects/:slug/tests/results` | `withAuthContext` | List test run results |
 | GET | `/api/projects/:slug/deployments/:id/diff` | `withAuthContext` | Get deployment diff (commits, config changes) |
 | POST | `/api/projects/:slug/deployments/:id/rollback` | `withAuthContext` (project admin) | Trigger rollback to specific deploy |
+| GET | `/api/projects/:slug/blockers` | `withAuthContext` | List blockers across roadmap items |
+| POST | `/api/projects/:slug/blockers` | `withAuthContext` (config.write) | Add a blocker to a roadmap item |
+| GET | `/api/projects/:slug/health/trends` | `withAuthContext` | Hourly latency trend + status history |
+| GET | `/api/projects/:slug/health/uptime` | `withAuthContext` | Uptime percentage + hourly buckets |
+| GET | `/api/projects/:slug/metrics` | `withAuthContext` | Time-series metric data query |
+| GET | `/api/projects/:slug/phases` | `withAuthContext` | Roadmap phases with items |
 
 ### Incidents
 
@@ -124,6 +131,9 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | GET | `/api/incidents/:id` | `withAuthContext` | Get incident detail with timeline |
 | PUT | `/api/incidents/:id` | `withAuthContext` | Update incident status |
 | POST | `/api/incidents/:id/timeline` | `withAuthContext` | Add timeline entry |
+| POST | `/api/incidents/:id/postmortem` | `withAuthContext` | Generate postmortem draft from incident data |
+| PUT | `/api/incidents/:id/postmortem` | `withAuthContext` | Save/update postmortem content |
+| GET | `/api/incidents/metrics` | `withAuth` | Incident MTTA/MTTR and severity breakdown |
 
 ### Auth
 
@@ -142,6 +152,24 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | GET | `/api/alerts` | `withAuth` | List alert rules |
 | POST | `/api/alerts` | `withAuth` | Create alert rule |
 | GET | `/api/alerts/events` | `withAuth` | Active alert events |
+| PUT | `/api/alerts/events/:id` | `withAuthContext` | Update alert event status (acknowledge/resolve) |
+| GET | `/api/alerts/review` | `withAuth` | Weekly alert review summary (severity breakdown, noise score) |
+
+### Auth — MFA
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/api/auth/mfa` | `withAuth` | List user's MFA credentials (type, name, dates) |
+| POST | `/api/auth/mfa/webauthn` | `withAuth` | Generate WebAuthn registration options |
+| PUT | `/api/auth/mfa/webauthn` | `withAuth` | Verify attestation and store WebAuthn credential |
+| POST | `/api/auth/mfa/totp` | `withAuth` | Generate TOTP secret + QR URI |
+| PUT | `/api/auth/mfa/totp` | `withAuth` | Verify TOTP code and activate MFA |
+
+### Audit
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/api/audit` | `withAuth` | Paginated audit log entries (filter by actor, action, targetType) |
 
 ### Infrastructure
 
@@ -151,7 +179,14 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | GET | `/api/hetzner/servers/:id/metrics` | `withAuthContext` | Server metrics time series |
 | GET | `/api/hetzner/status` | `withAuth` | Server status card data |
 | GET | `/api/hetzner/billing` | `withAuth` | Latest billing estimate |
+| POST | `/api/hetzner/servers/:id/actions/reset` | `withAuthContext` | Trigger hard reset on a Hetzner server |
 | GET | `/api/dokploy` | `withAuth` | Dokploy proxy (stub — 501) |
+
+### Dashboard
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/api/logs/recent` | `withAuth` | Recent log entries for dashboard logstream |
 
 ### Ingestion
 

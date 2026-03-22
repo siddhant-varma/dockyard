@@ -41,6 +41,9 @@ Task tracking: `docs/system/Tasks.md` — IDs use `[Phase]-[Component]-[Number]`
 | Auth | OAuth2 SSO (GitHub/Google) + FIDO2 MFA |
 | Real-Time | Server-Sent Events (SSE) |
 | Notifications | Resend (email) + Slack webhooks + Web Push API |
+| Logging | Pino (structured JSON) |
+| Testing | Vitest (unit/integration) + Playwright (E2E) |
+| CI/CD | GitHub Actions (.github/workflows/test.yml) |
 | Deployment | Dokploy on Hetzner VPS |
 | External APIs | Dokploy API, Hetzner Cloud API, GitHub Webhooks |
 
@@ -49,19 +52,27 @@ Task tracking: `docs/system/Tasks.md` — IDs use `[Phase]-[Component]-[Number]`
 ```
 DockYard/
 ├── src/
-│   ├── app/                      # Next.js App Router
-│   │   ├── (home)/               # dockyard.cc — Home dashboard + settings
-│   │   │   └── settings/         # Discovery config, integrations, project paths
-│   │   ├── (projects)/           # projects.dockyard.cc — Projects portal
-│   │   │   └── [slug]/           # Per-project views + config panel
-│   │   │       ├── config/       # Project config editor
-│   │   │       └── roadmap/      # Project roadmap view
-│   │   ├── (watchtower)/         # watchtower.dockyard.cc — Health & ops
-│   │   │   ├── [slug]/           # Per-project health + tests + logs
-│   │   │   │   ├── tests/        # Per-project test suites
-│   │   │   │   └── logs/         # Per-project log viewer
-│   │   │   ├── alerts/           # Global alert rules & history
-│   │   │   └── incidents/        # Incident timeline
+│   ├── app/                      # Next.js App Router (flat routes, no route groups)
+│   │   ├── page.tsx              # Home dashboard
+│   │   ├── settings/             # Settings (7-tab panel, standalone page)
+│   │   ├── self-health/          # DockYard self-monitoring
+│   │   ├── projects/             # Projects grid
+│   │   │   └── [slug]/           # Per-project views (7 sub-tabs)
+│   │   │       ├── roadmap/      # Phase roadmap
+│   │   │       ├── config/       # Env var editor
+│   │   │       ├── members/      # Team members
+│   │   │       ├── slo/          # SLO budgets
+│   │   │       ├── insights/     # AI summaries
+│   │   │       └── settings/     # Project DIP + notifications
+│   │   ├── watchtower/           # Health overview
+│   │   │   ├── [slug]/           # Per-project health detail (5 sub-tabs)
+│   │   │   │   ├── deployments/  # Deploy history
+│   │   │   │   ├── logs/         # Log viewer
+│   │   │   │   ├── tests/        # Test suites
+│   │   │   │   └── dora/         # DORA metrics
+│   │   │   ├── alerts/           # Alert rules + firing events
+│   │   │   └── incidents/        # Incident list + detail
+│   │   │       └── [id]/         # Incident timeline
 │   │   └── api/                  # API routes
 │   │       ├── auth/reauth/      # JIT re-authentication endpoint
 │   │       ├── discovery/        # Project discovery & scan endpoints
@@ -94,21 +105,35 @@ DockYard/
 │   │   ├── config/               # Config service, templates, categories, rollback, presets
 │   │   ├── crypto/               # Encryption/decryption for config values
 │   │   ├── notifications/        # NotificationChannel adapters (email, slack, push)
+│   │   ├── logger/               # Pino structured logging: context, middleware, Drizzle, Inngest, sampling
 │   │   └── sse/                  # SSE emitter, broadcast helper, useSSE + useRealtimeData hooks
 │   ├── inngest/                  # Background job definitions
 │   │   └── functions/            # Health, alerts, escalation, SLO, metrics, AI, deploy, rollback
 │   ├── components/               # React components
-│   │   ├── dashboard/            # Home dashboard widgets
-│   │   ├── settings/             # Settings panels, discovery config, path picker
-│   │   ├── projects/             # Project cards, confidence, timeline, blockers, handoff
-│   │   ├── watchtower/           # Health cards, metric charts
-│   │   ├── config/               # Config panel, templates, rich inputs, rollback toggle
-│   │   ├── alerts/               # Alert rule builder, alert detail
-│   │   ├── auth/                 # MFA enrollment, re-auth modal
-│   │   └── shared/               # Status badges, sparklines, modals
+│   │   ├── ui/                   # shadcn/ui primitives (button, badge, card, tabs, etc.)
+│   │   ├── layout/               # Layout shell: header-bar, sidebar, footer, page-tabs, skeleton, motion
+│   │   ├── dashboard/            # Home: alerts-strip, server-status, billing, metrics-grid, logstream, traffic, quick-actions, restart-button
+│   │   ├── projects/             # Project cards, phase-timeline, confidence, blockers, activity-feed, context-handoff
+│   │   ├── watchtower/           # Health cards, alert-actions, create-rule-form, create-incident-form, postmortem-section, health-sparklines
+│   │   ├── settings/             # Settings tabs: general, projects, sources, notifications, ai, mfa, audit
+│   │   ├── auth/                 # reauth-modal
+│   │   └── shared/               # EmptyState, reusable utilities
 │   └── db/
 │       ├── schema.ts             # Drizzle schema definitions
 │       └── migrations/
+├── test/                        # Test infrastructure
+│   ├── setup.ts                 # Vitest setup file
+│   └── helpers/fixtures.ts      # Shared test fixtures
+├── e2e/                         # Playwright E2E tests
+│   ├── dashboard.spec.ts        # Dashboard page tests
+│   ├── projects.spec.ts         # Projects page tests
+│   ├── watchtower.spec.ts       # Watchtower page tests
+│   ├── settings.spec.ts         # Settings page tests
+│   └── navigation.spec.ts       # Navigation flow tests
+├── .github/
+│   └── workflows/test.yml       # CI pipeline: static analysis, unit tests, E2E tests
+├── vitest.config.ts             # Vitest configuration
+├── playwright.config.ts         # Playwright configuration
 ├── docs/                        # Git submodule → private repo (internal docs)
 │   ├── CLAUDE.md                # This file — project context
 │   ├── bugs.md                  # Bug tracker
@@ -143,6 +168,12 @@ npm run start                     # Production server
 # Quality
 npm run lint                      # ESLint
 npx tsc --noEmit                  # Type check
+
+# Testing
+npx vitest run                    # Run all unit + integration tests
+npx vitest run --reporter=verbose # Verbose test output
+npx playwright test               # Run E2E tests (requires DOCKYARD_DEMO=true)
+npx playwright test --ui          # Playwright interactive UI mode
 ```
 
 ## Code Conventions
@@ -170,9 +201,9 @@ npx tsc --noEmit                  # Type check
 - **Two services**: DockYard (management: discovery, tracking, config) + Watchtower (observation: health, alerts, incidents)
 - **Dual operating modes**: Local dev (filesystem discovery, localhost health checks) vs. VPS/deployed (Dokploy + GitHub integration)
 - **Project discovery**: Pluggable `DiscoverySource` interface — filesystem scanner, Dokploy API, GitHub API, manual. Core scanner orchestrates and deduplicates.
-- **Subdomains**: `dockyard.cc` (home + settings), `projects.dockyard.cc` (projects), `watchtower.dockyard.cc` (health)
-- **Route groups**: `(home)`, `(projects)`, `(watchtower)` map to subdomains via Next.js middleware
-- **Navigation**: Topbar (service switcher) → SubNav (horizontal sub-tabs per route group) → Content. No sidebar.
+- **Layout shell**: Header bar (top, brand + external links) + Sidebar (left, nav + user) + Canvas (max 1280px, centered within 1600px frame)
+- **Navigation**: Sidebar (Home/Projects/Watchtower/Settings) → PageTabs (per-section horizontal tabs) → Content. Mobile: sidebar becomes bottom tab bar.
+- **Flat routes**: `/`, `/projects`, `/watchtower`, `/settings`, `/self-health` — no route groups or subdomain routing in current build.
 - **Real-time**: SSE for live dashboard updates (health, deploy status, alerts). Live wrapper components merge RSC initial data with SSE-triggered refetches via `useRealtimeData` hook.
 - **Background jobs**: Inngest for all async work — health polling, alert evaluation/escalation, SLO budget calculation, confidence scoring, AI summaries, metrics collection, project scanning, auto-rollback
 - **Project-scoped permissions**: `requireProjectPermission(userId, slug, action)` from `src/lib/auth/permissions.ts` for project-level RBAC. Actions: read, config.write, deploy, alert.manage, test.run. Superadmins bypass all checks.
@@ -212,6 +243,16 @@ npx tsc --noEmit                  # Type check
 - JIT re-auth timestamps are stored in-memory (`Map`) — in a multi-instance deployment, this needs to be replaced with Redis or a shared cache
 - Auto-rollback is disabled after 1 rollback per deployment to prevent infinite loops — 10-minute cooldown between rollback attempts
 - SLO burn-rate thresholds follow Google's multi-window standard: >14.4x = SEV1, >6x = SEV2, >3x = SEV3
+- `DOCKYARD_DEMO=true` in `.env` enables demo mode — all pages render with static data from `src/lib/demo-data.ts`, no DB/backend needed for frontend development
+- Tremor v4 is a beta (`@tremor/react ^4.0.0-beta`) — pin version, monitor for breaking changes. Used for BarChart and SparkAreaChart.
+- Stitch wireframe download URLs expire — re-fetch via `list_screens` + `get_screen` MCP calls if needed. Project ID: `14178639867887286563`
+- CSS grid children need `min-w-0` to prevent overflow — without it, content wider than available space pushes the grid past its container (learned from project detail 2-column layout)
+- Delete `.next/` cache when adding new dependencies (especially Tremor/lodash) — stale vendor chunks cause runtime `Cannot find module` errors
+- Test files (`*.test.ts`) are excluded from the main `tsconfig.json` to avoid polluting production builds — Vitest uses its own config with `@` path aliases
+- ESLint rules are relaxed for test files (allow `any` types, non-null assertions) via overrides in `.eslintrc`
+- `DOCKYARD_DEMO=true` is required for E2E tests — Playwright starts a dev server on port 3001 with demo mode enabled
+- Port 3001 is used by Playwright's dev server to avoid conflicts with the default port 3000 dev server
+- Pino logger must not be imported in client components — it's a Node.js-only dependency. Use `console` in client code if needed.
 
 ## Git Policy
 

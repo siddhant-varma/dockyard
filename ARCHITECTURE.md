@@ -76,7 +76,7 @@ When the same project is found via multiple sources, DockYard merges the data:
 │  │              Service Layer (src/lib/)                │        │
 │  │  discovery/ ingestion/ dokploy/ hetzner/ alerts/    │        │
 │  │  health/ metrics/ ai/ auth/ crypto/ slo/ config/   │        │
-│  │  incidents/ deployments/ tests/ actions/            │        │
+│  │  incidents/ deployments/ tests/ actions/ logger/   │        │
 │  │  notifications/ projects/                           │        │
 │  └──────────────────────┬─────────────────────────────┘        │
 │                         │                                       │
@@ -156,6 +156,46 @@ External project → POST /api/ingest (CloudEvents + Standard Webhooks signature
 
 ### Smoke Test Flow
 Manual trigger or post-deploy event → Load test configs → HTTP requests per endpoint → Validate status + body + latency → Store test_runs results → SSE broadcast
+
+## Logging
+
+DockYard uses **Pino** for structured JSON logging across all layers:
+
+- **`src/lib/logger/index.ts`** — Root logger instance with environment-aware log levels
+- **`src/lib/logger/context.ts`** — Request-scoped child loggers with correlation IDs, user context, and route metadata
+- **`src/lib/logger/middleware.ts`** — Next.js middleware integration for automatic request/response logging
+- **`src/lib/logger/drizzle.ts`** — Drizzle ORM query logger (logs slow queries above configurable threshold)
+- **`src/lib/logger/inngest.ts`** — Inngest job execution logger with function name and event context
+- **`src/lib/logger/sampling.ts`** — Log sampling for high-volume events (health checks, SSE heartbeats) to reduce noise
+
+All logs are structured JSON in production, pretty-printed in development. Log levels follow the standard hierarchy: `fatal > error > warn > info > debug > trace`.
+
+## Testing
+
+### Unit & Integration Tests (Vitest)
+
+- Configuration: `vitest.config.ts`
+- Test files: `src/**/*.test.ts` (colocated with source) + `src/__tests__/` (integration)
+- Setup: `test/setup.ts` with shared fixtures in `test/helpers/fixtures.ts`
+- Coverage: V8 provider targeting `src/lib/**` and `src/app/api/**`
+- Key test suites: alert evaluator, burn-rate, SLO calculator, crypto, permissions, uptime, log sampling, discovery scanner, config service, incident lifecycle, notification dispatcher
+
+### E2E Tests (Playwright)
+
+- Configuration: `playwright.config.ts`
+- Test files: `e2e/*.spec.ts` (dashboard, projects, watchtower, settings, navigation)
+- Runs against `DOCKYARD_DEMO=true` on port 3001 — no database or external APIs needed
+- Browser: Chromium only, fully parallel, 2 retries in CI
+
+### CI/CD Pipeline
+
+GitHub Actions workflow at `.github/workflows/test.yml` runs on push to `main`, `feat/**`, and `testing` branches:
+
+1. **Static Analysis** — TypeScript type-check (`tsc --noEmit`) + ESLint
+2. **Unit & Integration Tests** — Vitest with verbose reporter (depends on static analysis)
+3. **E2E Tests** — Playwright with `DOCKYARD_DEMO=true` (depends on static analysis, runs in parallel with unit tests)
+
+Failed test artifacts (test results, Playwright reports) are uploaded for debugging.
 
 ## Security
 
