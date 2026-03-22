@@ -2,12 +2,13 @@
  * Settings tab content components — extracted from the Settings page
  * to keep the page shell under 400 lines.
  *
- * Each function renders one tab's content. They share status indicator
- * style maps for service connection states.
+ * Each function renders one tab's content. GeneralTab is fully wired
+ * to the backend; other tabs are scaffolded for future wiring.
  */
 
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,14 +31,94 @@ const STATUS_TEXT: Record<string, string> = {
   "not configured": "text-foreground/40",
 };
 
+interface PlatformSettings {
+  operatingMode: "local" | "vps";
+  autoScan: boolean;
+  scanInterval: number;
+}
+
 export function GeneralTab() {
+  const [settings, setSettings] = useState<PlatformSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [switching, setSwitching] = useState(false);
+  const [scanPath, setScanPath] = useState("..");
+  const [savingPath, setSavingPath] = useState(false);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setSettings(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const handleSwitchMode = async () => {
+    if (!settings) return;
+    setSwitching(true);
+    try {
+      const newMode = settings.operatingMode === "local" ? "vps" : "local";
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operatingMode: newMode }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSettings(updated);
+      }
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  const handleSaveScanPath = async () => {
+    setSavingPath(true);
+    try {
+      await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: { scanPath },
+        }),
+      });
+    } finally {
+      setSavingPath(false);
+    }
+  };
+
   const services = [
-    { name: "Database", status: "connected", detail: "PostgreSQL localhost:5433" },
-    { name: "Inngest", status: "active", detail: "14 functions" },
-    { name: "Hetzner", status: "not configured", detail: "Set HETZNER_API_TOKEN" },
-    { name: "Dokploy", status: "not configured", detail: "Set DOKPLOY_API_URL" },
-    { name: "GitHub", status: "authorized", detail: "Token: ghp_***" },
+    {
+      name: "Database",
+      status: "connected",
+      detail: "PostgreSQL",
+    },
+    {
+      name: "Inngest",
+      status: process.env.NEXT_PUBLIC_SITE_URL ? "active" : "standby",
+      detail: "Background jobs",
+    },
+    {
+      name: "Hetzner",
+      status: settings?.operatingMode === "vps" ? "standby" : "not configured",
+      detail: settings?.operatingMode === "vps" ? "Set HETZNER_API_TOKEN" : "VPS mode only",
+    },
+    {
+      name: "Dokploy",
+      status: settings?.operatingMode === "vps" ? "standby" : "not configured",
+      detail: settings?.operatingMode === "vps" ? "Set DOKPLOY_API_URL" : "VPS mode only",
+    },
   ];
+
+  const modeLabel = settings?.operatingMode === "vps" ? "VPS / Server" : "Local Development";
+  const switchLabel = settings?.operatingMode === "local" ? "Switch to VPS" : "Switch to Local";
 
   return (
     <div className="space-y-6">
@@ -49,22 +130,46 @@ export function GeneralTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-foreground/80">Operating Mode</p>
-              <p className="text-xs text-foreground/40">Local Development</p>
+              <p className="text-xs text-foreground/40">
+                {loading ? "Loading..." : modeLabel}
+              </p>
             </div>
-            <Button variant="outline" size="sm" className="text-xs">
-              Switch to VPS
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={handleSwitchMode}
+              disabled={loading || switching}
+            >
+              {switching ? "Switching..." : switchLabel}
             </Button>
           </div>
-          <div className="space-y-2">
-            <Label className="text-xs text-foreground/60">Scan Path</Label>
-            <Input
-              defaultValue="~/dev/projects"
-              className="bg-glass-input border-glass-border text-sm"
-            />
-          </div>
+          {settings?.operatingMode === "local" && (
+            <div className="space-y-2">
+              <Label className="text-xs text-foreground/60">Scan Path</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={scanPath}
+                  onChange={(e) => setScanPath(e.target.value)}
+                  className="bg-glass-input border-glass-border text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 text-xs"
+                  onClick={handleSaveScanPath}
+                  disabled={savingPath}
+                >
+                  {savingPath ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <Label className="text-sm text-foreground/70">Auto-scan Interval</Label>
-            <span className="text-sm text-foreground/60">15m</span>
+            <span className="text-sm text-foreground/60">
+              {settings ? `${Math.round(settings.scanInterval / 60)}m` : "—"}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -92,11 +197,20 @@ export function GeneralTab() {
 }
 
 export function ProjectsTab() {
-  const projects = [
-    { name: "Aether Core", sources: "GitHub, Filesystem", health: "Healthy" },
-    { name: "Nebula Gateway", sources: "Dokploy", health: "Degraded" },
-    { name: "Solaris DB", sources: "GitHub", health: "Healthy" },
-  ];
+  const [projects, setProjects] = useState<Array<{
+    name: string;
+    slug: string;
+    discoveredVia?: string;
+    status?: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/projects")
+      .then((r) => r.ok ? r.json() : { data: [] })
+      .then((res) => setProjects(res.data ?? []))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <Card className="bg-card border-glass-border backdrop-blur-lg">
@@ -104,62 +218,126 @@ export function ProjectsTab() {
         <CardTitle className="text-sm">Active Projects</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-glass-border text-left text-xs text-foreground/40">
-                <th className="pb-2 pr-4 font-medium">Project</th>
-                <th className="pb-2 pr-4 font-medium">Sources</th>
-                <th className="pb-2 font-medium">Health</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-glass-border">
-              {projects.map((p) => (
-                <tr key={p.name} className="text-foreground/70">
-                  <td className="py-2.5 pr-4 font-medium text-foreground/80">{p.name}</td>
-                  <td className="py-2.5 pr-4 text-xs">{p.sources}</td>
-                  <td className="py-2.5 text-xs">{p.health}</td>
+        {loading ? (
+          <p className="text-xs text-foreground/40">Loading...</p>
+        ) : projects.length === 0 ? (
+          <p className="text-xs text-foreground/40">No projects discovered yet. Run a scan from the Sources tab.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-glass-border text-left text-xs text-foreground/40">
+                  <th className="pb-2 pr-4 font-medium">Project</th>
+                  <th className="pb-2 pr-4 font-medium">Source</th>
+                  <th className="pb-2 font-medium">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-glass-border">
+                {projects.map((p) => (
+                  <tr key={p.slug} className="text-foreground/70">
+                    <td className="py-2.5 pr-4 font-medium text-foreground/80">{p.name}</td>
+                    <td className="py-2.5 pr-4 text-xs">{p.discoveredVia ?? "—"}</td>
+                    <td className="py-2.5 text-xs capitalize">{p.status ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 export function SourcesTab() {
-  const sources = [
-    { name: "main-repo-v2", type: "GitHub", detail: "github.com/dockyard/core" },
-    { name: "prod-db-cluster", type: "PostgreSQL", detail: "15.4 AWS RDS" },
-  ];
+  const [sources, setSources] = useState<Array<{
+    id: string;
+    name: string;
+    type: string;
+    enabled: boolean;
+    lastScanAt?: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+
+  const fetchSources = useCallback(async () => {
+    try {
+      const res = await fetch("/api/discovery/sources");
+      if (res.ok) {
+        const data = await res.json();
+        setSources(Array.isArray(data) ? data : []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSources();
+  }, [fetchSources]);
+
+  const handleScan = async () => {
+    setScanning(true);
+    try {
+      await fetch("/api/discovery");
+      await fetchSources();
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    const res = await fetch(`/api/discovery/sources/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setSources((prev) => prev.filter((s) => s.id !== id));
+    }
+  };
 
   return (
     <Card className="bg-card border-glass-border backdrop-blur-lg">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">Discovery Sources</CardTitle>
-          <Button variant="outline" size="sm" className="text-xs">
-            + Add Source
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={handleScan}
+            disabled={scanning}
+          >
+            {scanning ? "Scanning..." : "Scan Now"}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {sources.map((s) => (
-          <div
-            key={s.name}
-            className="flex items-center justify-between rounded-lg border border-glass-border bg-card/50 p-3"
-          >
-            <div>
-              <p className="text-sm font-medium text-foreground/80">{s.name}</p>
-              <p className="text-xs text-foreground/40">{s.type} — {s.detail}</p>
+        {loading ? (
+          <p className="text-xs text-foreground/40">Loading...</p>
+        ) : sources.length === 0 ? (
+          <p className="text-xs text-foreground/40">No discovery sources configured. Click Scan Now to auto-create defaults.</p>
+        ) : (
+          sources.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between rounded-lg border border-glass-border bg-card/50 p-3"
+            >
+              <div>
+                <p className="text-sm font-medium text-foreground/80">{s.name}</p>
+                <p className="text-xs text-foreground/40">
+                  {s.type} — {s.enabled ? "enabled" : "disabled"}
+                  {s.lastScanAt ? ` — last scan ${new Date(s.lastScanAt).toLocaleString()}` : ""}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-red-400"
+                onClick={() => handleRemove(s.id)}
+              >
+                Remove
+              </Button>
             </div>
-            <Button variant="ghost" size="sm" className="text-xs text-red-400">
-              Remove
-            </Button>
-          </div>
-        ))}
+          ))
+        )}
       </CardContent>
     </Card>
   );
@@ -230,27 +408,6 @@ export function AITab() {
         <div className="flex items-center justify-between">
           <Label className="text-sm text-foreground/70">Max Tokens</Label>
           <span className="font-mono text-sm text-foreground/60">4096</span>
-        </div>
-        <div className="border-t border-glass-border pt-4">
-          <p className="mb-2 text-xs text-foreground/40">Usage This Month</p>
-          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Prompt tokens</span>
-              <span className="font-mono text-foreground/70">125,400</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Completion</span>
-              <span className="font-mono text-foreground/70">45,200</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Est. cost</span>
-              <span className="font-mono text-foreground/70">$0.82</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground/60">Generations</span>
-              <span className="font-mono text-foreground/70">12</span>
-            </div>
-          </div>
         </div>
         <Button size="sm" className="text-xs">Save</Button>
       </CardContent>

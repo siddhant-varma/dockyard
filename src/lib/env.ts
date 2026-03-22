@@ -68,6 +68,9 @@ const envSchema = z.object({
   HETZNER_API_TOKEN: z.string().optional(),
   HETZNER_SERVER_ID: z.string().optional(),
 
+  // ── Dokploy App — for log viewer integration
+  DOKPLOY_APP_ID: z.string().optional(),
+
   // ── Encryption
   CONFIG_ENCRYPTION_KEY: z.string().optional(),
 
@@ -75,12 +78,30 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
 
+  // ── SSE — required in production for internal broadcast auth
+  SSE_BROADCAST_SECRET: z.string().optional(),
+
+  // ── GitHub Webhooks — signature verification
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
+
+  // ── AI Provider
+  DOCKYARD_AI_PROVIDER: z.string().optional(),
+  DOCKYARD_AI_MODEL: z.string().optional(),
+  DOCKYARD_AI_MAX_TOKENS: z.string().optional(),
+  DOCKYARD_AI_TEMPERATURE: z.string().optional(),
+
   // ── Inngest
   INNGEST_EVENT_KEY: z.string().optional(),
   INNGEST_SIGNING_KEY: z.string().optional(),
 
+  // ── Logging
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace"])
+    .optional(),
+
   // ── DockYard platform
   DOCKYARD_DOMAIN: z.string().default("dockyard.cc"),
+  NEXT_PUBLIC_SITE_URL: z.string().optional(),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
