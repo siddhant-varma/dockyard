@@ -55,6 +55,7 @@
 @layer base {
   html {
     height: 100%;
+    font-size: 125%;
     @apply font-sans;
   }
 

@@ -19,6 +19,13 @@ const envSchema = z.object({
    *  "server" = Dokploy + Hetzner + GitHub integration. */
   DOCKYARD_MODE: z.enum(["local", "server"]).default("local"),
 
+  /** Demo mode — skips all API/DB calls, uses static demo data.
+   *  Use when running the frontend without a database or backend. */
+  DOCKYARD_DEMO: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+
   // ── Auth Feature Flags ──────────────────────────────────────
   /** Enable login system. When false, all pages are public. */
   DOCKYARD_AUTH_ENABLED: z
@@ -100,3 +107,6 @@ export const isAuthEnabled = env.DOCKYARD_AUTH_ENABLED;
 
 /** Whether 2FA is active (only meaningful when auth is enabled). */
 export const is2FAEnabled = env.DOCKYARD_AUTH_ENABLED && env.DOCKYARD_2FA_ENABLED;
+
+/** Whether demo mode is active — skips all API/DB calls. */
+export const isDemoMode = env.DOCKYARD_DEMO;
