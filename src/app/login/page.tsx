@@ -10,11 +10,10 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const { status } = useSession();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
 
@@ -26,9 +25,9 @@ export default function LoginPage() {
   // Redirect authenticated users away from login
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace(callbackUrl);
+      window.location.href = callbackUrl;
     }
-  }, [status, router, callbackUrl]);
+  }, [status, callbackUrl]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,7 +50,11 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid credentials. Check your email and password.");
       } else if (result?.ok) {
-        router.replace(callbackUrl);
+        // Hard navigation — forces full server re-render with new session cookie.
+        // router.replace() does a soft navigation that uses cached RSC payload
+        // from the unauthenticated state, causing pages to show "Loading" forever.
+        window.location.href = callbackUrl;
+        return; // Keep submitting=true while navigating
       }
     } catch {
       setError("Sign-in failed. Please try again.");
