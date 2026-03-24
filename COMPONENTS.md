@@ -31,6 +31,11 @@
 | Quick Actions | `src/lib/actions/` | One-click redeploy, quick env update |
 | Notifications | `src/lib/notifications/` | Multi-channel dispatch (email, Slack, push) |
 | SSE Emitter | `src/lib/sse/` | Server-Sent Events broadcast, client hooks (useSSE, useRealtimeData) |
+| Kuma Adapter | `src/lib/kuma/adapter.ts` | Transforms Uptime Kuma monitor data into DockYard HealthSummary type |
+| Kuma Uptime | `src/lib/kuma/uptime.ts` | Delegates uptime queries to Kuma status page API |
+| Kuma Push Reporter | `src/lib/kuma/push-reporter.ts` | Reports DockYard self-health to Kuma push monitors |
+| Kuma Component Health | `src/lib/kuma/component-health.ts` | Maps Kuma monitor groups to DockYard component health |
+| Kuma Federation | `src/lib/kuma/federation.ts` | Fetches health data from external Kuma instances |
 
 ## Project Discovery Module
 
@@ -194,6 +199,12 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 |--------|------|------|---------|
 | POST | `/api/ingest` | stub (501) | CloudEvents webhook receiver |
 | POST | `/api/ingest/github` | Webhook signature | GitHub webhook receiver |
+
+### Kuma Integration
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | `/api/kuma/migrate` | `withAuth` (superadmin) | Switch a project's monitoring source (internal/kuma/both) |
 
 ### Real-Time & Internal
 
