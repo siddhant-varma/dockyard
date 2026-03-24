@@ -24,6 +24,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { HeaderBar } from "@/components/layout/header-bar";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Footer } from "@/components/layout/footer";
+import { DiagnosticBanner } from "@/components/layout/diagnostic-banner";
 
 export const metadata: Metadata = {
   title: {
@@ -68,6 +69,8 @@ export default function RootLayout({
           {/* Header Bar — sticky top, spans full frame width */}
           <div className="sticky top-0 z-50">
             <HeaderBar />
+            {/* @ts-expect-error Async Server Component */}
+            <DiagnosticBanner />
           </div>
 
           {/* Below header: sidebar + canvas side by side */}

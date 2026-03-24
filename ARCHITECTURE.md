@@ -77,7 +77,7 @@ When the same project is found via multiple sources, DockYard merges the data:
 │  │  discovery/ ingestion/ dokploy/ hetzner/ alerts/    │        │
 │  │  health/ metrics/ ai/ auth/ crypto/ slo/ config/   │        │
 │  │  incidents/ deployments/ tests/ actions/ logger/   │        │
-│  │  notifications/ projects/                           │        │
+│  │  notifications/ projects/ kuma/                    │        │
 │  └──────────────────────┬─────────────────────────────┘        │
 │                         │                                       │
 │  ┌──────────────────────▼─────────────────────────────┐        │
@@ -97,9 +97,9 @@ When the same project is found via multiple sources, DockYard merges the data:
          │                    │                    │
          ▼                    ▼                    ▼
    Hetzner Cloud API    Dokploy API         GitHub API/Webhooks
-                                                   │
-                                            Local Filesystem
-                                            (dev mode only)
+         │                                         │
+   Uptime Kuma API                          Local Filesystem
+   (optional)                               (dev mode only)
 ```
 
 ## Data Flow
@@ -141,6 +141,15 @@ UI → DockYard API → Validate → Audit Log → Dokploy saveEnvironment → D
 
 ### Health Check Flow
 Inngest cron (30s) → HTTP GET /healthz per project → Store Health_Check_Result → Aggregate to Project_Health → Evaluate Alert Rules → Dispatch Notifications
+
+### Uptime Kuma Integration Flow
+Kuma monitors projects externally → Status change triggers webhook → POST /api/ingest/kuma → Normalize to SignalEvent → Alert evaluation → SSE broadcast. Alternatively, projects with `monitoringSource: "kuma"` delegate uptime/component-health queries to the Kuma status page JSON API instead of querying TimescaleDB.
+
+### Kuma Push Reporter Flow
+DockYard self-health check → Report status to Kuma push monitor → Kuma tracks DockYard uptime externally. If push stops arriving within the configured interval, Kuma marks DockYard as down.
+
+### Kuma Federation Flow
+External project's Kuma instance → DockYard fetches public status page JSON → Normalize to FederatedHealthData → Display in Watchtower alongside internally-monitored projects.
 
 ### SLO Budget Flow
 Inngest cron (5min) → Load active SLOs → Query health_check_results / metric_points → Calculate budget remaining + burn rate → Update slo_budgets → Check burn-rate thresholds (14.4x/6x/3x) → Fire severity-appropriate alert → SSE broadcast

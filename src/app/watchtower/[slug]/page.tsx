@@ -2,7 +2,8 @@
  * Watchtower Health Detail — /watchtower/[slug]
  *
  * Server component. Shows component status table, uptime, and tab bar
- * for Deployments/Logs/Tests/DORA sub-views.
+ * for Deployments/Logs/Tests/DORA sub-views. When Uptime Kuma is configured,
+ * displays per-monitor breakdown with status, latency, and uptime data.
  * Matches Stitch "Project Alpha Health Detail" + WIREFRAMES.md §11.
  */
 
@@ -13,8 +14,10 @@ import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
 import { DashboardRefresher } from "@/components/dashboard/dashboard-refresher";
 import { HealthSparklines } from "@/components/watchtower/health-sparklines";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_HEALTH_PROJECTS } from "@/lib/demo-data";
+import { isKumaConfigured } from "@/lib/kuma/adapter";
+import { fetchKumaHealthDetail, fetchKumaMonitorDetails } from "@/lib/kuma/uptime";
 import type { HealthSummary } from "@/components/watchtower/health-card";
 
 type Params = Promise<{ slug: string }>;
@@ -22,10 +25,33 @@ type Params = Promise<{ slug: string }>;
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
+/** Per-monitor detail from Uptime Kuma (richer than component dots). */
+interface KumaMonitorDetail {
+  name: string;
+  status: string;
+  latencyMs: number | null;
+  uptime24h: number | null;
+  uptime30d: number | null;
+  type: string;
+  url: string;
+  interval: number;
+}
+
 async function fetchHealthDetail(slug: string): Promise<HealthSummary | null> {
-  if (isDemoMode) {
+  if (isDemoMode && !isDiagnosticMode) {
     return DEMO_HEALTH_PROJECTS.find((p) => p.slug === slug) ?? null;
   }
+
+  // When Kuma is configured, try Kuma first
+  if (isKumaConfigured()) {
+    try {
+      const detail = await fetchKumaHealthDetail(slug);
+      if (detail) return detail;
+    } catch {
+      // Fall through to internal health checks
+    }
+  }
+
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/health/projects/${slug}`, {
       next: { revalidate: 15 },
@@ -34,6 +60,15 @@ async function fetchHealthDetail(slug: string): Promise<HealthSummary | null> {
     return res.json() as Promise<HealthSummary>;
   } catch {
     return null;
+  }
+}
+
+async function fetchMonitorDetails(slug: string): Promise<KumaMonitorDetail[]> {
+  if (!isKumaConfigured()) return [];
+  try {
+    return await fetchKumaMonitorDetails(slug);
+  } catch {
+    return [];
   }
 }
 
@@ -66,12 +101,16 @@ export default async function HealthDetailPage({
   params: Params;
 }) {
   const { slug } = await params;
-  const detail = await fetchHealthDetail(slug);
+  const [detail, kumaMonitors] = await Promise.all([
+    fetchHealthDetail(slug),
+    fetchMonitorDetails(slug),
+  ]);
 
   if (!detail) notFound();
 
   const uptimeStr =
     detail.uptime30d != null ? `${detail.uptime30d.toFixed(2)}%` : "—";
+  const isKumaSource = detail.source === "kuma";
 
   return (
     <div className="space-y-6">
@@ -105,10 +144,61 @@ export default async function HealthDetailPage({
             {detail.latencyMs}ms
           </span>
         )}
+        {isKumaSource && (
+          <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
+            via Kuma
+          </span>
+        )}
       </div>
 
       {/* Latency sparkline + Uptime chart */}
       <HealthSparklines slug={slug} />
+
+      {/* Kuma per-monitor breakdown (when Kuma data is available) */}
+      {kumaMonitors.length > 0 && (
+        <Card className="bg-card border-glass-border backdrop-blur-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Kuma Monitors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {kumaMonitors.map((monitor) => (
+                <div
+                  key={monitor.name}
+                  className="flex items-center justify-between rounded-md border border-glass-border bg-glass-bg px-3 py-2 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${COMP_DOT[monitor.status] ?? COMP_DOT.unknown}`}
+                    />
+                    <span className="truncate text-foreground/70">{monitor.name}</span>
+                    <span className="shrink-0 text-[10px] text-foreground/30">
+                      {monitor.type}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    {monitor.latencyMs != null && (
+                      <span className="font-data text-xs tabular-nums text-foreground/60">
+                        {monitor.latencyMs}ms
+                      </span>
+                    )}
+                    {monitor.uptime24h != null && (
+                      <span className="font-data text-xs tabular-nums text-foreground/60">
+                        {monitor.uptime24h.toFixed(1)}% (24h)
+                      </span>
+                    )}
+                    <span
+                      className={`text-xs capitalize ${COMP_TEXT[monitor.status] ?? COMP_TEXT.unknown}`}
+                    >
+                      {monitor.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Component status table */}
       <Card className="bg-card border-glass-border backdrop-blur-lg">

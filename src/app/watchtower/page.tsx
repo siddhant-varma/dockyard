@@ -2,6 +2,8 @@
  * Watchtower Health Overview — /watchtower
  *
  * Server component. Status summary strip + health card grid.
+ * Supports dual data sources: DockYard internal health checks or
+ * Uptime Kuma external monitoring (configured via KUMA_URL env var).
  * Matches Stitch "Watchtower Health Overview" + WIREFRAMES.md §10.
  */
 
@@ -10,8 +12,10 @@ import { HealthCard, type HealthSummary } from "@/components/watchtower/health-c
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DashboardRefresher } from "@/components/dashboard/dashboard-refresher";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_HEALTH_PROJECTS } from "@/lib/demo-data";
+import { isKumaConfigured } from "@/lib/kuma/adapter";
+import { fetchKumaHealthProjects } from "@/lib/kuma/uptime";
 
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -23,7 +27,18 @@ const WT_TABS = [
 ];
 
 async function fetchHealthProjects(): Promise<HealthSummary[]> {
-  if (isDemoMode) return DEMO_HEALTH_PROJECTS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_HEALTH_PROJECTS;
+
+  // When Uptime Kuma is configured, fetch health data from Kuma
+  if (isKumaConfigured()) {
+    try {
+      return await fetchKumaHealthProjects();
+    } catch {
+      // Fall through to internal health checks if Kuma fetch fails
+    }
+  }
+
+  // Default: fetch from internal health check system
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/health/projects`, {
       next: { revalidate: 30 },
@@ -41,6 +56,7 @@ export default async function WatchtowerPage() {
   const healthy = projects.filter((p) => p.status === "healthy").length;
   const degraded = projects.filter((p) => p.status === "degraded").length;
   const down = projects.filter((p) => p.status === "down").length;
+  const kumaCount = projects.filter((p) => p.source === "kuma").length;
 
   // Sort: down first, then degraded, then healthy
   const sorted = [...projects].sort((a, b) => {
@@ -82,6 +98,7 @@ export default async function WatchtowerPage() {
             )}
             <span className="ml-auto text-xs text-foreground/30">
               {projects.length} monitored
+              {kumaCount > 0 && ` (${kumaCount} via Kuma)`}
             </span>
           </div>
         </div>

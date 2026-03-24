@@ -27,6 +27,14 @@ const envSchema = z.object({
     .default("false")
     .transform((v) => v === "true"),
 
+  /** Diagnostic mode — attempts real data fetches but catches errors.
+   *  Failed fetches render inline error cards instead of crashing.
+   *  Allows visual health tracking of which components/APIs are working. */
+  DOCKYARD_DIAGNOSTIC: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+
   // ── Auth Feature Flags ──────────────────────────────────────
   /** Enable login system. When false, all pages are public. */
   DOCKYARD_AUTH_ENABLED: z
@@ -90,6 +98,18 @@ const envSchema = z.object({
   DOCKYARD_AI_MAX_TOKENS: z.string().optional(),
   DOCKYARD_AI_TEMPERATURE: z.string().optional(),
 
+  // ── Uptime Kuma — external health monitoring integration (optional)
+  /** Base URL of the Uptime Kuma instance (e.g., http://localhost:3002). */
+  KUMA_URL: z.string().optional(),
+  /** Username for Uptime Kuma Socket.IO authentication. */
+  KUMA_USERNAME: z.string().optional(),
+  /** Password for Uptime Kuma Socket.IO authentication. */
+  KUMA_PASSWORD: z.string().optional(),
+  /** Shared secret for validating incoming Kuma webhook notifications.
+   *  When set, the POST /api/ingest/kuma endpoint requires this secret
+   *  in the Authorization header (Bearer token) or X-Kuma-Secret header. */
+  KUMA_WEBHOOK_SECRET: z.string().optional(),
+
   // ── Inngest
   INNGEST_EVENT_KEY: z.string().optional(),
   INNGEST_SIGNING_KEY: z.string().optional(),
@@ -136,3 +156,6 @@ export const is2FAEnabled = env.DOCKYARD_AUTH_ENABLED && env.DOCKYARD_2FA_ENABLE
 
 /** Whether demo mode is active — skips all API/DB calls. */
 export const isDemoMode = env.DOCKYARD_DEMO;
+
+/** Whether diagnostic mode is active — attempts real fetches, shows error cards on failure. */
+export const isDiagnosticMode = env.DOCKYARD_DIAGNOSTIC;

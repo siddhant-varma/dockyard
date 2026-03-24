@@ -88,6 +88,39 @@ test.describe("Settings Page", () => {
     await expect(page.getByText("Environment")).not.toBeVisible();
   });
 
+  test("URL param persists active tab across refresh", async ({ page }) => {
+    await page.goto("/settings?tab=Sources");
+    // Sources tab should be active — General content hidden
+    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(page.getByText("Discovery Sources")).toBeVisible();
+  });
+
+  test("browser back/forward navigates between tabs", async ({ page }) => {
+    // Start on General (default)
+    await expect(page.getByText("Operating Mode")).toBeVisible();
+
+    // Navigate to Sources
+    await page.getByRole("button", { name: "Sources" }).click();
+    await expect(page.getByText("Discovery Sources")).toBeVisible();
+    await expect(page.getByText("Operating Mode")).not.toBeVisible();
+
+    // Navigate to Audit
+    await page.getByRole("button", { name: "Audit" }).click();
+    await expect(page.getByText("Audit Log")).toBeVisible();
+
+    // Press back — should return to Sources
+    await page.goBack();
+    await expect(page.getByText("Discovery Sources")).toBeVisible();
+
+    // Press back again — should return to General
+    await page.goBack();
+    await expect(page.getByText("Operating Mode")).toBeVisible();
+
+    // Press forward — should go to Sources
+    await page.goForward();
+    await expect(page.getByText("Discovery Sources")).toBeVisible();
+  });
+
   test("switching back to General re-shows operating mode", async ({
     page,
   }) => {

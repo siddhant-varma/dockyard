@@ -17,6 +17,8 @@ export interface HealthSummary {
   latencyMs: number | null;
   lastChecked: string;
   components: { name: string; status: string }[];
+  /** Data source: "internal" (DockYard poller) or "kuma" (Uptime Kuma). */
+  source?: "internal" | "kuma";
 }
 
 interface HealthCardProps {
@@ -37,6 +39,22 @@ const COMP_DOT: Record<string, string> = {
   down: "bg-red-400 animate-pulse-dot",
   unknown: "bg-foreground/30",
 };
+
+/**
+ * Small badge indicating data is sourced from Uptime Kuma.
+ * Displayed in the health card footer when the project uses Kuma monitoring.
+ */
+function KumaSourceBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-400">
+      <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 fill-emerald-400" aria-hidden="true">
+        <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="6" cy="6" r="2" />
+      </svg>
+      via Kuma
+    </span>
+  );
+}
 
 export function HealthCard({ project }: HealthCardProps) {
   const uptimeStr =
@@ -93,9 +111,14 @@ export function HealthCard({ project }: HealthCardProps) {
             </div>
           )}
 
-          <p className="text-[10px] text-foreground/30">
-            {project.lastChecked}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-foreground/30">
+              {project.lastChecked}
+            </p>
+            {project.source === "kuma" && (
+              <KumaSourceBadge />
+            )}
+          </div>
         </CardContent>
       </Card>
     </Link>

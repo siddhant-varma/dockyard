@@ -86,9 +86,9 @@ export async function logAudit(input: AuditLogInput): Promise<void> {
   } catch (err) {
     log.error(
       { err, actorId: input.actorId, action: input.action, targetType: input.targetType, targetId: input.targetId },
-      "failed to write audit log"
+      "failed to write audit log — swallowed to preserve API response"
     );
-    throw err;
+    // Do NOT re-throw: audit failures must never crash a successful mutation
   }
 }
 

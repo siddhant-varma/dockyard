@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
 
@@ -51,7 +51,7 @@ function mapRating(rating: string): "elite" | "high" | "medium" | "low" {
  * In demo mode, returns static sample data. In live mode, fetches from the API.
  */
 async function fetchDORA(slug: string): Promise<DORAMetric[]> {
-  if (isDemoMode) return DEMO_DORA;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_DORA;
 
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/projects/${slug}/dora`, {

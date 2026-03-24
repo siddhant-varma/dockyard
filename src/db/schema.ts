@@ -227,6 +227,13 @@ export const projects = pgTable("projects", {
   techStack: text("tech_stack").array(),
   iconUrl: text("icon_url"),
   discoveredVia: text("discovered_via"),
+  /**
+   * Source of health monitoring data for this project.
+   * - "internal": DockYard's built-in health poller (default)
+   * - "kuma": Uptime Kuma external monitoring
+   * - "both": Hybrid — uses both internal and Uptime Kuma monitors
+   */
+  monitoringSource: text("monitoring_source").default("internal").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -473,6 +480,39 @@ export const incidents = pgTable("incidents", {
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
 });
 
+/**
+ * Mapping between DockYard projects and Uptime Kuma monitors.
+ *
+ * Each row links a project to an external monitor in Uptime Kuma,
+ * storing the monitor's type, URL, polling interval, and last-known status.
+ * Auto-provisioned monitors are created by the discovery scanner;
+ * manually-created monitors can also be linked here.
+ */
+export const kumaMonitors = pgTable("kuma_monitors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .references(() => projects.id, { onDelete: "cascade" })
+    .notNull(),
+  /** The numeric monitor ID assigned by Uptime Kuma. */
+  kumaMonitorId: integer("kuma_monitor_id").notNull(),
+  /** Monitor type: http, tcp, ping, docker, or keyword. */
+  monitorType: text("monitor_type").notNull(),
+  /** Human-readable name for the monitor (mirrors Kuma's friendly name). */
+  name: text("name").notNull(),
+  /** Target URL or address being monitored. */
+  url: text("url").notNull(),
+  /** Polling interval in seconds (Uptime Kuma default: 60). */
+  interval: integer("interval").default(60).notNull(),
+  /** Last-known status from Uptime Kuma: up, down, or pending. */
+  status: text("status").default("pending").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 /* ================================================================
    Config Management Tables
    ================================================================ */
@@ -714,6 +754,7 @@ export const projectsRelations = relations(projects, ({ many, one }) => ({
   testRuns: many(testRuns),
   testConfigs: many(testConfigs),
   memberships: many(projectMemberships),
+  kumaMonitors: many(kumaMonitors),
 }));
 
 export const roadmapItemsRelations = relations(roadmapItems, ({ one }) => ({
@@ -752,6 +793,13 @@ export const alertEventsRelations = relations(alertEvents, ({ one }) => ({
   }),
   project: one(projects, {
     fields: [alertEvents.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const kumaMonitorsRelations = relations(kumaMonitors, ({ one }) => ({
+  project: one(projects, {
+    fields: [kumaMonitors.projectId],
     references: [projects.id],
   }),
 }));

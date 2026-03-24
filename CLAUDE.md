@@ -244,6 +244,7 @@ npx playwright test --ui          # Playwright interactive UI mode
 - Auto-rollback is disabled after 1 rollback per deployment to prevent infinite loops — 10-minute cooldown between rollback attempts
 - SLO burn-rate thresholds follow Google's multi-window standard: >14.4x = SEV1, >6x = SEV2, >3x = SEV3
 - `DOCKYARD_DEMO=true` in `.env` enables demo mode — all pages render with static data from `src/lib/demo-data.ts`, no DB/backend needed for frontend development
+- `DOCKYARD_DIAGNOSTIC=true` enables diagnostic mode — pages bypass demo data and attempt real API fetches, rendering inline error cards on failure. Shows a health banner at the top. Can be used alongside `DOCKYARD_DEMO=true` to test which APIs are reachable.
 - Tremor v4 is a beta (`@tremor/react ^4.0.0-beta`) — pin version, monitor for breaking changes. Used for BarChart and SparkAreaChart.
 - Stitch wireframe download URLs expire — re-fetch via `list_screens` + `get_screen` MCP calls if needed. Project ID: `14178639867887286563`
 - CSS grid children need `min-w-0` to prevent overflow — without it, content wider than available space pushes the grid past its container (learned from project detail 2-column layout)

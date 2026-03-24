@@ -12,14 +12,14 @@ import {
 import { PageTabs } from "@/components/layout/page-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_PROJECTS } from "@/lib/demo-data";
 
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 async function fetchProjects(): Promise<ProjectSummary[]> {
-  if (isDemoMode) return DEMO_PROJECTS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_PROJECTS;
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/projects`, {
       cache: "no-store",

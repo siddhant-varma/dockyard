@@ -8,7 +8,7 @@
 
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { MemberList } from "./member-list";
 
 type Params = Promise<{ slug: string }>;
@@ -55,7 +55,7 @@ function toMember(api: ApiMember): Member {
 
 /** Fetch members from the backend or return demo data. */
 async function fetchMembers(slug: string): Promise<Member[]> {
-  if (isDemoMode) return DEMO_MEMBERS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_MEMBERS;
   try {
     const res = await fetch(
       `${INTERNAL_BASE}/api/projects/${slug}/members`,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upsertConfigEntry, deleteConfigEntry } from "@/lib/config/service";
 import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/auth/audit";
 
 type Params = Promise<{ slug: string; id: string }>;
 
@@ -28,12 +29,20 @@ export async function PUT(
     changeReason: body.reason as string | undefined,
   });
 
+  await logAudit({
+    actorId: session.user.id,
+    action: "config_entry.update",
+    targetType: "config_entry",
+    targetId: id,
+    request,
+  });
+
   return NextResponse.json({ updated: true });
 }
 
 /** DELETE /api/projects/:slug/config/:id — Delete config entry. */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Params }
 ) {
   const session = await auth();
@@ -43,5 +52,14 @@ export async function DELETE(
 
   const { id } = await params;
   await deleteConfigEntry(id);
+
+  await logAudit({
+    actorId: session.user.id,
+    action: "config_entry.delete",
+    targetType: "config_entry",
+    targetId: id,
+    request,
+  });
+
   return NextResponse.json({ deleted: true });
 }

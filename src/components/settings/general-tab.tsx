@@ -40,6 +40,7 @@ export function GeneralTab() {
   const [switching, setSwitching] = useState(false);
   const [scanPath, setScanPath] = useState("..");
   const [savingPath, setSavingPath] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -47,6 +48,10 @@ export function GeneralTab() {
       if (res.ok) {
         const data = await res.json();
         setSettings(data);
+        const savedPath = (data.settings as Record<string, unknown> | null)?.scanPath;
+        if (typeof savedPath === "string") {
+          setScanPath(savedPath);
+        }
       }
     } finally {
       setLoading(false);
@@ -60,6 +65,7 @@ export function GeneralTab() {
   const handleSwitchMode = async () => {
     if (!settings) return;
     setSwitching(true);
+    setError(null);
     try {
       const newMode = settings.operatingMode === "local" ? "vps" : "local";
       const res = await fetch("/api/settings", {
@@ -67,10 +73,15 @@ export function GeneralTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ operatingMode: newMode }),
       });
-      if (res.ok) {
-        const updated = await res.json();
-        setSettings(updated);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to switch mode" }));
+        setError(err.error ?? "Failed to switch mode");
+        return;
       }
+      const updated = await res.json();
+      setSettings(updated);
+    } catch {
+      setError("Network error — check your connection");
     } finally {
       setSwitching(false);
     }
@@ -78,14 +89,21 @@ export function GeneralTab() {
 
   const handleSaveScanPath = async () => {
     setSavingPath(true);
+    setError(null);
     try {
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           settings: { scanPath },
         }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to save scan path" }));
+        setError(err.error ?? "Failed to save scan path");
+      }
+    } catch {
+      setError("Network error — check your connection");
     } finally {
       setSavingPath(false);
     }
@@ -119,6 +137,11 @@ export function GeneralTab() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
+          <p className="text-xs text-red-400">{error}</p>
+        </div>
+      )}
       <Card className="bg-card border-glass-border backdrop-blur-lg">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Environment</CardTitle>

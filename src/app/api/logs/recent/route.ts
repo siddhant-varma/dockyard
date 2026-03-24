@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/guards";
 import { DokployClient } from "@/lib/dokploy/client";
+import { isDemoMode } from "@/lib/env";
 
 /**
  * GET /api/logs/recent — Recent log entries for the dashboard logstream.
  *
  * Fetches the last 50 log entries from the Dokploy deploy provider.
- * Falls back to demo entries when Dokploy is not configured or returns empty,
- * ensuring the logstream is never blank on the dashboard.
+ * In demo mode, falls back to synthetic entries when Dokploy is not configured
+ * or returns empty. In production mode, returns a proper error response.
  */
 
 interface LogEntry {
@@ -64,8 +65,21 @@ export const GET = withAuth(async () => {
         return NextResponse.json(entries);
       }
     } catch {
-      // Fall through to demo data
+      if (!isDemoMode) {
+        return NextResponse.json(
+          { error: "Failed to fetch logs from deploy provider" },
+          { status: 500 },
+        );
+      }
+      // Fall through to demo data in demo mode
     }
+  }
+
+  if (!isDemoMode) {
+    return NextResponse.json(
+      { error: "Log provider not configured" },
+      { status: 503 },
+    );
   }
 
   return NextResponse.json(getDemoLogs());

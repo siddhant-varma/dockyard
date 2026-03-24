@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import {
   DEMO_INCIDENTS,
   DEMO_INCIDENT_TIMELINE,
@@ -28,7 +28,7 @@ const INTERNAL_BASE =
 async function fetchIncident(
   id: string
 ): Promise<{ incident: DemoIncident; timeline: DemoTimelineEntry[] } | null> {
-  if (isDemoMode) {
+  if (isDemoMode && !isDiagnosticMode) {
     const incident = DEMO_INCIDENTS.find((i) => i.id === id);
     if (!incident) return null;
     return { incident, timeline: DEMO_INCIDENT_TIMELINE };

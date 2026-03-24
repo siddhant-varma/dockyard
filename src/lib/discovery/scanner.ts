@@ -2,8 +2,8 @@
  * Discovery scanner orchestrator.
  *
  * Runs all enabled discovery sources, merges discovered projects by slug,
- * deduplicates, and upserts to the projects table. Emits a "project.discovered"
- * signal event for newly found projects.
+ * deduplicates, and upserts to the projects table. When Uptime Kuma is
+ * configured, newly created projects are auto-provisioned with monitors.
  */
 
 import { eq, sql } from "drizzle-orm";
@@ -33,20 +33,16 @@ export function registerSource(source: DiscoverySource): void {
 
 /**
  * Auto-create default discovery sources when the table is empty.
- *
- * Sources created depend on the operating mode (DOCKYARD_MODE env var):
- * - local: filesystem source scanning sibling directories
- * - server: Dokploy source (if API URL + key configured), GitHub source (if token available)
- *
- * This ensures discovery works out-of-the-box without manual DB seed or UI configuration.
- * Only runs once — skips if any sources already exist.
+ * Sources depend on DOCKYARD_MODE: local→filesystem, server→Dokploy/GitHub.
+ * Only runs once — skips if any enabled sources exist.
  */
 async function bootstrapDefaultSources(): Promise<void> {
-  const [{ count: sourceCount }] = await db
+  const [{ count: enabledCount }] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(discoverySources);
+    .from(discoverySources)
+    .where(eq(discoverySources.enabled, true));
 
-  if (sourceCount > 0) return;
+  if (enabledCount > 0) return;
 
   const mode = process.env.DOCKYARD_MODE ?? "local";
   const toCreate: Array<{
@@ -124,11 +120,7 @@ async function bootstrapDefaultSources(): Promise<void> {
 
 /**
  * Run all enabled discovery sources and merge results into the database.
- *
- * On first run, auto-creates default sources based on DOCKYARD_MODE
- * so discovery works out-of-the-box without manual configuration.
- *
- * @returns Summary of what was found, created, and updated
+ * On first run, auto-creates default sources based on DOCKYARD_MODE.
  */
 export async function scanAll(): Promise<ScanResult> {
   const log = getLogger().child({ module: "discovery.scanner" });
@@ -254,12 +246,7 @@ export async function scanAll(): Promise<ScanResult> {
   };
 }
 
-/**
- * Run a single discovery source by its database ID.
- *
- * @param sourceId - UUID of the discovery_sources record
- * @returns Array of discovered projects
- */
+/** Run a single discovery source by its database ID. */
 export async function scanSource(
   sourceId: string
 ): Promise<DiscoveredProject[]> {
@@ -326,19 +313,30 @@ async function upsertProjects(
     });
 
     if (!existing) {
-      await db.insert(projects).values({
-        name: project.name,
-        slug: project.slug,
-        description: project.description,
-        status: "discovered",
-        techStack: project.techStack,
-        localPath: project.localPath,
-        githubRepo: project.githubRepo,
-        dokployAppId: project.dokployAppId,
-        dokployType: project.dokployType,
-        discoveredVia: project.source,
-      });
+      const [newProject] = await db
+        .insert(projects)
+        .values({
+          name: project.name,
+          slug: project.slug,
+          description: project.description,
+          status: "discovered",
+          techStack: project.techStack,
+          localPath: project.localPath,
+          githubRepo: project.githubRepo,
+          dokployAppId: project.dokployAppId,
+          dokployType: project.dokployType,
+          discoveredVia: project.source,
+        })
+        .returning();
       created++;
+
+      // Auto-provision Kuma monitors if Kuma is configured (KUMA-022)
+      await tryProvisionKumaMonitors(
+        newProject.id,
+        project.slug,
+        project.healthEndpoint,
+        (project.metadata?.dipLevel as number) ?? 0
+      );
     } else {
       await db
         .update(projects)
@@ -356,6 +354,27 @@ async function upsertProjects(
   }
 
   return { created, updated };
+}
+
+/** Provision Kuma monitors for a new project if KUMA_URL is set. Best-effort. */
+async function tryProvisionKumaMonitors(
+  projectId: string,
+  projectSlug: string,
+  healthEndpoint?: string,
+  dipLevel: number = 0
+): Promise<void> {
+  if (!process.env.KUMA_URL) return;
+  try {
+    const { provisionProjectMonitors } = await import("@/lib/kuma/provisioner");
+    const result = await provisionProjectMonitors(
+      projectId, projectSlug, healthEndpoint, dipLevel
+    );
+    if (result.created > 0) {
+      moduleLog.info({ projectSlug, monitorsCreated: result.created }, "Kuma monitors provisioned");
+    }
+  } catch (err) {
+    moduleLog.error({ err, projectSlug }, "Kuma provisioning failed — continuing");
+  }
 }
 
 /** Remove undefined values from an object so they don't overwrite existing fields. */

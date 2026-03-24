@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
 
@@ -76,7 +76,7 @@ const PHASE_BADGE: Record<string, string> = {
 
 /** Fetch roadmap phases from the backend or return demo data. */
 async function fetchPhases(slug: string): Promise<RoadmapPhase[]> {
-  if (isDemoMode) return DEMO_ROADMAP;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_ROADMAP;
   try {
     const res = await fetch(
       `${INTERNAL_BASE}/api/projects/${slug}/phases`,

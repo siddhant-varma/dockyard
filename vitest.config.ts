@@ -11,6 +11,12 @@ export default defineConfig({
       reporter: ["text", "lcov"],
       include: ["src/lib/**", "src/app/api/**"],
       exclude: ["src/db/migrations/**", "src/lib/demo-data.ts"],
+      thresholds: {
+        lines: 50,
+        branches: 40,
+        functions: 40,
+        statements: 50,
+      },
     },
   },
   resolve: {

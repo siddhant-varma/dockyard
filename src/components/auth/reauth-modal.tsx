@@ -59,9 +59,11 @@ export function ReAuthModal({
   onResult,
 }: ReAuthModalProps) {
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleConfirm = async () => {
     setConfirming(true);
+    setError(null);
     try {
       // Check if user has MFA and needs real verification
       const statusRes = await fetch("/api/auth/reauth");
@@ -85,10 +87,10 @@ export function ReAuthModal({
       onResult(true);
       onOpenChange(false);
     } catch {
-      // If the re-auth check fails, still allow confirmation
-      // (the server-side action will enforce auth separately)
-      onResult(true);
-      onOpenChange(false);
+      // SECURITY: network errors must BLOCK the action, never auto-confirm.
+      // A network failure could mask a compromised session.
+      setError("Re-authentication check failed. Please try again.");
+      return;
     } finally {
       setConfirming(false);
     }
@@ -111,6 +113,9 @@ export function ReAuthModal({
             This is a destructive action that cannot be easily undone.
             Please confirm you want to proceed.
           </p>
+          {error && (
+            <p className="mt-2 text-xs text-red-400">{error}</p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={handleCancel}>

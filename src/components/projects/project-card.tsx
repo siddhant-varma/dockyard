@@ -26,6 +26,8 @@ export interface ProjectSummary {
   updatedAt: string;
   healthStatus?: string;
   confidenceScore?: number;
+  /** Uptime percentage from Uptime Kuma (30-day rolling, 0-100). */
+  kumaUptime?: number | null;
 }
 
 interface ProjectCardProps {
@@ -47,6 +49,27 @@ function formatRelative(isoDate: string): string {
   if (diffSecs < 86400) return `${Math.floor(diffSecs / 3600)}h ago`;
   if (diffSecs < 2592000) return `${Math.floor(diffSecs / 86400)}d ago`;
   return `${Math.floor(diffSecs / 2592000)}mo ago`;
+}
+
+/**
+ * Small uptime percentage badge sourced from Uptime Kuma.
+ * Color-coded: green (>99.5%), yellow (>99%), red (<99%).
+ */
+function KumaUptimeBadge({ uptime }: { uptime: number }) {
+  const color =
+    uptime >= 99.5
+      ? "border-green-500/30 bg-green-500/10 text-green-400"
+      : uptime >= 99
+        ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-400"
+        : "border-red-500/30 bg-red-500/10 text-red-400";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] font-data tabular-nums ${color}`}
+    >
+      {uptime.toFixed(1)}%
+    </span>
+  );
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
@@ -111,10 +134,15 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </div>
           )}
 
-          {/* Footer: last activity */}
-          <p className="text-[10px] text-foreground/50">
-            Last: {formatRelative(project.updatedAt)}
-          </p>
+          {/* Footer: last activity + optional Kuma uptime badge */}
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-foreground/50">
+              Last: {formatRelative(project.updatedAt)}
+            </p>
+            {project.kumaUptime != null && (
+              <KumaUptimeBadge uptime={project.kumaUptime} />
+            )}
+          </div>
         </CardContent>
       </Card>
     </Link>

@@ -46,6 +46,7 @@ export function NotificationsTab() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -73,6 +74,7 @@ export function NotificationsTab() {
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError(null);
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
@@ -85,10 +87,15 @@ export function NotificationsTab() {
           },
         }),
       });
-      if (res.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to save" }));
+        setSaveError(err.error ?? "Failed to save notification settings");
+        return;
       }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setSaveError("Network error — check your connection");
     } finally {
       setSaving(false);
     }
@@ -188,6 +195,9 @@ export function NotificationsTab() {
             </div>
           </div>
         ))}
+        {saveError && (
+          <p className="text-xs text-red-400">{saveError}</p>
+        )}
         <Button
           size="sm"
           className="text-xs"

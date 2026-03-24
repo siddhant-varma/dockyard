@@ -24,7 +24,7 @@ import { TrafficCard } from "@/components/dashboard/traffic-card";
 import { LiveLogstream } from "@/components/dashboard/live-logstream";
 import { DashboardRefresher } from "@/components/dashboard/dashboard-refresher";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_BILLING } from "@/lib/demo-data";
 import {
   fetchServerStatus,
@@ -61,7 +61,7 @@ export default async function HomePage() {
     fetchTraffic(serverStatus),
   ]);
 
-  const demoBilling = isDemoMode ? DEMO_BILLING : null;
+  const demoBilling = (isDemoMode && !isDiagnosticMode) ? DEMO_BILLING : null;
 
   return (
     <div className="space-y-6">
