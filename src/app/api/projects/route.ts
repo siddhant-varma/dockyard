@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listProjects, createProject } from "@/lib/projects/service";
-import { auth } from "@/lib/auth";
+import { auth, requireAuth } from "@/lib/auth";
 import { logAudit } from "@/lib/auth/audit";
+import { isAuthEnabled } from "@/lib/env";
 
 /** GET /api/projects — List projects. Public sees public_visible only. */
 export async function GET(request: NextRequest) {
   const session = await auth();
   const sp = request.nextUrl.searchParams;
 
-  const isAdmin = !!session?.user;
+  const isAdmin = !isAuthEnabled || !!session?.user;
   const filters = {
     status: sp.get("status") ?? undefined,
     publicOnly: !isAdmin || sp.get("public") === "true",
@@ -23,10 +24,7 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/projects — Create project. Auth required. */
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await requireAuth();
 
   const body = (await request.json()) as Record<string, unknown>;
 
@@ -48,7 +46,7 @@ export async function POST(request: NextRequest) {
   });
 
   await logAudit({
-    actorId: session.user.id,
+    actorId: user.id,
     action: "project.create",
     targetType: "project",
     targetId: project.id,
