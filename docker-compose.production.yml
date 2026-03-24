@@ -59,6 +59,8 @@ services:
       KUMA_USERNAME: ${KUMA_USERNAME:-}
       KUMA_PASSWORD: ${KUMA_PASSWORD:-}
       KUMA_WEBHOOK_SECRET: ${KUMA_WEBHOOK_SECRET:-}
+      KUMA_PUSH_TOKEN: ${KUMA_PUSH_TOKEN:-}
+      HEALTH_MONITOR_TOKEN: ${HEALTH_MONITOR_TOKEN:-}
     networks:
       - dockyard
       - dokploy-network
