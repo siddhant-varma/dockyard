@@ -35,7 +35,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts ./src/db/schema.ts
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.package-lock.json ./node_modules/.package-lock.json 2>/dev/null || true
 
 # Startup script
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh
