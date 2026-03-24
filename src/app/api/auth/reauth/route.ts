@@ -10,6 +10,7 @@
 
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/guards";
+import { withRateLimit } from "@/lib/auth/rate-limit";
 import { requireReAuth, confirmReAuth, type ReAuthMethod } from "@/lib/auth/jit-reauth";
 
 /** GET /api/auth/reauth — Check re-auth status. */
@@ -18,8 +19,8 @@ export const GET = withAuth(async (_request, user) => {
   return NextResponse.json(status);
 });
 
-/** POST /api/auth/reauth — Confirm re-authentication. */
-export const POST = withAuth(async (request, user) => {
+/** POST /api/auth/reauth — Confirm re-authentication (rate limited: 10/min). */
+export const POST = withAuth(withRateLimit(async (request, user) => {
   const body = (await request.json()) as {
     method: ReAuthMethod;
     assertion?: unknown;
@@ -48,4 +49,4 @@ export const POST = withAuth(async (request, user) => {
   }
 
   return NextResponse.json({ verified: true });
-});
+}, { limit: 10, windowMs: 60_000 }));

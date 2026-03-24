@@ -93,7 +93,7 @@ export async function getBillingHistory(months = 6): Promise<BillingTrend> {
         currency,
         calculated_at
       FROM ${billingEstimates}
-      WHERE period_start >= now() - interval '${sql.raw(String(clampedMonths))} months'
+      WHERE period_start >= now() - interval '1 month' * ${clampedMonths}
       ORDER BY period_start DESC, calculated_at DESC
     `
   );

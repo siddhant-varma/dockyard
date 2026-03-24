@@ -69,7 +69,7 @@ export async function getComponentHealth(
         avg(latency_ms)::text AS avg_latency
       FROM ${healthCheckResults}
       WHERE project_id = ${projectId}
-        AND checked_at > now() - interval '${sql.raw(String(lookbackHours))} hours'
+        AND checked_at > now() - interval '1 hour' * ${lookbackHours}
       GROUP BY component
       ORDER BY component ASC
     `

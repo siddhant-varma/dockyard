@@ -20,7 +20,7 @@ export async function getLatencyTrend(
       SELECT avg(${healthCheckResults.latencyMs}) AS avg_latency
       FROM ${healthCheckResults}
       WHERE ${healthCheckResults.projectId} = ${projectId}
-        AND ${healthCheckResults.checkedAt} > now() - interval '${sql.raw(String(hours))} hours'
+        AND ${healthCheckResults.checkedAt} > now() - interval '1 hour' * ${hours}
       GROUP BY time_bucket('1 hour', ${healthCheckResults.checkedAt})
       ORDER BY time_bucket('1 hour', ${healthCheckResults.checkedAt}) ASC
     `

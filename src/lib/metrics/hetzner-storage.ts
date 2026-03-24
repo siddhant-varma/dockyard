@@ -114,7 +114,7 @@ export async function getMetricHistory(
       FROM ${hetznerSnapshots}
       WHERE server_id = ${serverId}
         AND metric_type = ${metricType}
-        AND recorded_at > now() - interval '${sql.raw(String(hours))} hours'
+        AND recorded_at > now() - interval '1 hour' * ${hours}
       GROUP BY bucket
       ORDER BY bucket ASC
     `

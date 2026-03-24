@@ -44,7 +44,8 @@ export async function calculateUptime(
     .where(
       and(
         eq(healthCheckResults.projectId, projectId),
-        sql`${healthCheckResults.checkedAt} > now() - interval '${sql.raw(String(days))} days'`
+        // Safe: numeric value is parameterized, not interpolated into SQL string
+        sql`${healthCheckResults.checkedAt} > now() - interval '1 day' * ${days}`
       )
     );
 
@@ -90,7 +91,7 @@ export async function getUptimeBuckets(
         count(*) FILTER (WHERE ${healthCheckResults.status} = 'ok') AS successful
       FROM ${healthCheckResults}
       WHERE ${healthCheckResults.projectId} = ${projectId}
-        AND ${healthCheckResults.checkedAt} > now() - interval '${sql.raw(String(hours))} hours'
+        AND ${healthCheckResults.checkedAt} > now() - interval '1 hour' * ${hours}
       GROUP BY bucket
       ORDER BY bucket ASC
     `

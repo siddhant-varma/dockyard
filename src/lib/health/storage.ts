@@ -190,7 +190,8 @@ export async function getRecentHealthChecks(
     .where(
       and(
         eq(healthCheckResults.projectId, projectId),
-        sql`${healthCheckResults.checkedAt} > now() - interval '${sql.raw(String(hours))} hours'`
+        // Safe: numeric value is parameterized, not interpolated into SQL string
+        sql`${healthCheckResults.checkedAt} > now() - interval '1 hour' * ${hours}`
       )
     )
     .orderBy(desc(healthCheckResults.checkedAt))

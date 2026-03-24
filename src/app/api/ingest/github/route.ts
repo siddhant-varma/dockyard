@@ -7,9 +7,22 @@ import {
   normalizeGitHubEvent,
 } from "@/lib/ingestion/github";
 import { inngest } from "@/inngest/client";
+import { rateLimit } from "@/lib/auth/rate-limit";
 
-/** POST /api/ingest/github — GitHub webhook receiver. */
+/** POST /api/ingest/github — GitHub webhook receiver (rate limited: 100/min). */
 export async function POST(request: NextRequest) {
+  // Rate limit: 100 GitHub webhook requests per minute per IP
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim()
+    ?? request.headers.get("x-real-ip")
+    ?? "unknown";
+  const rl = rateLimit(`${ip}:/api/ingest/github`, 100, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter ?? 60) } }
+    );
+  }
+
   const eventType = request.headers.get("x-github-event");
   const signature = request.headers.get("x-hub-signature-256");
 
