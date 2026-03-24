@@ -65,8 +65,10 @@ async function checkKumaConnection(): Promise<KumaStatusResponse> {
     // Try to get monitor count via the metrics endpoint (requires auth)
     let monitorCount = 0;
     try {
+      // Kuma v1 uses HTTP Basic Auth for /metrics (empty username, API key as password)
+      const basicAuth = Buffer.from(`:${apiKey}`).toString("base64");
       const metricsRes = await fetch(`${kumaUrl}/metrics`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
+        headers: { Authorization: `Basic ${basicAuth}` },
         signal: AbortSignal.timeout(5000),
       });
       if (metricsRes.ok) {

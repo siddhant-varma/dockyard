@@ -33,29 +33,126 @@ interface BackgroundJob {
 }
 
 const DEMO_COMPONENTS: SelfComponent[] = [
-  { name: "Database", status: "operational", latency: "4ms", detail: "PostgreSQL 16 + TimescaleDB" },
-  { name: "Inngest", status: "operational", latency: null, detail: "14 functions registered" },
-  { name: "API", status: "operational", latency: "8ms", detail: "Next.js App Router" },
-  { name: "SSE", status: "operational", latency: null, detail: "3 active connections" },
-  { name: "Disk", status: "operational", latency: null, detail: "42% used (18.2GB / 40GB)" },
-  { name: "Memory", status: "warning", latency: null, detail: "90% utilization (3.6GB / 4GB)" },
+  {
+    name: "Database",
+    status: "operational",
+    latency: "4ms",
+    detail: "PostgreSQL 16 + TimescaleDB",
+  },
+  {
+    name: "Inngest",
+    status: "operational",
+    latency: null,
+    detail: "14 functions registered",
+  },
+  {
+    name: "API",
+    status: "operational",
+    latency: "8ms",
+    detail: "Next.js App Router",
+  },
+  {
+    name: "SSE",
+    status: "operational",
+    latency: null,
+    detail: "3 active connections",
+  },
+  {
+    name: "Disk",
+    status: "operational",
+    latency: null,
+    detail: "42% used (18.2GB / 40GB)",
+  },
+  {
+    name: "Memory",
+    status: "warning",
+    latency: null,
+    detail: "90% utilization (3.6GB / 4GB)",
+  },
 ];
 
 const DEMO_JOBS: BackgroundJob[] = [
-  { name: "health-check-poller", schedule: "Every 30s", lastRun: "30s ago", status: "ok", duration: "120ms" },
-  { name: "alert-evaluator", schedule: "Every 60s", lastRun: "45s ago", status: "ok", duration: "85ms" },
-  { name: "metrics-collector", schedule: "Every 5m", lastRun: "2m ago", status: "ok", duration: "340ms" },
-  { name: "slo-budget-calculator", schedule: "Every 15m", lastRun: "8m ago", status: "ok", duration: "210ms" },
-  { name: "confidence-scorer", schedule: "Every 30m", lastRun: "12m ago", status: "ok", duration: "1.2s" },
-  { name: "project-scanner", schedule: "Every 15m", lastRun: "5m ago", status: "ok", duration: "890ms" },
+  {
+    name: "health-check-poller",
+    schedule: "Every 30s",
+    lastRun: "30s ago",
+    status: "ok",
+    duration: "120ms",
+  },
+  {
+    name: "alert-evaluator",
+    schedule: "Every 60s",
+    lastRun: "45s ago",
+    status: "ok",
+    duration: "85ms",
+  },
+  {
+    name: "metrics-collector",
+    schedule: "Every 5m",
+    lastRun: "2m ago",
+    status: "ok",
+    duration: "340ms",
+  },
+  {
+    name: "slo-budget-calculator",
+    schedule: "Every 15m",
+    lastRun: "8m ago",
+    status: "ok",
+    duration: "210ms",
+  },
+  {
+    name: "confidence-scorer",
+    schedule: "Every 30m",
+    lastRun: "12m ago",
+    status: "ok",
+    duration: "1.2s",
+  },
+  {
+    name: "project-scanner",
+    schedule: "Every 15m",
+    lastRun: "5m ago",
+    status: "ok",
+    duration: "890ms",
+  },
 ];
 
 const DEMO_DEEP_CHECKS: DeepCheckResult[] = [
-  { name: "PostgreSQL", status: "ok", latencyMs: 4 },
-  { name: "Inngest", status: "ok", latencyMs: 0 },
-  { name: "Dokploy", status: "ok", latencyMs: 45, error: "Not configured (optional)" },
-  { name: "Hetzner Cloud", status: "ok", latencyMs: 120 },
-  { name: "Encryption", status: "ok", latencyMs: 1 },
+  {
+    slug: "postgres",
+    name: "PostgreSQL",
+    status: "ok",
+    critical: true,
+    latencyMs: 4,
+  },
+  {
+    slug: "inngest",
+    name: "Inngest",
+    status: "ok",
+    critical: false,
+    latencyMs: 0,
+  },
+  {
+    slug: "dokploy",
+    name: "Dokploy",
+    status: "ok",
+    critical: false,
+    latencyMs: 45,
+    error: "Not configured (optional)",
+  },
+  {
+    slug: "hetzner",
+    name: "Hetzner Cloud",
+    status: "ok",
+    critical: false,
+    latencyMs: 120,
+  },
+  {
+    slug: "encryption",
+    name: "Encryption",
+    status: "ok",
+    critical: true,
+    latencyMs: 1,
+  },
 ];
 
 interface DeepHealthData {

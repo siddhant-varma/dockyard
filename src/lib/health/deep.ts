@@ -1,44 +1,29 @@
 /**
- * Deep health checker for DockYard's internal dependencies.
+ * Deep health check orchestrator for DockYard's dependencies.
  *
- * Performs lightweight checks against each dependency (PostgreSQL, Inngest,
- * Dokploy deploy platform API, Hetzner Cloud API, AES encryption) and
- * returns structured results with latency and error information.
+ * Runs all registered checks in parallel and aggregates results.
+ * Supports running a single check by slug via `checkSingle()`.
  *
- * Results are cached in memory for 30 seconds to avoid hammering
- * dependencies on rapid successive calls.
+ * Results are cached in memory for 30 seconds (full scans only).
+ * Single-check requests bypass the cache.
  *
  * @module health/deep
  */
 
-import { db } from "@/db/connection";
-import { sql } from "drizzle-orm";
-import { encrypt, decrypt } from "@/lib/crypto/aes";
 import { createModuleLogger } from "@/lib/logger";
+import { CHECK_REGISTRY, type DeepCheckResult } from "./checks";
+
+export type { DeepCheckResult } from "./checks";
+export { getCheckSlugs } from "./checks";
 
 const log = createModuleLogger("health.deep");
 
-/** Timeout for individual dependency checks (5 seconds). */
-const CHECK_TIMEOUT_MS = 5000;
-
-/** Cache TTL — results are reused if younger than 30 seconds. */
+/** Cache TTL — full results are reused if younger than 30 seconds. */
 const CACHE_TTL_MS = 30_000;
-
-/** Result of a single dependency health check. */
-export interface DeepCheckResult {
-  /** Human-readable dependency name. */
-  name: string;
-  /** Whether the check passed or failed. */
-  status: "ok" | "error";
-  /** Round-trip time for the check in milliseconds. */
-  latencyMs: number;
-  /** Error message if the check failed. */
-  error?: string;
-}
 
 /** Aggregate deep health response including all individual checks. */
 export interface DeepHealthResponse {
-  /** Overall status — "ok" if all checks pass, "degraded" if any fail. */
+  /** Overall status — "ok" if no critical checks fail, "degraded" if any critical check fails. */
   status: "ok" | "degraded";
   /** Individual dependency check results. */
   checks: DeepCheckResult[];
@@ -53,11 +38,21 @@ export interface DeepHealthResponse {
 let cachedResult: DeepHealthResponse | null = null;
 let cachedAt = 0;
 
+/** Reset the in-memory cache. Exported for testing only. */
+export function _resetCache(): void {
+  cachedResult = null;
+  cachedAt = 0;
+}
+
 /**
  * Run all dependency health checks and return aggregate results.
  *
  * Uses a 30-second in-memory cache — if the last check was less than
  * 30 seconds ago, the cached result is returned immediately.
+ *
+ * Overall status is "degraded" only if a critical check fails.
+ * Optional check failures are reported individually but don't
+ * affect the aggregate status.
  *
  * @returns Aggregate deep health response with per-dependency results
  */
@@ -71,18 +66,15 @@ export async function checkDeepHealth(): Promise<DeepHealthResponse> {
 
   log.info("Running deep health checks");
 
-  const checks = await Promise.all([
-    checkPostgres(),
-    checkInngest(),
-    checkDokploy(),
-    checkHetzner(),
-    checkEncryption(),
-  ]);
+  const checkFns = [...CHECK_REGISTRY.values()];
+  const checks = await Promise.all(checkFns.map((fn) => fn()));
 
-  const hasError = checks.some((c) => c.status === "error");
+  const hasCriticalError = checks.some(
+    (c) => c.critical && c.status === "error"
+  );
 
   const response: DeepHealthResponse = {
-    status: hasError ? "degraded" : "ok",
+    status: hasCriticalError ? "degraded" : "ok",
     checks,
     checkedAt: new Date().toISOString(),
     cached: false,
@@ -99,244 +91,21 @@ export async function checkDeepHealth(): Promise<DeepHealthResponse> {
   return response;
 }
 
-// ── Individual checks ────────────────────────────────────────────
-
 /**
- * Check PostgreSQL connectivity by running `SELECT 1` via Drizzle ORM.
- */
-async function checkPostgres(): Promise<DeepCheckResult> {
-  const start = performance.now();
-  try {
-    await Promise.race([
-      db.execute(sql`SELECT 1`),
-      rejectAfterTimeout("PostgreSQL"),
-    ]);
-    return {
-      name: "PostgreSQL",
-      status: "ok",
-      latencyMs: elapsed(start),
-    };
-  } catch (err) {
-    return {
-      name: "PostgreSQL",
-      status: "error",
-      latencyMs: elapsed(start),
-      error: errorMessage(err),
-    };
-  }
-}
-
-/**
- * Check Inngest availability by verifying the event key is configured.
+ * Run a single health check by its slug.
  *
- * A full connectivity check requires a running Inngest server, so this
- * only validates that the `INNGEST_EVENT_KEY` environment variable is set.
- */
-async function checkInngest(): Promise<DeepCheckResult> {
-  const start = performance.now();
-  try {
-    const key = process.env.INNGEST_EVENT_KEY;
-    if (!key) {
-      return {
-        name: "Inngest",
-        status: "error",
-        latencyMs: elapsed(start),
-        error: "INNGEST_EVENT_KEY not configured",
-      };
-    }
-    return {
-      name: "Inngest",
-      status: "ok",
-      latencyMs: elapsed(start),
-    };
-  } catch (err) {
-    return {
-      name: "Inngest",
-      status: "error",
-      latencyMs: elapsed(start),
-      error: errorMessage(err),
-    };
-  }
-}
-
-/**
- * Check the Dokploy deploy platform API by fetching its settings endpoint.
+ * Bypasses the full-scan cache — single checks always run fresh.
+ * Returns null if the slug is not found in the registry.
  *
- * Only runs when `DOKPLOY_API_URL` and `DOKPLOY_API_KEY` are configured.
- * Returns "ok" with a note if not configured (optional dependency).
+ * @param slug - The stable identifier (e.g., "postgres", "kuma")
+ * @returns Single check result, or null if slug unknown
  */
-async function checkDokploy(): Promise<DeepCheckResult> {
-  const start = performance.now();
-  const apiUrl = process.env.DOKPLOY_API_URL;
-  const apiKey = process.env.DOKPLOY_API_KEY;
+export async function checkSingle(
+  slug: string
+): Promise<DeepCheckResult | null> {
+  const checkFn = CHECK_REGISTRY.get(slug);
+  if (!checkFn) return null;
 
-  if (!apiUrl || !apiKey) {
-    return {
-      name: "Dokploy",
-      status: "ok",
-      latencyMs: elapsed(start),
-      error: "Not configured (optional)",
-    };
-  }
-
-  try {
-    const response = await Promise.race([
-      fetch(`${apiUrl}/api/settings.getAll`, {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          Accept: "application/json",
-        },
-        signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
-      }),
-      rejectAfterTimeout("Dokploy"),
-    ]) as Response;
-
-    if (!response.ok) {
-      return {
-        name: "Dokploy",
-        status: "error",
-        latencyMs: elapsed(start),
-        error: `HTTP ${response.status} ${response.statusText}`,
-      };
-    }
-
-    return {
-      name: "Dokploy",
-      status: "ok",
-      latencyMs: elapsed(start),
-    };
-  } catch (err) {
-    return {
-      name: "Dokploy",
-      status: "error",
-      latencyMs: elapsed(start),
-      error: errorMessage(err),
-    };
-  }
-}
-
-/**
- * Check the Hetzner Cloud API by fetching a single server listing.
- *
- * Only runs when `HETZNER_API_TOKEN` is configured.
- * Returns "ok" with a note if not configured (optional dependency).
- */
-async function checkHetzner(): Promise<DeepCheckResult> {
-  const start = performance.now();
-  const token = process.env.HETZNER_API_TOKEN;
-
-  if (!token) {
-    return {
-      name: "Hetzner Cloud",
-      status: "ok",
-      latencyMs: elapsed(start),
-      error: "Not configured (optional)",
-    };
-  }
-
-  try {
-    const response = await Promise.race([
-      fetch("https://api.hetzner.cloud/v1/servers?per_page=1", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-        signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
-      }),
-      rejectAfterTimeout("Hetzner Cloud"),
-    ]) as Response;
-
-    if (!response.ok) {
-      return {
-        name: "Hetzner Cloud",
-        status: "error",
-        latencyMs: elapsed(start),
-        error: `HTTP ${response.status} ${response.statusText}`,
-      };
-    }
-
-    return {
-      name: "Hetzner Cloud",
-      status: "ok",
-      latencyMs: elapsed(start),
-    };
-  } catch (err) {
-    return {
-      name: "Hetzner Cloud",
-      status: "error",
-      latencyMs: elapsed(start),
-      error: errorMessage(err),
-    };
-  }
-}
-
-/**
- * Check AES-256-GCM encryption by performing an encrypt/decrypt round-trip.
- *
- * Only runs when `CONFIG_ENCRYPTION_KEY` is configured.
- * Returns "ok" with a note if not configured (optional dependency).
- */
-async function checkEncryption(): Promise<DeepCheckResult> {
-  const start = performance.now();
-  const key = process.env.CONFIG_ENCRYPTION_KEY;
-
-  if (!key) {
-    return {
-      name: "Encryption",
-      status: "ok",
-      latencyMs: elapsed(start),
-      error: "CONFIG_ENCRYPTION_KEY not configured (optional)",
-    };
-  }
-
-  try {
-    const testValue = "dockyard-deep-health-check";
-    const encrypted = encrypt(testValue);
-    const decrypted = decrypt(encrypted);
-
-    if (decrypted !== testValue) {
-      return {
-        name: "Encryption",
-        status: "error",
-        latencyMs: elapsed(start),
-        error: "Round-trip mismatch — decrypted value differs from original",
-      };
-    }
-
-    return {
-      name: "Encryption",
-      status: "ok",
-      latencyMs: elapsed(start),
-    };
-  } catch (err) {
-    return {
-      name: "Encryption",
-      status: "error",
-      latencyMs: elapsed(start),
-      error: errorMessage(err),
-    };
-  }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-/** Calculate elapsed milliseconds since a start time. */
-function elapsed(start: number): number {
-  return Math.round(performance.now() - start);
-}
-
-/** Extract a human-readable error message from an unknown error. */
-function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
-
-/** Create a promise that rejects after the check timeout. */
-function rejectAfterTimeout(name: string): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(
-      () => reject(new Error(`${name} check timed out (${CHECK_TIMEOUT_MS}ms)`)),
-      CHECK_TIMEOUT_MS
-    );
-  });
+  log.debug({ slug }, "Running single health check");
+  return checkFn();
 }
