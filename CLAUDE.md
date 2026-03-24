@@ -73,6 +73,7 @@ DockYard/
 │   │   │   ├── alerts/           # Alert rules + firing events
 │   │   │   └── incidents/        # Incident list + detail
 │   │   │       └── [id]/         # Incident timeline
+│   │   ├── login/                # Login page (Credentials + GitHub OAuth)
 │   │   └── api/                  # API routes
 │   │       ├── auth/reauth/      # JIT re-authentication endpoint
 │   │       ├── discovery/        # Project discovery & scan endpoints
@@ -116,7 +117,7 @@ DockYard/
 │   │   ├── projects/             # Project cards, phase-timeline, confidence, blockers, activity-feed, context-handoff
 │   │   ├── watchtower/           # Health cards, alert-actions, create-rule-form, create-incident-form, postmortem-section, health-sparklines
 │   │   ├── settings/             # Settings tabs: general, projects, sources, notifications, ai, mfa, audit
-│   │   ├── auth/                 # reauth-modal
+│   │   ├── auth/                 # reauth-modal, session-provider
 │   │   └── shared/               # EmptyState, reusable utilities
 │   └── db/
 │       ├── schema.ts             # Drizzle schema definitions
@@ -254,6 +255,11 @@ npx playwright test --ui          # Playwright interactive UI mode
 - `DOCKYARD_DEMO=true` is required for E2E tests — Playwright starts a dev server on port 3001 with demo mode enabled
 - Port 3001 is used by Playwright's dev server to avoid conflicts with the default port 3000 dev server
 - Pino logger must not be imported in client components — it's a Node.js-only dependency. Use `console` in client code if needed.
+- `DOCKYARD_AUTH_ENABLED=true` gates both API routes (via `withAuth()`) and pages (via middleware cookie check). Middleware checks for `authjs.session-token` or `__Secure-authjs.session-token` cookies — missing cookie redirects to `/login`. Public paths exempt: `/login`, `/api/auth/*`, `/api/*`, static assets. Credentials provider validates `DOCKYARD_ADMIN_USER` + `DOCKYARD_ADMIN_PASSWORD` env vars (no DB user needed). `NEXT_PUBLIC_AUTH_ENABLED` exposed to client via `next.config.ts` env mapping.
+- `GET /api/projects` uses raw `auth()` + `isAuthEnabled` check, NOT `withAuth()` wrapper — this is intentional so public portfolio mode works. When auth disabled, all projects visible. When auth enabled + no session, only `publicVisible=true` projects returned.
+- `POST /api/projects` uses `requireAuth()` directly (not `withAuth()` wrapper) — returns anonymous superadmin when auth disabled.
+- Dokploy env vars use `DOCKYARD_ADMIN_USER` / `DOCKYARD_ADMIN_PASSWORD` — NOT `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`. Mismatched names are silently ignored.
+- `DOCKYARD_MODE=server` controls discovery sources (Dokploy/GitHub), NOT demo data. `DOCKYARD_DEMO` controls demo data. These are independent env vars.
 
 ## Git Policy
 

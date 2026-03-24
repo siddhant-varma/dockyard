@@ -13,7 +13,7 @@
 | AI Layer | `src/lib/ai/` | Velocity calculator, confidence scoring, weekly summaries, milestone wrap-ups, context handoff blocks |
 | SLO Service | `src/lib/slo/` | SLO definitions CRUD, budget calculator, burn-rate threshold evaluation |
 | Config Management | `src/lib/config/` | Encrypted config CRUD, templates, categories, presets, auto-rollback |
-| Auth | `src/lib/auth/` | OAuth2, MFA (WebAuthn/TOTP), RBAC, project-scoped permissions, audit logging, JIT re-auth |
+| Auth | `src/lib/auth/` | OAuth2, Credentials provider (admin login), MFA (WebAuthn/TOTP), RBAC, project-scoped permissions, audit logging, JIT re-auth |
 | Projects | `src/lib/projects/` | Project CRUD, phase timeline, blocker tracking |
 | Crypto | `src/lib/crypto/` | AES-256-GCM encryption for config values |
 | Logger | `src/lib/logger/` | Pino structured logging with request context, Drizzle query logging, Inngest job logging, log sampling |
@@ -23,6 +23,7 @@
 | Service | Path | Responsibility |
 |---------|------|---------------|
 | Health Poller | `src/lib/health/` | Polls project health endpoints on schedule |
+| Deep Health Checks | `src/lib/health/checks/` | Modular integration health checks (postgres, timescaledb, dokploy, hetzner, kuma, github, inngest, encryption, ai-provider, resend, slack, sse-broadcast) |
 | Alert Engine | `src/lib/alerts/` | Evaluates rules, deduplication, grouping, escalation, burn-rate alerts, weekly review |
 | Metrics Collector | `src/lib/metrics/` | Prometheus scraping, DORA metrics, time-series queries |
 | Incident Management | `src/lib/incidents/` | Incident lifecycle, auto-create, resolution, post-mortems, metrics |
@@ -78,15 +79,18 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | POST | `/api/discovery/sources` | `withAuth` (superadmin) | Add a discovery source |
 | PUT | `/api/discovery/sources/:id` | `withAuthContext` (superadmin) | Update a discovery source |
 | DELETE | `/api/discovery/sources/:id` | `withAuthContext` (superadmin) | Remove a discovery source |
+| POST | `/api/discovery/test-github` | `withAuth` | Validate GitHub PAT — returns token validity, user, scopes, repo access |
 | GET | `/api/settings` | `withAuth` | Get platform settings |
 | PUT | `/api/settings` | `withAuth` (superadmin) | Update platform settings |
+| GET | `/api/settings/kuma` | `withAuth` | Get Kuma connection status and configuration |
+| POST | `/api/settings/kuma` | `withAuth` (superadmin) | Test Kuma connection |
 
 ### Projects
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/api/projects` | inline `auth()` | List projects (filtered by role) |
-| POST | `/api/projects` | inline `auth()` | Create project |
+| GET | `/api/projects` | inline `auth()` + `isAuthEnabled` | List projects (admin when auth disabled, publicOnly for anonymous) |
+| POST | `/api/projects` | `requireAuth()` | Create project |
 | GET | `/api/projects/:slug` | `withAuthContext` | Project detail |
 | PUT | `/api/projects/:slug` | `withAuthContext` | Update project |
 | DELETE | `/api/projects/:slug` | `withAuthContext` (superadmin) | Archive project |
@@ -152,6 +156,7 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | GET | `/api/health` | **Public** | DockYard's own health check (for external monitors) |
+| GET | `/api/health/deep` | `withAuth` | Deep health check — runs all integration checks (DB, Kuma, Dokploy, Hetzner, etc.) |
 | GET | `/api/health/projects` | `withAuth` | All projects health summary |
 | GET | `/api/health/projects/:slug` | `withAuthContext` | Single project health detail |
 | GET | `/api/alerts` | `withAuth` | List alert rules |
