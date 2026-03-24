@@ -30,8 +30,15 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Public assets (if any)
-# COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Drizzle schema push: copy config, schema, and drizzle-kit binary
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts ./src/db/schema.ts
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.package-lock.json ./node_modules/.package-lock.json 2>/dev/null || true
+
+# Startup script
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh
 
 USER nextjs
 
@@ -39,4 +46,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["sh", "./start.sh"]
