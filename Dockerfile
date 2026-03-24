@@ -13,6 +13,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# Cap Node.js heap to 1.5GB to prevent OOM on small VPS (2CPU/4GB)
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
 RUN npm run build
 

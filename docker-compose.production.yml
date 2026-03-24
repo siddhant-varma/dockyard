@@ -23,6 +23,11 @@ services:
       dockerfile: Dockerfile
     container_name: dockyard-app
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: "1.5"
     ports:
       - "3001:3000"
     depends_on:
