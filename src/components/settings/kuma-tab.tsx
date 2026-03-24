@@ -68,7 +68,7 @@ export function KumaTab() {
     setTesting(true);
     setError(null);
     try {
-      const res = await fetch("/api/settings/kuma/test", { method: "POST" });
+      const res = await fetch("/api/settings/kuma", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setStatus(data.data ?? data);
@@ -105,9 +105,7 @@ export function KumaTab() {
       <Card className="bg-card border-glass-border backdrop-blur-lg">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">
-              Uptime Kuma Integration
-            </CardTitle>
+            <CardTitle className="text-sm">Uptime Kuma Integration</CardTitle>
             <Badge
               variant="outline"
               className={`text-[10px] ${
@@ -131,7 +129,9 @@ export function KumaTab() {
                 <span
                   className={`h-2 w-2 rounded-full ${STATUS_DOT[connectionState]}`}
                 />
-                <span className={`text-xs capitalize ${STATUS_TEXT[connectionState]}`}>
+                <span
+                  className={`text-xs capitalize ${STATUS_TEXT[connectionState]}`}
+                >
                   {connectionState}
                 </span>
               </div>
@@ -168,9 +168,7 @@ export function KumaTab() {
           {/* Error message */}
           {(error || status?.error) && (
             <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2">
-              <p className="text-xs text-red-400">
-                {error || status?.error}
-              </p>
+              <p className="text-xs text-red-400">{error || status?.error}</p>
             </div>
           )}
 
@@ -187,9 +185,9 @@ export function KumaTab() {
 
           {/* Help text */}
           <p className="text-[10px] leading-relaxed text-foreground/30">
-            Configure Uptime Kuma by setting KUMA_URL, KUMA_USERNAME, and
-            KUMA_PASSWORD in your environment variables. See the Kuma
-            integration guide for setup instructions.
+            Configure Uptime Kuma by setting KUMA_URL and KUMA_API_KEY in your
+            environment variables. Generate an API key in Kuma → Settings → API
+            Keys.
           </p>
         </CardContent>
       </Card>
