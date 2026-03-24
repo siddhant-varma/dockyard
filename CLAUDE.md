@@ -260,6 +260,14 @@ npx playwright test --ui          # Playwright interactive UI mode
 - `POST /api/projects` uses `requireAuth()` directly (not `withAuth()` wrapper) — returns anonymous superadmin when auth disabled.
 - Dokploy env vars use `DOCKYARD_ADMIN_USER` / `DOCKYARD_ADMIN_PASSWORD` — NOT `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`. Mismatched names are silently ignored.
 - `DOCKYARD_MODE=server` controls discovery sources (Dokploy/GitHub), NOT demo data. `DOCKYARD_DEMO` controls demo data. These are independent env vars.
+- Login page uses `window.location.href` (not `router.replace()`) after successful `signIn()` — Next.js soft navigation reuses cached RSC payload from unauthenticated state, causing "Loading" forever. Hard navigation forces full server re-render with the new session cookie.
+- Client components must use `authFetch()` from `@/lib/api/auth-fetch` instead of raw `fetch()` for API calls. It intercepts 401 responses and redirects to `/login` when the session has expired. Server components (e.g., `diagnostic-banner.tsx`) should continue using raw `fetch()` since `authFetch` depends on `window.location`.
+- Deep health checks (`src/lib/health/checks/`) use a registry pattern in `src/lib/health/checks/index.ts`. Add new checks by: (1) create `checks/<slug>.ts` exporting a `CheckFn`, (2) register it in `CHECK_REGISTRY` in `index.ts`. The orchestrator in `deep.ts` auto-discovers it.
+- `GET /api/health/deep` supports `?check=<slug>` for per-dependency checks and `?token=<HEALTH_MONITOR_TOKEN>` for auth bypass (used by Kuma monitors). Both params can be combined: `?check=postgres&token=<secret>`.
+- Uptime Kuma v1 uses HTTP Basic Auth for `/metrics` (empty username, API key as password) — NOT Bearer token. The settings route at `src/app/api/settings/kuma/route.ts` handles this.
+- Kuma v1 CRUD API is Socket.IO only — `KumaClient` REST methods are placeholders. Use `scripts/kuma-provision.mjs` for programmatic monitor creation until Socket.IO rewrite is done.
+- Kuma admin credentials: username `kuma-admin@dockyard`, password `DockYard-Kuma-2026!`. Password was reset via SQLite during KUMA-OPS provisioning.
+- `HEALTH_MONITOR_TOKEN` env var enables external monitors (Kuma) to access `/api/health/deep` without session auth. If not set, token bypass is disabled and only session auth works.
 
 ## Git Policy
 
