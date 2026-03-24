@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 interface Project {
   id: string;
@@ -59,7 +60,7 @@ export function ProjectsTab() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await fetch("/api/projects");
+      const res = await authFetch("/api/projects");
       if (!res.ok) {
         setFetchError("Failed to load projects");
         return;
@@ -101,7 +102,7 @@ export function ProjectsTab() {
 
     setAdding(true);
     try {
-      const res = await fetch("/api/projects", {
+      const res = await authFetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -149,7 +150,7 @@ export function ProjectsTab() {
     setSaving(true);
     setActionError(null);
     try {
-      const res = await fetch(`/api/projects/${editingSlug}`, {
+      const res = await authFetch(`/api/projects/${editingSlug}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -181,7 +182,9 @@ export function ProjectsTab() {
     if (!confirmed) return;
     setActionError(null);
     try {
-      const res = await fetch(`/api/projects/${slug}`, { method: "DELETE" });
+      const res = await authFetch(`/api/projects/${slug}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const err = await res
           .json()
@@ -199,7 +202,7 @@ export function ProjectsTab() {
     const newStatus = currentStatus === "active" ? "paused" : "active";
     setActionError(null);
     try {
-      const res = await fetch(`/api/projects/${slug}`, {
+      const res = await authFetch(`/api/projects/${slug}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),

@@ -24,6 +24,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { authFetch } from "@/lib/api/auth-fetch";
 import {
   Dialog,
   DialogContent,
@@ -66,7 +67,7 @@ export function ReAuthModal({
     setError(null);
     try {
       // Check if user has MFA and needs real verification
-      const statusRes = await fetch("/api/auth/reauth");
+      const statusRes = await authFetch("/api/auth/reauth");
       if (statusRes.ok) {
         const status = (await statusRes.json()) as {
           required: boolean;
@@ -110,12 +111,10 @@ export function ReAuthModal({
         </DialogHeader>
         <div className="py-2">
           <p className="text-xs text-foreground/50">
-            This is a destructive action that cannot be easily undone.
-            Please confirm you want to proceed.
+            This is a destructive action that cannot be easily undone. Please
+            confirm you want to proceed.
           </p>
-          {error && (
-            <p className="mt-2 text-xs text-red-400">{error}</p>
-          )}
+          {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={handleCancel}>

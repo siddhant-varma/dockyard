@@ -24,6 +24,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 /** Shape of a credential returned by GET /api/auth/mfa */
 interface MfaCredential {
@@ -64,7 +65,7 @@ export function MFATab() {
   const fetchCredentials = useCallback(async () => {
     try {
       setFetchError(null);
-      const res = await fetch("/api/auth/mfa");
+      const res = await authFetch("/api/auth/mfa");
       if (!res.ok) {
         setFetchError("Failed to load MFA credentials");
         return;
@@ -102,7 +103,7 @@ export function MFATab() {
 
     try {
       // Step 1: Get registration options from server
-      const optionsRes = await fetch("/api/auth/mfa/webauthn", {
+      const optionsRes = await authFetch("/api/auth/mfa/webauthn", {
         method: "POST",
       });
       if (!optionsRes.ok) {
@@ -147,8 +148,10 @@ export function MFATab() {
       }
 
       // Step 3: Send attestation to server for verification
-      const credentialName = prompt("Name this passkey (e.g., MacBook TouchID):");
-      const verifyRes = await fetch("/api/auth/mfa/webauthn", {
+      const credentialName = prompt(
+        "Name this passkey (e.g., MacBook TouchID):"
+      );
+      const verifyRes = await authFetch("/api/auth/mfa/webauthn", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -189,7 +192,7 @@ export function MFATab() {
     setEnrollingTotp(true);
 
     try {
-      const res = await fetch("/api/auth/mfa/totp", {
+      const res = await authFetch("/api/auth/mfa/totp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "Authenticator App" }),
@@ -233,7 +236,7 @@ export function MFATab() {
     setVerifyingTotp(true);
 
     try {
-      const res = await fetch("/api/auth/mfa/totp", {
+      const res = await authFetch("/api/auth/mfa/totp", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: totpCode }),
@@ -288,7 +291,8 @@ export function MFATab() {
             <p className="text-xs text-red-400">{fetchError}</p>
           ) : passkeys.length === 0 ? (
             <p className="text-xs text-foreground/40">
-              No passkeys registered. Click &quot;Register Passkey&quot; to add one.
+              No passkeys registered. Click &quot;Register Passkey&quot; to add
+              one.
             </p>
           ) : (
             passkeys.map((pk) => (
@@ -302,7 +306,8 @@ export function MFATab() {
                   </p>
                   <p className="text-xs text-foreground/40">
                     Added {formatDate(pk.createdAt)}
-                    {pk.lastUsedAt && ` — Last used ${formatDate(pk.lastUsedAt)}`}
+                    {pk.lastUsedAt &&
+                      ` — Last used ${formatDate(pk.lastUsedAt)}`}
                   </p>
                 </div>
                 <Button
@@ -411,8 +416,8 @@ export function MFATab() {
             </>
           ) : (
             <p className="text-xs text-foreground/40">
-              No authenticator app configured. Click &quot;Setup Authenticator&quot;
-              to generate a TOTP secret.
+              No authenticator app configured. Click &quot;Setup
+              Authenticator&quot; to generate a TOTP secret.
             </p>
           )}
           {totpMsg && (

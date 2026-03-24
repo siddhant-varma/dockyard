@@ -180,10 +180,12 @@ export function Sidebar() {
                 </p>
               )}
             </div>
-            {isAuthEnabled && session && (
+            {session && (
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() =>
+                  signOut({ callbackUrl: isAuthEnabled ? "/login" : "/" })
+                }
                 className="shrink-0 rounded-md p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 title="Sign out"
               >

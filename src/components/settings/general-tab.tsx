@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 const STATUS_DOT: Record<string, string> = {
   connected: "bg-green-400",
@@ -44,11 +45,12 @@ export function GeneralTab() {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch("/api/settings");
+      const res = await authFetch("/api/settings");
       if (res.ok) {
         const data = await res.json();
         setSettings(data);
-        const savedPath = (data.settings as Record<string, unknown> | null)?.scanPath;
+        const savedPath = (data.settings as Record<string, unknown> | null)
+          ?.scanPath;
         if (typeof savedPath === "string") {
           setScanPath(savedPath);
         }
@@ -68,13 +70,15 @@ export function GeneralTab() {
     setError(null);
     try {
       const newMode = settings.operatingMode === "local" ? "vps" : "local";
-      const res = await fetch("/api/settings", {
+      const res = await authFetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ operatingMode: newMode }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to switch mode" }));
+        const err = await res
+          .json()
+          .catch(() => ({ error: "Failed to switch mode" }));
         setError(err.error ?? "Failed to switch mode");
         return;
       }
@@ -91,7 +95,7 @@ export function GeneralTab() {
     setSavingPath(true);
     setError(null);
     try {
-      const res = await fetch("/api/settings", {
+      const res = await authFetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -99,7 +103,9 @@ export function GeneralTab() {
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to save scan path" }));
+        const err = await res
+          .json()
+          .catch(() => ({ error: "Failed to save scan path" }));
         setError(err.error ?? "Failed to save scan path");
       }
     } catch {
@@ -123,17 +129,25 @@ export function GeneralTab() {
     {
       name: "Hetzner",
       status: settings?.operatingMode === "vps" ? "standby" : "not configured",
-      detail: settings?.operatingMode === "vps" ? "Set HETZNER_API_TOKEN" : "VPS mode only",
+      detail:
+        settings?.operatingMode === "vps"
+          ? "Set HETZNER_API_TOKEN"
+          : "VPS mode only",
     },
     {
       name: "Dokploy",
       status: settings?.operatingMode === "vps" ? "standby" : "not configured",
-      detail: settings?.operatingMode === "vps" ? "Set DOKPLOY_API_URL" : "VPS mode only",
+      detail:
+        settings?.operatingMode === "vps"
+          ? "Set DOKPLOY_API_URL"
+          : "VPS mode only",
     },
   ];
 
-  const modeLabel = settings?.operatingMode === "vps" ? "VPS / Server" : "Local Development";
-  const switchLabel = settings?.operatingMode === "local" ? "Switch to VPS" : "Switch to Local";
+  const modeLabel =
+    settings?.operatingMode === "vps" ? "VPS / Server" : "Local Development";
+  const switchLabel =
+    settings?.operatingMode === "local" ? "Switch to VPS" : "Switch to Local";
 
   return (
     <div className="space-y-6">
@@ -186,9 +200,13 @@ export function GeneralTab() {
             </div>
           )}
           <div className="flex items-center justify-between">
-            <Label className="text-sm text-foreground/70">Auto-scan Interval</Label>
+            <Label className="text-sm text-foreground/70">
+              Auto-scan Interval
+            </Label>
             <span className="text-sm text-foreground/60">
-              {settings ? `${Math.round(settings.scanInterval / 60)}m` : "\u2014"}
+              {settings
+                ? `${Math.round(settings.scanInterval / 60)}m`
+                : "\u2014"}
             </span>
           </div>
         </CardContent>
@@ -200,11 +218,18 @@ export function GeneralTab() {
         </CardHeader>
         <CardContent className="space-y-3">
           {services.map((svc) => (
-            <div key={svc.name} className="flex items-center justify-between text-sm">
+            <div
+              key={svc.name}
+              className="flex items-center justify-between text-sm"
+            >
               <span className="text-foreground/70">{svc.name}</span>
               <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${STATUS_DOT[svc.status]}`} />
-                <span className={`text-xs capitalize ${STATUS_TEXT[svc.status]}`}>
+                <span
+                  className={`h-2 w-2 rounded-full ${STATUS_DOT[svc.status]}`}
+                />
+                <span
+                  className={`text-xs capitalize ${STATUS_TEXT[svc.status]}`}
+                >
                   {svc.status}
                 </span>
               </div>

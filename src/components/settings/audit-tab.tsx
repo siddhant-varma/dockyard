@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 const PAGE_SIZE = 20;
 
@@ -38,7 +39,10 @@ function formatDiff(diff: Record<string, unknown> | null): string {
   if (!diff) return "\u2014";
   const entries = Object.entries(diff).slice(0, 3);
   return entries
-    .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+    .map(
+      ([k, v]) =>
+        `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`
+    )
     .join(", ");
 }
 
@@ -57,7 +61,7 @@ export function AuditTab() {
         limit: String(PAGE_SIZE),
         offset: String(currentOffset),
       });
-      const res = await fetch(`/api/audit?${params}`);
+      const res = await authFetch(`/api/audit?${params}`);
       if (!res.ok) {
         setFetchError("Failed to load audit logs");
         return;
@@ -105,7 +109,9 @@ export function AuditTab() {
         {loading && logs.length === 0 ? (
           <p className="text-xs text-foreground/40">Loading...</p>
         ) : logs.length === 0 ? (
-          <p className="text-xs text-foreground/40">No audit log entries found.</p>
+          <p className="text-xs text-foreground/40">
+            No audit log entries found.
+          </p>
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -129,7 +135,9 @@ export function AuditTab() {
                         {log.actorId ? log.actorId.slice(0, 8) : "system"}
                       </td>
                       <td className="py-2.5 pr-4">
-                        <Badge variant="outline" className="text-[10px]">{log.action}</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {log.action}
+                        </Badge>
                       </td>
                       <td className="py-2.5 pr-4 text-xs">
                         {log.targetType}

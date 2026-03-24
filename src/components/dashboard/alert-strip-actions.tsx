@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 interface AlertStripActionsProps {
   /** Alert event ID used for the acknowledge API call. */
@@ -41,7 +42,7 @@ export function AlertStripActions({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/alerts/events/${alertId}`, {
+      const res = await authFetch(`/api/alerts/events/${alertId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "acknowledged" }),
@@ -91,9 +92,7 @@ export function AlertStripActions({
       >
         {loading ? "..." : "Acknowledge"}
       </Button>
-      {error && (
-        <span className="text-[10px] text-red-400">{error}</span>
-      )}
+      {error && <span className="text-[10px] text-red-400">{error}</span>}
     </div>
   );
 }

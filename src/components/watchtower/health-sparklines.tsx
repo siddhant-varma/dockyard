@@ -12,6 +12,7 @@
 import { useEffect, useState } from "react";
 import { SparkAreaChart } from "@tremor/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 interface TrendsData {
   latencyTrend: number[];
@@ -44,8 +45,8 @@ export function HealthSparklines({ slug }: HealthSparklinesProps) {
     async function load() {
       try {
         const [trendsRes, uptimeRes] = await Promise.all([
-          fetch(`/api/projects/${slug}/health/trends`),
-          fetch(`/api/projects/${slug}/health/uptime`),
+          authFetch(`/api/projects/${slug}/health/trends`),
+          authFetch(`/api/projects/${slug}/health/uptime`),
         ]);
 
         if (cancelled) return;

@@ -13,6 +13,7 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 interface PostmortemSectionProps {
   /** Incident ID used to build API URLs. */
@@ -47,7 +48,7 @@ export function PostmortemSection({
     setMessage(null);
 
     try {
-      const res = await fetch(`/api/incidents/${incidentId}/postmortem`, {
+      const res = await authFetch(`/api/incidents/${incidentId}/postmortem`, {
         method: "POST",
       });
       if (!res.ok) {
@@ -73,7 +74,7 @@ export function PostmortemSection({
     setMessage(null);
 
     try {
-      const res = await fetch(`/api/incidents/${incidentId}/postmortem`, {
+      const res = await authFetch(`/api/incidents/${incidentId}/postmortem`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: editBuffer }),

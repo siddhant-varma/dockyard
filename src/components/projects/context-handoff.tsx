@@ -11,6 +11,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 interface ContextHandoffProps {
   /** Project slug used to build the API URL. */
@@ -40,8 +41,8 @@ export function ContextHandoff({ slug }: ContextHandoffProps) {
     async function load() {
       try {
         const [jsonRes, mdRes] = await Promise.all([
-          fetch(`/api/projects/${slug}/handoff?format=json`),
-          fetch(`/api/projects/${slug}/handoff?format=markdown`),
+          authFetch(`/api/projects/${slug}/handoff?format=json`),
+          authFetch(`/api/projects/${slug}/handoff?format=markdown`),
         ]);
 
         if (cancelled) return;

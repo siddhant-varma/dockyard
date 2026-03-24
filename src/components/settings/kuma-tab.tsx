@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 /** Connection test result from the API. */
 interface KumaStatus {
@@ -46,7 +47,7 @@ export function KumaTab() {
   const fetchStatus = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch("/api/settings/kuma");
+      const res = await authFetch("/api/settings/kuma");
       if (res.ok) {
         const data = await res.json();
         setStatus(data.data ?? data);
@@ -68,7 +69,7 @@ export function KumaTab() {
     setTesting(true);
     setError(null);
     try {
-      const res = await fetch("/api/settings/kuma", { method: "POST" });
+      const res = await authFetch("/api/settings/kuma", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setStatus(data.data ?? data);

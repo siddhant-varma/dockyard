@@ -10,6 +10,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 const SEVERITIES = ["sev1", "sev2", "sev3"] as const;
 
@@ -61,7 +62,7 @@ export function CreateIncidentForm({ projects }: CreateIncidentFormProps) {
     }
 
     try {
-      const res = await fetch("/api/incidents", {
+      const res = await authFetch("/api/incidents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -142,12 +143,15 @@ export function CreateIncidentForm({ projects }: CreateIncidentFormProps) {
         </select>
       </div>
 
-      {error && (
-        <p className="text-xs text-red-400">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-400">{error}</p>}
 
       <div className="flex gap-2">
-        <Button type="submit" size="sm" className="text-xs" disabled={isPending}>
+        <Button
+          type="submit"
+          size="sm"
+          className="text-xs"
+          disabled={isPending}
+        >
           {isPending ? "Creating..." : "Create"}
         </Button>
         <Button

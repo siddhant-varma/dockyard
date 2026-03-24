@@ -10,6 +10,7 @@
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 interface RestartButtonProps {
   /** Hetzner server ID to restart. */
@@ -35,7 +36,7 @@ export function RestartButton({ serverId }: RestartButtonProps) {
     setResult(null);
 
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/hetzner/servers/${serverId}/actions/reset`,
         { method: "POST" }
       );

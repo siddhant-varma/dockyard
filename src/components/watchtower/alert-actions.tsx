@@ -10,6 +10,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 interface AlertActionsProps {
   /** The unique identifier of the alert event. */
@@ -35,7 +36,7 @@ export function AlertActions({ id, status }: AlertActionsProps) {
   async function updateStatus(newStatus: "acknowledged" | "resolved") {
     setError(null);
     try {
-      const res = await fetch(`/api/alerts/events/${id}`, {
+      const res = await authFetch(`/api/alerts/events/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
@@ -79,9 +80,7 @@ export function AlertActions({ id, status }: AlertActionsProps) {
           {isPending ? "..." : "Resolve"}
         </Button>
       </div>
-      {error && (
-        <span className="text-[10px] text-red-400">{error}</span>
-      )}
+      {error && <span className="text-[10px] text-red-400">{error}</span>}
     </div>
   );
 }

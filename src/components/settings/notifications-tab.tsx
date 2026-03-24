@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 const STATUS_DOT: Record<string, string> = {
   connected: "bg-green-400",
@@ -50,7 +51,7 @@ export function NotificationsTab() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const res = await fetch("/api/settings");
+      const res = await authFetch("/api/settings");
       if (res.ok) {
         const data = await res.json();
         const s = data.settings as Record<string, unknown> | null;
@@ -76,7 +77,7 @@ export function NotificationsTab() {
     setSaved(false);
     setSaveError(null);
     try {
-      const res = await fetch("/api/settings", {
+      const res = await authFetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,19 +154,34 @@ export function NotificationsTab() {
       </CardHeader>
       <CardContent className="space-y-5">
         {channels.map((ch) => (
-          <div key={ch.name} className="space-y-2 border-b border-glass-border pb-4 last:border-0">
+          <div
+            key={ch.name}
+            className="space-y-2 border-b border-glass-border pb-4 last:border-0"
+          >
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-foreground/80">{ch.name}</p>
+              <p className="text-sm font-medium text-foreground/80">
+                {ch.name}
+              </p>
               <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${STATUS_DOT[ch.status]}`} />
-                <span className={`text-xs capitalize ${STATUS_TEXT[ch.status]}`}>{ch.status}</span>
+                <span
+                  className={`h-2 w-2 rounded-full ${STATUS_DOT[ch.status]}`}
+                />
+                <span
+                  className={`text-xs capitalize ${STATUS_TEXT[ch.status]}`}
+                >
+                  {ch.status}
+                </span>
               </div>
             </div>
             <div className="flex gap-2">
               {ch.key ? (
                 <Input
                   value={config[ch.key]}
-                  onChange={(e) => { const k = ch.key; if (k) setConfig((prev) => ({ ...prev, [k]: e.target.value })); }}
+                  onChange={(e) => {
+                    const k = ch.key;
+                    if (k)
+                      setConfig((prev) => ({ ...prev, [k]: e.target.value }));
+                  }}
                   placeholder={ch.placeholder}
                   type={ch.type}
                   className="bg-glass-input border-glass-border text-sm"
@@ -176,7 +192,12 @@ export function NotificationsTab() {
                     <input
                       type="checkbox"
                       checked={config.webPushEnabled}
-                      onChange={(e) => setConfig((prev) => ({ ...prev, webPushEnabled: e.target.checked }))}
+                      onChange={(e) =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          webPushEnabled: e.target.checked,
+                        }))
+                      }
                       className="rounded border-glass-border"
                     />
                     Enable Web Push notifications
@@ -195,9 +216,7 @@ export function NotificationsTab() {
             </div>
           </div>
         ))}
-        {saveError && (
-          <p className="text-xs text-red-400">{saveError}</p>
-        )}
+        {saveError && <p className="text-xs text-red-400">{saveError}</p>}
         <Button
           size="sm"
           className="text-xs"

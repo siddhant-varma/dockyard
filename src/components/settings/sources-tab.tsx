@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 /** Valid discovery source types. */
 const SOURCE_TYPES = ["filesystem", "dokploy", "github", "manual"] as const;
@@ -91,7 +92,7 @@ export function SourcesTab() {
 
   const fetchSources = useCallback(async () => {
     try {
-      const res = await fetch("/api/discovery/sources");
+      const res = await authFetch("/api/discovery/sources");
       if (res.ok) {
         const data = await res.json();
         setSources(Array.isArray(data) ? data : []);
@@ -110,7 +111,7 @@ export function SourcesTab() {
     setScanResult(null);
     setActionError(null);
     try {
-      const res = await fetch("/api/discovery");
+      const res = await authFetch("/api/discovery");
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Scan failed" }));
         setActionError(err.error ?? "Scan failed");
@@ -133,7 +134,7 @@ export function SourcesTab() {
   const handleToggleEnabled = async (id: string, currentlyEnabled: boolean) => {
     setActionError(null);
     try {
-      const res = await fetch(`/api/discovery/sources/${id}`, {
+      const res = await authFetch(`/api/discovery/sources/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: !currentlyEnabled }),
@@ -162,7 +163,7 @@ export function SourcesTab() {
     if (!confirmed) return;
     setActionError(null);
     try {
-      const res = await fetch(`/api/discovery/sources/${id}`, {
+      const res = await authFetch(`/api/discovery/sources/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -196,7 +197,7 @@ export function SourcesTab() {
     if (!source) return;
 
     try {
-      const res = await fetch(`/api/discovery/sources/${editingId}`, {
+      const res = await authFetch(`/api/discovery/sources/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editName.trim(), config: editConfig }),
@@ -239,7 +240,7 @@ export function SourcesTab() {
 
     setAdding(true);
     try {
-      const res = await fetch("/api/discovery/sources", {
+      const res = await authFetch("/api/discovery/sources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -281,7 +282,7 @@ export function SourcesTab() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch("/api/discovery/test-github", {
+      const res = await authFetch("/api/discovery/test-github", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

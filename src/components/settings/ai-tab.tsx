@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authFetch } from "@/lib/api/auth-fetch";
 
 const PROVIDERS = ["anthropic", "openai", "groq"] as const;
 type AiProvider = (typeof PROVIDERS)[number];
@@ -51,7 +52,7 @@ export function AITab() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const res = await fetch("/api/settings");
+      const res = await authFetch("/api/settings");
       if (res.ok) {
         const data = await res.json();
         const s = data.settings as Record<string, unknown> | null;
@@ -59,7 +60,9 @@ export function AITab() {
           const ai = s.aiConfig as Record<string, unknown>;
           setConfig({
             provider: (ai.provider as AiProvider) ?? "anthropic",
-            model: (ai.model as string) ?? DEFAULT_MODELS[(ai.provider as AiProvider) ?? "anthropic"],
+            model:
+              (ai.model as string) ??
+              DEFAULT_MODELS[(ai.provider as AiProvider) ?? "anthropic"],
             apiKey: (ai.apiKey as string) ?? "",
             temperature: (ai.temperature as number) ?? 0.3,
             maxTokens: (ai.maxTokens as number) ?? 2048,
@@ -88,7 +91,7 @@ export function AITab() {
     setSaved(false);
     setSaveError(null);
     try {
-      const res = await fetch("/api/settings", {
+      const res = await authFetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -122,7 +125,9 @@ export function AITab() {
     try {
       // Future: call a test endpoint that validates the API key
       await new Promise((r) => setTimeout(r, 800));
-      setTestResult(config.apiKey ? "Connection successful" : "No API key configured");
+      setTestResult(
+        config.apiKey ? "Connection successful" : "No API key configured"
+      );
       setTimeout(() => setTestResult(null), 3000);
     } catch {
       setTestResult("Connection failed");
@@ -146,15 +151,17 @@ export function AITab() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-foreground/40">
-          AI config can also be set via environment variables (DOCKYARD_AI_PROVIDER, etc.).
-          Values saved here override env defaults.
+          AI config can also be set via environment variables
+          (DOCKYARD_AI_PROVIDER, etc.). Values saved here override env defaults.
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-xs text-foreground/60">Provider</Label>
             <select
               value={config.provider}
-              onChange={(e) => handleProviderChange(e.target.value as AiProvider)}
+              onChange={(e) =>
+                handleProviderChange(e.target.value as AiProvider)
+              }
               className="w-full rounded-md border border-glass-border bg-glass-input px-3 py-2 text-sm text-foreground"
             >
               {PROVIDERS.map((p) => (
@@ -168,7 +175,9 @@ export function AITab() {
             <Label className="text-xs text-foreground/60">Model</Label>
             <Input
               value={config.model}
-              onChange={(e) => setConfig((prev) => ({ ...prev, model: e.target.value }))}
+              onChange={(e) =>
+                setConfig((prev) => ({ ...prev, model: e.target.value }))
+              }
               className="bg-glass-input border-glass-border text-sm"
             />
           </div>
@@ -179,7 +188,9 @@ export function AITab() {
             <Input
               type="password"
               value={config.apiKey}
-              onChange={(e) => setConfig((prev) => ({ ...prev, apiKey: e.target.value }))}
+              onChange={(e) =>
+                setConfig((prev) => ({ ...prev, apiKey: e.target.value }))
+              }
               placeholder={`Enter ${config.provider} API key`}
               className="bg-glass-input border-glass-border text-sm"
             />
@@ -193,7 +204,9 @@ export function AITab() {
             </Button>
           </div>
           {testResult && (
-            <p className={`text-xs ${testResult.includes("successful") ? "text-green-400" : "text-yellow-400"}`}>
+            <p
+              className={`text-xs ${testResult.includes("successful") ? "text-green-400" : "text-yellow-400"}`}
+            >
               {testResult}
             </p>
           )}
@@ -207,7 +220,12 @@ export function AITab() {
               max={2}
               step={0.1}
               value={config.temperature}
-              onChange={(e) => setConfig((prev) => ({ ...prev, temperature: parseFloat(e.target.value) || 0 }))}
+              onChange={(e) =>
+                setConfig((prev) => ({
+                  ...prev,
+                  temperature: parseFloat(e.target.value) || 0,
+                }))
+              }
               className="w-20 bg-glass-input border-glass-border text-right text-sm font-mono"
             />
           </div>
@@ -219,14 +237,17 @@ export function AITab() {
               max={16384}
               step={256}
               value={config.maxTokens}
-              onChange={(e) => setConfig((prev) => ({ ...prev, maxTokens: parseInt(e.target.value) || 2048 }))}
+              onChange={(e) =>
+                setConfig((prev) => ({
+                  ...prev,
+                  maxTokens: parseInt(e.target.value) || 2048,
+                }))
+              }
               className="w-24 bg-glass-input border-glass-border text-right text-sm font-mono"
             />
           </div>
         </div>
-        {saveError && (
-          <p className="text-xs text-red-400">{saveError}</p>
-        )}
+        {saveError && <p className="text-xs text-red-400">{saveError}</p>}
         <Button
           size="sm"
           className="text-xs"
