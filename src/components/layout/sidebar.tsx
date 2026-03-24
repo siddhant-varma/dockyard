@@ -15,13 +15,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 const NAV_ITEMS = [
   {
     label: "Home",
     href: "/",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
         <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
@@ -31,7 +41,16 @@ const NAV_ITEMS = [
     label: "Projects",
     href: "/projects",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
       </svg>
     ),
@@ -40,7 +59,16 @@ const NAV_ITEMS = [
     label: "Watchtower",
     href: "/watchtower",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
         <circle cx="12" cy="12" r="3" />
       </svg>
@@ -49,19 +77,45 @@ const NAV_ITEMS = [
 ] as const;
 
 const SETTINGS_ICON = (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <circle cx="12" cy="12" r="3" />
     <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
   </svg>
 );
 
-interface SidebarProps {
-  userName?: string | null;
-  userEmail?: string | null;
-}
+const LOGOUT_ICON = (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
 
-export function Sidebar({ userName, userEmail }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  const isAuthEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+  const displayName = session?.user?.name ?? session?.user?.email ?? "Admin";
+  const displayEmail = session?.user?.email;
 
   function isActive(href: string): boolean {
     if (href === "/") return pathname === "/";
@@ -86,7 +140,13 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 }`}
               >
-                <span className={active ? "text-sidebar-primary" : "text-sidebar-foreground/60"}>
+                <span
+                  className={
+                    active
+                      ? "text-sidebar-primary"
+                      : "text-sidebar-foreground/60"
+                  }
+                >
                   {item.icon}
                 </span>
                 {item.label}
@@ -109,14 +169,26 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
             Settings
           </Link>
 
-          <div className="mt-2 rounded-lg px-3 py-2">
-            <p className="truncate text-xs font-medium text-sidebar-foreground">
-              {userName ?? userEmail ?? "Not signed in"}
-            </p>
-            {userEmail && userName && (
-              <p className="truncate text-[10px] text-sidebar-foreground/50">
-                {userEmail}
+          <div className="mt-2 flex items-center justify-between rounded-lg px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-sidebar-foreground">
+                {displayName}
               </p>
+              {displayEmail && displayName !== displayEmail && (
+                <p className="truncate text-[10px] text-sidebar-foreground/50">
+                  {displayEmail}
+                </p>
+              )}
+            </div>
+            {isAuthEnabled && session && (
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="shrink-0 rounded-md p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                title="Sign out"
+              >
+                {LOGOUT_ICON}
+              </button>
             )}
           </div>
         </div>

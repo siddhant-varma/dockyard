@@ -1,16 +1,17 @@
 /**
- * Next.js middleware for subdomain-based routing.
+ * Next.js middleware for authentication gating and subdomain-based routing.
  *
- * In production, routes requests based on the Host header:
+ * **Auth gating** (when DOCKYARD_AUTH_ENABLED=true):
+ * Checks for an Auth.js session cookie. If missing, redirects to /login.
+ * Public paths (/login, /api/auth/*, static assets) are exempt.
+ *
+ * **Subdomain routing** (production):
+ * Routes requests based on the Host header:
  * - dockyard.cc          → /(home)/...
  * - projects.dockyard.cc → /(projects)/projects/...
  * - watchtower.dockyard.cc → /(watchtower)/watchtower/...
  *
- * In local development (localhost), path-based routing works as-is:
- * - /           → Home dashboard
- * - /projects/* → Projects portal
- * - /watchtower/* → Watchtower
- *
+ * In local development (localhost), path-based routing works as-is.
  * API routes (/api/*) are never rewritten — they're shared across subdomains.
  */
 
@@ -22,6 +23,12 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const BASE_DOMAIN = process.env.DOCKYARD_DOMAIN ?? "dockyard.cc";
 
+/** Whether the login system is active. */
+const AUTH_ENABLED = process.env.DOCKYARD_AUTH_ENABLED === "true";
+
+/** Paths that are accessible without authentication. */
+const PUBLIC_PATHS = ["/login", "/api/auth"];
+
 /** Subdomains that map to route groups. */
 const SUBDOMAIN_MAP: Record<string, string> = {
   projects: "/projects",
@@ -31,13 +38,39 @@ const SUBDOMAIN_MAP: Record<string, string> = {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Never rewrite API routes or static assets
+  // Never rewrite or gate API routes (except auth check below) or static assets
   if (
-    pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
     pathname.includes(".")
   ) {
+    return NextResponse.next();
+  }
+
+  // ── Auth gate ──────────────────────────────────────────────────
+  if (AUTH_ENABLED) {
+    const isPublicPath =
+      PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
+      pathname.startsWith("/api/");
+
+    if (!isPublicPath) {
+      // Check for Auth.js session cookie (dev vs prod cookie names)
+      const sessionCookie =
+        request.cookies.get("authjs.session-token") ??
+        request.cookies.get("__Secure-authjs.session-token");
+
+      if (!sessionCookie) {
+        const loginUrl = request.nextUrl.clone();
+        loginUrl.pathname = "/login";
+        loginUrl.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+    }
+  }
+
+  // ── Subdomain routing ──────────────────────────────────────────
+  // Skip for API routes
+  if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 

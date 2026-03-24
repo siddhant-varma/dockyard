@@ -2,7 +2,10 @@
  * Projects Grid page — /projects
  *
  * Server component. In demo mode uses static data, otherwise fetches
- * from API. Renders a 3-column grid of glass ProjectCards.
+ * from API. By default only shows "active" projects; a "Show All" toggle
+ * (via ?all=true search param) reveals all statuses.
+ *
+ * Renders a 3-column grid of glass ProjectCards.
  */
 
 import {
@@ -12,16 +15,18 @@ import {
 import { PageTabs } from "@/components/layout/page-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
+import { ProjectStatusToggle } from "@/components/projects/project-status-toggle";
 import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_PROJECTS } from "@/lib/demo-data";
 
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-async function fetchProjects(): Promise<ProjectSummary[]> {
+async function fetchProjects(activeOnly: boolean): Promise<ProjectSummary[]> {
   if (isDemoMode && !isDiagnosticMode) return DEMO_PROJECTS;
   try {
-    const res = await fetch(`${INTERNAL_BASE}/api/projects`, {
+    const statusFilter = activeOnly ? "?status=active" : "";
+    const res = await fetch(`${INTERNAL_BASE}/api/projects${statusFilter}`, {
       cache: "no-store",
     });
     if (!res.ok) return [];
@@ -31,8 +36,14 @@ async function fetchProjects(): Promise<ProjectSummary[]> {
   }
 }
 
-export default async function ProjectsPage() {
-  const projects = await fetchProjects();
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ all?: string }>;
+}) {
+  const params = await searchParams;
+  const showAll = params.all === "true";
+  const projects = await fetchProjects(!showAll);
 
   // Build dynamic project tabs — "All" + each project name
   const projectTabs = [
@@ -42,13 +53,20 @@ export default async function ProjectsPage() {
 
   return (
     <div>
-      <PageTabs tabs={projectTabs} />
+      <div className="mb-4 flex items-center justify-between">
+        <PageTabs tabs={projectTabs} />
+        <ProjectStatusToggle showAll={showAll} />
+      </div>
 
       {projects.length === 0 ? (
         <EmptyState
           icon="folder"
-          title="No projects discovered"
-          description="Connect a discovery source in Settings to get started."
+          title={showAll ? "No projects discovered" : "No active projects"}
+          description={
+            showAll
+              ? "Connect a discovery source in Settings to get started."
+              : "Activate projects in Settings > Projects, or show all projects."
+          }
         />
       ) : (
         <AnimatedGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

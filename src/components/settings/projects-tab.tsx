@@ -249,6 +249,11 @@ export function ProjectsTab() {
           </div>
         </CardHeader>
         <CardContent>
+          <p className="mb-3 text-xs text-foreground/40">
+            Only <strong className="text-foreground/60">active</strong> projects
+            appear on the Projects page. Use Activate/Pause to control
+            visibility.
+          </p>
           {fetchError && (
             <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/5 p-3">
               <p className="text-xs text-red-400">{fetchError}</p>
@@ -375,6 +380,11 @@ export function ProjectsTab() {
                                 p.slug,
                                 p.status ?? "discovered"
                               )
+                            }
+                            title={
+                              p.status === "active"
+                                ? "Pause — hides from Projects page"
+                                : "Activate — shows on Projects page"
                             }
                           >
                             {p.status === "active" ? "Pause" : "Activate"}
