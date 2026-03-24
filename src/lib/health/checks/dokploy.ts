@@ -29,10 +29,12 @@ export async function checkDokploy(): Promise<DeepCheckResult> {
   }
 
   try {
+    // DOKPLOY_API_URL already ends with /api — don't double it
+    const baseUrl = apiUrl.replace(/\/api\/?$/, "");
     const response = (await Promise.race([
-      fetch(`${apiUrl}/api/settings.getAll`, {
+      fetch(`${baseUrl}/api/settings.getAll`, {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          "x-api-key": apiKey,
           Accept: "application/json",
         },
         signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
