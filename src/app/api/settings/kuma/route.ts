@@ -45,26 +45,20 @@ async function checkKumaConnection(): Promise<KumaStatusResponse> {
   }
 
   try {
-    // Kuma's only reliable REST endpoint: status page heartbeat
-    // This works without Socket.IO and verifies the instance is reachable
-    const res = await fetch(`${kumaUrl}/api/status-page/heartbeat/default`, {
+    // Verify Kuma is reachable. Any HTTP response (even HTML) means it's up.
+    // Kuma's API is Socket.IO-based so there's no clean REST health endpoint.
+    const res = await fetch(kumaUrl, {
       signal: AbortSignal.timeout(5000),
     });
 
-    if (!res.ok) {
-      // Try without /default — maybe no status page exists yet
-      const fallback = await fetch(kumaUrl, {
-        signal: AbortSignal.timeout(5000),
-      });
-      if (!fallback.ok) {
-        return {
-          connected: false,
-          url: kumaUrl,
-          monitorCount: 0,
-          version: null,
-          error: `Kuma returned HTTP ${res.status}`,
-        };
-      }
+    if (!res.ok && res.status >= 500) {
+      return {
+        connected: false,
+        url: kumaUrl,
+        monitorCount: 0,
+        version: null,
+        error: `Kuma returned HTTP ${res.status}`,
+      };
     }
 
     // If we got here, Kuma is reachable
