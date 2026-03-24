@@ -37,10 +37,12 @@ const log = createModuleLogger("kuma.client");
 export interface KumaClientConfig {
   /** Base URL of the Uptime Kuma instance (e.g., "http://localhost:3002"). */
   baseUrl: string;
-  /** Username for Uptime Kuma login. */
-  username: string;
-  /** Password for Uptime Kuma login. */
-  password: string;
+  /** API key for Uptime Kuma (preferred, v1.23+). Skips username/password login. */
+  apiKey?: string;
+  /** Username for Uptime Kuma login (fallback when API key is not set). */
+  username?: string;
+  /** Password for Uptime Kuma login (fallback when API key is not set). */
+  password?: string;
 }
 
 /**
@@ -51,9 +53,10 @@ export interface KumaClientConfig {
  */
 export class KumaClient {
   private readonly baseUrl: string;
-  private readonly username: string;
-  private readonly password: string;
-  /** Cached JWT token from login. Null until first authentication. */
+  private readonly apiKey: string | null;
+  private readonly username: string | null;
+  private readonly password: string | null;
+  /** Cached JWT token from login. Null until first authentication or when using API key. */
   private token: string | null = null;
   /** Timestamp when the token was obtained, for staleness checks. */
   private tokenObtainedAt: number = 0;
@@ -62,8 +65,9 @@ export class KumaClient {
 
   constructor(config: KumaClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
-    this.username = config.username;
-    this.password = config.password;
+    this.apiKey = config.apiKey ?? null;
+    this.username = config.username ?? null;
+    this.password = config.password ?? null;
   }
 
   /**
@@ -73,30 +77,57 @@ export class KumaClient {
    * @throws HttpError if login fails (invalid credentials, Kuma unavailable)
    */
   async login(): Promise<void> {
+    if (!this.username || !this.password) {
+      throw new Error(
+        "Uptime Kuma login requires KUMA_USERNAME and KUMA_PASSWORD (or use KUMA_API_KEY instead)"
+      );
+    }
+
     const t0 = performance.now();
     log.info({ endpoint: "/api/login" }, "Authenticating with Uptime Kuma");
 
     const response = await this.rawFetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: this.username, password: this.password, token: "" }),
+      body: JSON.stringify({
+        username: this.username,
+        password: this.password,
+        token: "",
+      }),
     });
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
-      log.error({ status: response.status, durationMs: Math.round(performance.now() - t0) }, "Login failed");
-      throw new HttpError(response.status, response.statusText, body, `${this.baseUrl}/api/login`);
+      log.error(
+        {
+          status: response.status,
+          durationMs: Math.round(performance.now() - t0),
+        },
+        "Login failed"
+      );
+      throw new HttpError(
+        response.status,
+        response.statusText,
+        body,
+        `${this.baseUrl}/api/login`
+      );
     }
 
     const data = (await response.json()) as { token?: string; ok?: boolean };
     if (!data.token) {
-      log.error({ responseKeys: Object.keys(data) }, "Login response missing token");
+      log.error(
+        { responseKeys: Object.keys(data) },
+        "Login response missing token"
+      );
       throw new Error("Uptime Kuma login succeeded but no token was returned");
     }
 
     this.token = data.token;
     this.tokenObtainedAt = Date.now();
-    log.info({ durationMs: Math.round(performance.now() - t0) }, "Login successful");
+    log.info(
+      { durationMs: Math.round(performance.now() - t0) },
+      "Login successful"
+    );
   }
 
   /**
@@ -105,7 +136,9 @@ export class KumaClient {
    */
   async getMonitors(): Promise<KumaMonitor[]> {
     log.info({ endpoint: "/api/monitors" }, "Fetching all monitors");
-    const data = await this.authedFetch<{ monitors: KumaMonitor[] }>("/api/monitors");
+    const data = await this.authedFetch<{ monitors: KumaMonitor[] }>(
+      "/api/monitors"
+    );
     const monitors = Array.isArray(data.monitors) ? data.monitors : [];
     log.info({ monitorCount: monitors.length }, "Fetched all monitors");
     return monitors;
@@ -119,8 +152,13 @@ export class KumaClient {
    */
   async getMonitor(id: number): Promise<KumaMonitor> {
     log.info({ monitorId: id }, "Fetching monitor");
-    const data = await this.authedFetch<{ monitor: KumaMonitor }>(`/api/monitors/${id}`);
-    log.info({ monitorId: id, monitorName: data.monitor?.name }, "Fetched monitor");
+    const data = await this.authedFetch<{ monitor: KumaMonitor }>(
+      `/api/monitors/${id}`
+    );
+    log.info(
+      { monitorId: id, monitorName: data.monitor?.name },
+      "Fetched monitor"
+    );
     return data.monitor;
   }
 
@@ -132,7 +170,9 @@ export class KumaClient {
    */
   async getStatusPage(slug: string): Promise<KumaStatusPage> {
     log.info({ slug }, "Fetching status page");
-    const data = await this.authedFetch<{ statusPage: KumaStatusPage }>(`/api/status-pages/${slug}`);
+    const data = await this.authedFetch<{ statusPage: KumaStatusPage }>(
+      `/api/status-pages/${slug}`
+    );
     log.info({ slug, title: data.statusPage?.title }, "Fetched status page");
     return data.statusPage;
   }
@@ -144,11 +184,17 @@ export class KumaClient {
    */
   async createMonitor(input: CreateMonitorInput): Promise<KumaMonitor> {
     log.info({ monitorName: input.name, type: input.type }, "Creating monitor");
-    const data = await this.authedFetch<{ monitor: KumaMonitor }>("/api/monitors", {
-      method: "POST",
-      body: input,
-    });
-    log.info({ monitorId: data.monitor?.id, monitorName: input.name }, "Monitor created");
+    const data = await this.authedFetch<{ monitor: KumaMonitor }>(
+      "/api/monitors",
+      {
+        method: "POST",
+        body: input,
+      }
+    );
+    log.info(
+      { monitorId: data.monitor?.id, monitorName: input.name },
+      "Monitor created"
+    );
     return data.monitor;
   }
 
@@ -159,7 +205,9 @@ export class KumaClient {
    */
   async deleteMonitor(id: number): Promise<void> {
     log.info({ monitorId: id }, "Deleting monitor");
-    await this.authedFetch<{ ok: boolean }>(`/api/monitors/${id}`, { method: "DELETE" });
+    await this.authedFetch<{ ok: boolean }>(`/api/monitors/${id}`, {
+      method: "DELETE",
+    });
     log.info({ monitorId: id }, "Monitor deleted");
   }
 
@@ -170,7 +218,9 @@ export class KumaClient {
    */
   async pauseMonitor(id: number): Promise<void> {
     log.info({ monitorId: id }, "Pausing monitor");
-    await this.authedFetch<{ ok: boolean }>(`/api/monitors/${id}/pause`, { method: "POST" });
+    await this.authedFetch<{ ok: boolean }>(`/api/monitors/${id}/pause`, {
+      method: "POST",
+    });
     log.info({ monitorId: id }, "Monitor paused");
   }
 
@@ -181,7 +231,9 @@ export class KumaClient {
    */
   async resumeMonitor(id: number): Promise<void> {
     log.info({ monitorId: id }, "Resuming monitor");
-    await this.authedFetch<{ ok: boolean }>(`/api/monitors/${id}/resume`, { method: "POST" });
+    await this.authedFetch<{ ok: boolean }>(`/api/monitors/${id}/resume`, {
+      method: "POST",
+    });
     log.info({ monitorId: id }, "Monitor resumed");
   }
 
@@ -205,15 +257,23 @@ export class KumaClient {
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
-      log.error({ status: response.status, slug }, "Failed to fetch public status page data");
+      log.error(
+        { status: response.status, slug },
+        "Failed to fetch public status page data"
+      );
       throw new HttpError(
-        response.status, response.statusText, body,
+        response.status,
+        response.statusText,
+        body,
         `${this.baseUrl}/api/status-page/${slug}`
       );
     }
 
     const data = (await response.json()) as StatusPagePublicData;
-    log.info({ slug, groupCount: data.publicGroupList?.length ?? 0 }, "Fetched public status page data");
+    log.info(
+      { slug, groupCount: data.publicGroupList?.length ?? 0 },
+      "Fetched public status page data"
+    );
     return data;
   }
 
@@ -221,9 +281,13 @@ export class KumaClient {
      Private Helpers
      ================================================================ */
 
-  /** Ensure the client has a valid authentication token. */
+  /** Ensure the client has a valid authentication token or API key. */
   private async ensureAuthenticated(): Promise<void> {
-    const isExpired = Date.now() - this.tokenObtainedAt > KumaClient.TOKEN_TTL_MS;
+    // API key auth — no login needed
+    if (this.apiKey) return;
+
+    const isExpired =
+      Date.now() - this.tokenObtainedAt > KumaClient.TOKEN_TTL_MS;
     if (!this.token || isExpired) {
       await this.login();
     }
@@ -246,29 +310,38 @@ export class KumaClient {
     const { method = "GET", body } = options;
     const headers: Record<string, string> = {
       Accept: "application/json",
-      Authorization: `Bearer ${this.token}`,
+      Authorization: this.apiKey
+        ? `Bearer ${this.apiKey}`
+        : `Bearer ${this.token}`,
     };
     if (body) headers["Content-Type"] = "application/json";
 
     let response = await this.rawFetch(path, {
-      method, headers,
+      method,
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    // Retry once on 401 — token may have expired server-side
-    if (response.status === 401) {
+    // Retry once on 401 — token may have expired server-side (skip for API key auth)
+    if (response.status === 401 && !this.apiKey) {
       log.warn({ path }, "Got 401, re-authenticating and retrying");
       await this.login();
       headers.Authorization = `Bearer ${this.token}`;
       response = await this.rawFetch(path, {
-        method, headers,
+        method,
+        headers,
         body: body ? JSON.stringify(body) : undefined,
       });
     }
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => "");
-      throw new HttpError(response.status, response.statusText, errorBody, `${this.baseUrl}${path}`);
+      throw new HttpError(
+        response.status,
+        response.statusText,
+        errorBody,
+        `${this.baseUrl}${path}`
+      );
     }
 
     return (await response.json()) as T;
@@ -280,7 +353,10 @@ export class KumaClient {
    * @param init - Standard fetch RequestInit options
    * @returns Raw Response object
    */
-  private async rawFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  private async rawFetch(
+    path: string,
+    init: RequestInit = {}
+  ): Promise<Response> {
     return fetch(`${this.baseUrl}${path}`, {
       ...init,
       signal: init.signal ?? AbortSignal.timeout(15000),
@@ -298,8 +374,9 @@ let kumaClientInstance: KumaClient | null = null;
 /**
  * Get a singleton KumaClient instance configured from environment variables.
  *
- * Reads `KUMA_URL`, `KUMA_USERNAME`, and `KUMA_PASSWORD` from `process.env`.
- * Returns `null` if any required variable is missing (Kuma integration is optional).
+ * Prefers API key auth (`KUMA_API_KEY`) over username/password login.
+ * Falls back to `KUMA_USERNAME` + `KUMA_PASSWORD` if no API key is set.
+ * Returns `null` if `KUMA_URL` is missing or no auth method is configured.
  *
  * @returns A configured KumaClient, or null if Kuma is not configured
  */
@@ -307,18 +384,29 @@ export function getKumaClient(): KumaClient | null {
   if (kumaClientInstance) return kumaClientInstance;
 
   const baseUrl = process.env.KUMA_URL;
+  const apiKey = process.env.KUMA_API_KEY;
   const username = process.env.KUMA_USERNAME;
   const password = process.env.KUMA_PASSWORD;
 
-  if (!baseUrl || !username || !password) {
+  if (!baseUrl) {
+    log.debug("Uptime Kuma not configured — KUMA_URL not set");
+    return null;
+  }
+
+  const hasApiKey = !!apiKey;
+  const hasCredentials = !!username && !!password;
+
+  if (!hasApiKey && !hasCredentials) {
     log.debug(
-      { hasUrl: !!baseUrl, hasUsername: !!username, hasPassword: !!password },
-      "Uptime Kuma not configured — missing env vars"
+      "Uptime Kuma not configured — set KUMA_API_KEY or KUMA_USERNAME + KUMA_PASSWORD"
     );
     return null;
   }
 
-  kumaClientInstance = new KumaClient({ baseUrl, username, password });
-  log.info({ baseUrl }, "Uptime Kuma client initialized");
+  kumaClientInstance = new KumaClient({ baseUrl, apiKey, username, password });
+  log.info(
+    { baseUrl, authMethod: hasApiKey ? "api-key" : "login" },
+    "Uptime Kuma client initialized"
+  );
   return kumaClientInstance;
 }

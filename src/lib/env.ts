@@ -101,9 +101,11 @@ const envSchema = z.object({
   // ── Uptime Kuma — external health monitoring integration (optional)
   /** Base URL of the Uptime Kuma instance (e.g., http://localhost:3002). */
   KUMA_URL: z.string().optional(),
-  /** Username for Uptime Kuma Socket.IO authentication. */
+  /** API key for Uptime Kuma (preferred, v1.23+). Avoids storing username/password. */
+  KUMA_API_KEY: z.string().optional(),
+  /** Username for Uptime Kuma login (fallback when API key is not set). */
   KUMA_USERNAME: z.string().optional(),
-  /** Password for Uptime Kuma Socket.IO authentication. */
+  /** Password for Uptime Kuma login (fallback when API key is not set). */
   KUMA_PASSWORD: z.string().optional(),
   /** Shared secret for validating incoming Kuma webhook notifications.
    *  When set, the POST /api/ingest/kuma endpoint requires this secret
@@ -133,7 +135,10 @@ function validateEnv() {
     const formatted = result.error.issues
       .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
       .join("\n");
-    rootLogger.fatal({ issues: result.error.issues }, `Environment validation failed:\n${formatted}`);
+    rootLogger.fatal(
+      { issues: result.error.issues },
+      `Environment validation failed:\n${formatted}`
+    );
     throw new Error("Invalid environment variables");
   }
   return result.data;
@@ -152,7 +157,8 @@ export const isServerMode = env.DOCKYARD_MODE === "server";
 export const isAuthEnabled = env.DOCKYARD_AUTH_ENABLED;
 
 /** Whether 2FA is active (only meaningful when auth is enabled). */
-export const is2FAEnabled = env.DOCKYARD_AUTH_ENABLED && env.DOCKYARD_2FA_ENABLED;
+export const is2FAEnabled =
+  env.DOCKYARD_AUTH_ENABLED && env.DOCKYARD_2FA_ENABLED;
 
 /** Whether demo mode is active — skips all API/DB calls. */
 export const isDemoMode = env.DOCKYARD_DEMO;
