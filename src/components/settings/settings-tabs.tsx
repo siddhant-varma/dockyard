@@ -13,3 +13,4 @@ export { NotificationsTab } from "./notifications-tab";
 export { AITab } from "./ai-tab";
 export { MFATab } from "./mfa-tab";
 export { AuditTab } from "./audit-tab";
+export { KumaTab } from "./kuma-tab";

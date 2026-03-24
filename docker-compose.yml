@@ -17,5 +17,18 @@ services:
       timeout: 5s
       retries: 5
 
+  dockyard-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: dockyard-kuma
+    restart: unless-stopped
+    ports:
+      - "3002:3001"
+    volumes:
+      - kuma-data:/app/data
+    depends_on:
+      dockyard-postgres:
+        condition: service_healthy
+
 volumes:
   dockyard_pgdata:
+  kuma-data:

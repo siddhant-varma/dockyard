@@ -1,14 +1,13 @@
 /**
  * Project Settings page — /projects/[slug]/settings
  *
- * Client component. DIP level selector, connection strength,
- * notification overrides.
- * Matches Stitch "Project Settings" section from combined wireframe.
+ * DIP level selector, connection strength, notification overrides,
+ * and Uptime Kuma monitoring status.
  */
 
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +19,17 @@ import { useReAuth } from "@/components/auth/reauth-modal";
 
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/** Shape of a Kuma monitor record from the API. */
+interface KumaMonitorInfo {
+  id: string;
+  kumaMonitorId: number;
+  monitorType: string;
+  name: string;
+  url: string;
+  interval: number;
+  status: string;
+}
 
 const DIP_LEVELS = [
   { level: 1, name: "Passive", desc: "Health checks only" },
@@ -53,6 +63,30 @@ export default function ProjectSettingsPage({
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  // Kuma monitoring state
+  const [kumaMonitors, setKumaMonitors] = useState<KumaMonitorInfo[]>([]);
+  const [monitorsLoading, setMonitorsLoading] = useState(true);
+
+  const fetchMonitors = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${INTERNAL_BASE}/api/projects/${slug}/monitors`
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { monitors: KumaMonitorInfo[] };
+        setKumaMonitors(data.monitors ?? []);
+      }
+    } catch {
+      // Non-critical — monitoring section degrades gracefully
+    } finally {
+      setMonitorsLoading(false);
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    fetchMonitors();
+  }, [fetchMonitors]);
 
   /** Save Settings — PUT /api/projects/:slug with DIP level + notification prefs. */
   const handleSave = async () => {
@@ -199,6 +233,77 @@ export default function ProjectSettingsPage({
               </span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Monitoring (Uptime Kuma) */}
+      <Card className="bg-card border-glass-border backdrop-blur-lg">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Monitoring (Uptime Kuma)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {monitorsLoading ? (
+            <p className="text-xs text-foreground/40">Loading monitors...</p>
+          ) : kumaMonitors.length === 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs text-foreground/40">No Uptime Kuma monitors linked to this project.</p>
+              <p className="text-xs text-foreground/30">
+                Monitors are auto-provisioned when Kuma is configured.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {kumaMonitors.map((monitor) => (
+                <div
+                  key={monitor.id}
+                  className="flex items-center justify-between rounded-lg border border-glass-border p-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          monitor.status === "up"
+                            ? "bg-green-400"
+                            : monitor.status === "down"
+                              ? "bg-red-400"
+                              : "bg-yellow-400"
+                        }`}
+                      />
+                      <span className="text-sm font-medium text-foreground/80 truncate">
+                        {monitor.name}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-3 text-xs text-foreground/40">
+                      <span className="uppercase">{monitor.monitorType}</span>
+                      <span className="truncate">{monitor.url}</span>
+                      <span>{monitor.interval}s interval</span>
+                    </div>
+                  </div>
+                  <span
+                    className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      monitor.status === "up"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : monitor.status === "down"
+                          ? "bg-red-500/10 text-red-400"
+                          : "bg-yellow-500/10 text-yellow-400"
+                    }`}
+                  >
+                    {monitor.status}
+                  </span>
+                </div>
+              ))}
+              {process.env.NEXT_PUBLIC_KUMA_URL && (
+                <a
+                  href={process.env.NEXT_PUBLIC_KUMA_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs text-brand-400 hover:underline"
+                >
+                  Open Kuma Dashboard
+                </a>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
