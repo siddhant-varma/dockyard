@@ -47,20 +47,26 @@ export function AuditTab() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchLogs = useCallback(async (currentOffset: number) => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params = new URLSearchParams({
         limit: String(PAGE_SIZE),
         offset: String(currentOffset),
       });
       const res = await fetch(`/api/audit?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.entries ?? []);
-        setTotal(data.total ?? 0);
+      if (!res.ok) {
+        setFetchError("Failed to load audit logs");
+        return;
       }
+      const data = await res.json();
+      setLogs(data.entries ?? []);
+      setTotal(data.total ?? 0);
+    } catch {
+      setFetchError("Network error — check your connection");
     } finally {
       setLoading(false);
     }
@@ -91,6 +97,11 @@ export function AuditTab() {
         <CardTitle className="text-sm">Audit Log</CardTitle>
       </CardHeader>
       <CardContent>
+        {fetchError && (
+          <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/5 p-3">
+            <p className="text-xs text-red-400">{fetchError}</p>
+          </div>
+        )}
         {loading && logs.length === 0 ? (
           <p className="text-xs text-foreground/40">Loading...</p>
         ) : logs.length === 0 ? (

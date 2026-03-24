@@ -2,7 +2,7 @@
  * Sources settings tab — manage discovery sources.
  *
  * Lists configured sources from GET /api/discovery/sources.
- * Supports Scan Now (POST /api/discovery), Remove (DELETE /api/discovery/sources/:id),
+ * Supports Scan Now (POST /api/discovery), Disable/Enable toggle (PUT /api/discovery/sources/:id),
  * and Add Source (POST /api/discovery/sources) with an inline form.
  */
 
@@ -53,6 +53,8 @@ export function SourcesTab() {
   const [addConfig, setAddConfig] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<{ found: number; created: number; updated: number } | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchSources = useCallback(async () => {
     try {
@@ -72,18 +74,62 @@ export function SourcesTab() {
 
   const handleScan = async () => {
     setScanning(true);
+    setScanResult(null);
+    setActionError(null);
     try {
-      await fetch("/api/discovery");
+      const res = await fetch("/api/discovery");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Scan failed" }));
+        setActionError(err.error ?? "Scan failed");
+      } else {
+        const data = await res.json();
+        setScanResult({ found: data.found ?? 0, created: data.created ?? 0, updated: data.updated ?? 0 });
+      }
       await fetchSources();
+    } catch {
+      setActionError("Network error — check your connection");
     } finally {
       setScanning(false);
     }
   };
 
-  const handleRemove = async (id: string) => {
-    const res = await fetch(`/api/discovery/sources/${id}`, { method: "DELETE" });
-    if (res.ok) {
+  const handleToggleEnabled = async (id: string, currentlyEnabled: boolean) => {
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/discovery/sources/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !currentlyEnabled }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to update source" }));
+        setActionError(err.error ?? "Failed to update source");
+        return;
+      }
+      setSources((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, enabled: !currentlyEnabled } : s))
+      );
+    } catch {
+      setActionError("Network error — check your connection");
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = window.confirm(
+      `Permanently delete "${name}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/discovery/sources/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete source" }));
+        setActionError(err.error ?? "Failed to delete source");
+        return;
+      }
       setSources((prev) => prev.filter((s) => s.id !== id));
+    } catch {
+      setActionError("Network error — check your connection");
     }
   };
 
@@ -169,6 +215,20 @@ export function SourcesTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          {actionError && (
+            <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
+              <p className="text-xs text-red-400">{actionError}</p>
+            </div>
+          )}
+          {scanResult && (
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+              <p className="text-xs text-emerald-400">
+                Found {scanResult.found} project{scanResult.found !== 1 ? "s" : ""}
+                {scanResult.created > 0 && `, ${scanResult.created} new`}
+                {scanResult.updated > 0 && `, ${scanResult.updated} updated`}
+              </p>
+            </div>
+          )}
           {loading ? (
             <p className="text-xs text-foreground/40">Loading...</p>
           ) : sources.length === 0 ? (
@@ -177,23 +237,44 @@ export function SourcesTab() {
             sources.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between rounded-lg border border-glass-border bg-card/50 p-3"
+                className={`flex items-center justify-between rounded-lg border border-glass-border bg-card/50 p-3 ${
+                  !s.enabled ? "opacity-50" : ""
+                }`}
               >
-                <div>
-                  <p className="text-sm font-medium text-foreground/80">{s.name}</p>
-                  <p className="text-xs text-foreground/40">
-                    {s.type} — {s.enabled ? "enabled" : "disabled"}
-                    {s.lastScanAt ? ` — last scan ${new Date(s.lastScanAt).toLocaleString()}` : ""}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className={`text-sm font-medium text-foreground/80 ${!s.enabled ? "line-through" : ""}`}>
+                      {s.name}
+                    </p>
+                    <p className="text-xs text-foreground/40">
+                      {s.type}
+                      {s.lastScanAt ? ` — last scan ${new Date(s.lastScanAt).toLocaleString()}` : ""}
+                    </p>
+                  </div>
+                  {!s.enabled && (
+                    <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium text-foreground/50">
+                      Disabled
+                    </span>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-red-400"
-                  onClick={() => handleRemove(s.id)}
-                >
-                  Remove
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`text-xs ${s.enabled ? "text-amber-400" : "text-emerald-400"}`}
+                    onClick={() => handleToggleEnabled(s.id, s.enabled)}
+                  >
+                    {s.enabled ? "Disable" : "Enable"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-red-400"
+                    onClick={() => handleDelete(s.id, s.name)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
             ))
           )}

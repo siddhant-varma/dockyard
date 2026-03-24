@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { CreateIncidentForm } from "@/components/watchtower/create-incident-form";
 import { EmptyState } from "@/components/shared/empty-state";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_INCIDENTS, DEMO_PROJECTS, type DemoIncident } from "@/lib/demo-data";
 
 const WT_TABS = [
@@ -29,7 +29,7 @@ interface ProjectOption {
 }
 
 async function fetchIncidents(): Promise<DemoIncident[]> {
-  if (isDemoMode) return DEMO_INCIDENTS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_INCIDENTS;
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/incidents`, {
       cache: "no-store",
@@ -42,7 +42,7 @@ async function fetchIncidents(): Promise<DemoIncident[]> {
 }
 
 async function fetchProjects(): Promise<ProjectOption[]> {
-  if (isDemoMode) {
+  if (isDemoMode && !isDiagnosticMode) {
     return DEMO_PROJECTS.map((p) => ({ id: p.id, name: p.name }));
   }
   try {

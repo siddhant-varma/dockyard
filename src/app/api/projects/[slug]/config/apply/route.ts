@@ -6,6 +6,7 @@ import { buildEnvString } from "@/lib/config/service";
 import { DokployClient } from "@/lib/dokploy/client";
 import { inngest } from "@/inngest/client";
 import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/auth/audit";
 import { rateLimit } from "@/lib/auth/rate-limit";
 
 type Params = Promise<{ slug: string }>;
@@ -81,6 +82,14 @@ export async function POST(
       dokployAppId: project.dokployAppId,
       projectId: project.id,
     },
+  });
+
+  await logAudit({
+    actorId: session.user.id,
+    action: "config.apply",
+    targetType: "project",
+    targetId: project.id,
+    request,
   });
 
   return NextResponse.json({

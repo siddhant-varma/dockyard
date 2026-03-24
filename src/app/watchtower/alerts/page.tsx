@@ -11,7 +11,7 @@ import { PageTabs } from "@/components/layout/page-tabs";
 import { AlertActions } from "@/components/watchtower/alert-actions";
 import { CreateRuleForm } from "@/components/watchtower/create-rule-form";
 import { EmptyState } from "@/components/shared/empty-state";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_ALERT_EVENTS, DEMO_ALERT_RULES } from "@/lib/demo-data";
 import type { AlertEvent, AlertRule } from "@/components/watchtower/alert-types";
 
@@ -28,7 +28,7 @@ async function fetchAlerts(): Promise<{
   events: AlertEvent[];
   rules: AlertRule[];
 }> {
-  if (isDemoMode) {
+  if (isDemoMode && !isDiagnosticMode) {
     return { events: DEMO_ALERT_EVENTS, rules: DEMO_ALERT_RULES };
   }
   try {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listProjects, createProject } from "@/lib/projects/service";
 import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/auth/audit";
 
 /** GET /api/projects — List projects. Public sees public_visible only. */
 export async function GET(request: NextRequest) {
@@ -44,6 +45,14 @@ export async function POST(request: NextRequest) {
     techStack: Array.isArray(body.techStack) ? body.techStack : undefined,
     githubRepo: body.githubRepo ? String(body.githubRepo) : undefined,
     discoveredVia: "manual",
+  });
+
+  await logAudit({
+    actorId: session.user.id,
+    action: "project.create",
+    targetType: "project",
+    targetId: project.id,
+    request,
   });
 
   return NextResponse.json(project, { status: 201 });

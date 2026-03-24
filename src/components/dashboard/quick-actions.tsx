@@ -11,17 +11,27 @@
  *   variable, then applies and redeploys.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+
+/** localStorage key for persisting the last-selected project in quick actions. */
+const STORAGE_KEY = "dockyard-quick-action-project";
 
 interface QuickActionsProps {
   projects: { slug: string; name: string }[];
 }
 
 export function QuickActions({ projects }: QuickActionsProps) {
-  const [selectedSlug, setSelectedSlug] = useState(
-    projects[0]?.slug ?? ""
-  );
+  const [selectedSlug, setSelectedSlug] = useState(() => {
+    if (typeof window === "undefined") return projects[0]?.slug ?? "";
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored && projects.some((p) => p.slug === stored)) return stored;
+    } catch {
+      /* localStorage unavailable — fall through */
+    }
+    return projects[0]?.slug ?? "";
+  });
   const [redeployLoading, setRedeployLoading] = useState(false);
   const [redeployResult, setRedeployResult] = useState<{
     ok: boolean;
@@ -38,6 +48,16 @@ export function QuickActions({ projects }: QuickActionsProps) {
   } | null>(null);
 
   const resultTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Persist selected project slug to localStorage on change. */
+  const handleProjectChange = useCallback((slug: string) => {
+    setSelectedSlug(slug);
+    try {
+      localStorage.setItem(STORAGE_KEY, slug);
+    } catch {
+      /* localStorage unavailable — ignore */
+    }
+  }, []);
 
   /** Clear result message after a delay. */
   function flashResult(
@@ -93,13 +113,24 @@ export function QuickActions({ projects }: QuickActionsProps) {
       );
       if (res.ok) {
         // Trigger redeploy after env update
-        await fetch(`/api/projects/${selectedSlug}/config/apply`, {
-          method: "POST",
-        });
-        flashResult(setEnvResult, true, "Updated & redeploying");
-        setEnvKey("");
-        setEnvValue("");
-        setEnvOpen(false);
+        const redeployRes = await fetch(
+          `/api/projects/${selectedSlug}/config/apply`,
+          { method: "POST" }
+        );
+        if (redeployRes.ok) {
+          flashResult(setEnvResult, true, "Updated & redeploying");
+          setEnvKey("");
+          setEnvValue("");
+          setEnvOpen(false);
+        } else {
+          const redeployBody = await redeployRes.json().catch(() => ({}));
+          flashResult(
+            setEnvResult,
+            false,
+            redeployBody.error ??
+              `Env saved but redeploy failed (${redeployRes.status})`
+          );
+        }
       } else {
         const body = await res.json().catch(() => ({}));
         flashResult(
@@ -123,7 +154,7 @@ export function QuickActions({ projects }: QuickActionsProps) {
         <select
           className="rounded-lg border border-glass-border bg-glass-input px-3 py-1.5 text-sm text-foreground backdrop-blur-sm focus:border-[var(--color-brand-500)] focus:outline-none"
           value={selectedSlug}
-          onChange={(e) => setSelectedSlug(e.target.value)}
+          onChange={(e) => handleProjectChange(e.target.value)}
         >
           {!hasProjects ? (
             <option>No projects</option>

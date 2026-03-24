@@ -44,6 +44,7 @@ interface TotpEnrollment {
 export function MFATab() {
   const [credentials, setCredentials] = useState<MfaCredential[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [registerMsg, setRegisterMsg] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState(false);
   const [totpMsg, setTotpMsg] = useState<string | null>(null);
@@ -62,12 +63,16 @@ export function MFATab() {
   /** Fetch credentials from the API. */
   const fetchCredentials = useCallback(async () => {
     try {
+      setFetchError(null);
       const res = await fetch("/api/auth/mfa");
-      if (!res.ok) return;
+      if (!res.ok) {
+        setFetchError("Failed to load MFA credentials");
+        return;
+      }
       const json = (await res.json()) as { data: MfaCredential[] };
       setCredentials(json.data ?? []);
     } catch {
-      // Silently fail — credentials list shows empty
+      setFetchError("Failed to load MFA credentials");
     } finally {
       setLoading(false);
     }
@@ -279,6 +284,8 @@ export function MFATab() {
         <CardContent className="space-y-3">
           {loading ? (
             <p className="text-xs text-foreground/40">Loading credentials...</p>
+          ) : fetchError ? (
+            <p className="text-xs text-red-400">{fetchError}</p>
           ) : passkeys.length === 0 ? (
             <p className="text-xs text-foreground/40">
               No passkeys registered. Click &quot;Register Passkey&quot; to add one.

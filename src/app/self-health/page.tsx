@@ -1,14 +1,16 @@
 /**
  * Self-Health page — /self-health
  *
- * Server component. DockYard's own health: components, background jobs.
+ * Server component. DockYard's own health: components, background jobs,
+ * and deep dependency health checks (PostgreSQL, Inngest, Dokploy, Hetzner, encryption).
  * Matches Stitch "DockYard Self-Health" wireframe + WIREFRAMES.md §3.
  */
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
+import type { DeepCheckResult } from "@/lib/health/deep";
 
 const HOME_TABS = [
   { label: "Dashboard", href: "/" },
@@ -48,6 +50,19 @@ const DEMO_JOBS: BackgroundJob[] = [
   { name: "project-scanner", schedule: "Every 15m", lastRun: "5m ago", status: "ok", duration: "890ms" },
 ];
 
+const DEMO_DEEP_CHECKS: DeepCheckResult[] = [
+  { name: "PostgreSQL", status: "ok", latencyMs: 4 },
+  { name: "Inngest", status: "ok", latencyMs: 0 },
+  { name: "Dokploy", status: "ok", latencyMs: 45, error: "Not configured (optional)" },
+  { name: "Hetzner Cloud", status: "ok", latencyMs: 120 },
+  { name: "Encryption", status: "ok", latencyMs: 1 },
+];
+
+interface DeepHealthData {
+  status: "ok" | "degraded";
+  checks: DeepCheckResult[];
+}
+
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -56,7 +71,7 @@ async function fetchSelfHealth(): Promise<{
   jobs: BackgroundJob[];
   uptime: string;
 }> {
-  if (isDemoMode) {
+  if (isDemoMode && !isDiagnosticMode) {
     return { components: DEMO_COMPONENTS, jobs: DEMO_JOBS, uptime: "99.99%" };
   }
   try {
@@ -73,6 +88,24 @@ async function fetchSelfHealth(): Promise<{
     }>;
   } catch {
     return { components: [], jobs: [], uptime: "—" };
+  }
+}
+
+async function fetchDeepHealth(): Promise<DeepHealthData> {
+  if (isDemoMode && !isDiagnosticMode) {
+    return { status: "ok", checks: DEMO_DEEP_CHECKS };
+  }
+  try {
+    const res = await fetch(`${INTERNAL_BASE}/api/health/deep`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) {
+      return { status: "degraded", checks: [] };
+    }
+    const json = await res.json();
+    return json.data as DeepHealthData;
+  } catch {
+    return { status: "degraded", checks: [] };
   }
 }
 
@@ -95,9 +128,14 @@ const JOB_DOT: Record<string, string> = {
 };
 
 export default async function SelfHealthPage() {
-  const { components, jobs, uptime } = await fetchSelfHealth();
+  const [{ components, jobs, uptime }, deepHealth] = await Promise.all([
+    fetchSelfHealth(),
+    fetchDeepHealth(),
+  ]);
 
-  const allOk = components.every((c) => c.status === "operational");
+  const allOk =
+    components.every((c) => c.status === "operational") &&
+    deepHealth.status === "ok";
 
   return (
     <div className="space-y-6">
@@ -118,6 +156,56 @@ export default async function SelfHealthPage() {
           <span>Last check: 30s ago</span>
         </div>
       </div>
+
+      {/* Dependency Health (deep checks) */}
+      <Card className="bg-card border-glass-border backdrop-blur-lg">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Dependency Health</CardTitle>
+            <Badge
+              variant="outline"
+              className={`text-[10px] ${
+                deepHealth.status === "ok"
+                  ? "border-green-400/30 text-green-400"
+                  : "border-yellow-400/30 text-yellow-400"
+              }`}
+            >
+              {deepHealth.status === "ok" ? "All OK" : "Degraded"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {deepHealth.checks.length === 0 ? (
+            <p className="text-sm text-foreground/40">
+              Unable to fetch dependency health. Ensure you are authenticated.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {deepHealth.checks.map((check) => (
+                <div
+                  key={check.name}
+                  className="flex items-start gap-3 rounded-lg border border-glass-border bg-card/50 p-3"
+                >
+                  <span
+                    className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                      check.status === "ok" ? "bg-green-400" : "bg-red-400"
+                    }`}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground/80">
+                      {check.name}
+                    </p>
+                    <p className="text-xs text-foreground/50">
+                      {check.latencyMs}ms
+                      {check.error ? ` — ${check.error}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* System Components */}
       <Card className="bg-card border-glass-border backdrop-blur-lg">

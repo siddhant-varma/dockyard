@@ -18,11 +18,13 @@ export function ProjectsTab() {
     status?: string;
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/projects")
       .then((r) => r.ok ? r.json() : { data: [] })
       .then((res) => setProjects(res.data ?? []))
+      .catch(() => setFetchError("Failed to load projects"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -32,6 +34,11 @@ export function ProjectsTab() {
         <CardTitle className="text-sm">Active Projects</CardTitle>
       </CardHeader>
       <CardContent>
+        {fetchError && (
+          <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/5 p-3">
+            <p className="text-xs text-red-400">{fetchError}</p>
+          </div>
+        )}
         {loading ? (
           <p className="text-xs text-foreground/40">Loading...</p>
         ) : projects.length === 0 ? (

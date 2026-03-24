@@ -41,7 +41,7 @@ vi.mock("@/db/connection", () => {
   const countSelectRef = (...args: unknown[]) => mockCountSelect(...args);
   const insertValuesRef = (...args: unknown[]) => {
     mockInsertValues(...args);
-    return { returning: vi.fn().mockResolvedValue([]) };
+    return { returning: vi.fn().mockResolvedValue([{ id: "mock-project-id" }]) };
   };
   const updateSetWhereRef = (...args: unknown[]) => mockUpdateSetWhere(...args);
 
@@ -57,7 +57,9 @@ vi.mock("@/db/connection", () => {
         },
       },
       select: () => ({
-        from: countSelectRef,
+        from: () => ({
+          where: countSelectRef,
+        }),
       }),
       insert: () => ({
         values: insertValuesRef,

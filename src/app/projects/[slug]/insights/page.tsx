@@ -12,7 +12,7 @@ import { PageTabs } from "@/components/layout/page-tabs";
 import { buildProjectTabs } from "@/components/projects/project-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ContextHandoff } from "@/components/projects/context-handoff";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
 
@@ -85,7 +85,7 @@ function toInsight(api: ApiSnapshot): InsightEntry {
 
 /** Fetch AI summaries from the backend or return demo data. */
 async function fetchInsights(slug: string): Promise<InsightEntry[]> {
-  if (isDemoMode) return DEMO_INSIGHTS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_INSIGHTS;
   try {
     const res = await fetch(
       `${INTERNAL_BASE}/api/projects/${slug}/summaries`,

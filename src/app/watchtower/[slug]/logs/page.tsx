@@ -8,7 +8,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
 
@@ -33,7 +33,7 @@ interface ApiLogEntry {
  * In demo mode, returns static sample data. In live mode, fetches from the API.
  */
 async function fetchLogs(slug: string): Promise<LogEntry[]> {
-  if (isDemoMode) return DEMO_LOGS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_LOGS;
 
   try {
     const res = await fetch(`${INTERNAL_BASE}/api/projects/${slug}/logs?tail=100`, {

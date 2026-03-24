@@ -12,28 +12,51 @@
  *
  * For time-series data, `maxPoints` caps array length to prevent
  * unbounded memory growth.
+ *
+ * After `staleThreshold` consecutive fetch failures, `isStale` becomes
+ * true so consuming components can render a "stale data" indicator.
  */
 
 import { useState, useCallback, useRef } from "react";
 import { useSSE } from "./use-sse";
+
+/** Number of consecutive fetch failures before data is considered stale. */
+const DEFAULT_STALE_THRESHOLD = 3;
 
 interface UseRealtimeDataOptions {
   /** Max data points to keep (for time-series arrays). 0 = no limit. */
   maxPoints?: number;
   /** Disable SSE subscription. */
   enabled?: boolean;
+  /** Consecutive failure count before `isStale` becomes true. Default: 3. */
+  staleThreshold?: number;
 }
 
+/**
+ * Merges server-rendered initial data with live SSE-triggered refetches.
+ *
+ * @param initialData - Data provided by RSC on first render
+ * @param fetchUrl - API endpoint to refetch on SSE events
+ * @param sseEvent - SSE event name that triggers a refetch
+ * @param options - Optional configuration (maxPoints, enabled, staleThreshold)
+ * @returns Current data, loading/stale/connection status flags
+ */
 export function useRealtimeData<T>(
   initialData: T,
   fetchUrl: string,
   sseEvent: string,
   options: UseRealtimeDataOptions = {}
-): { data: T; isRefreshing: boolean; status: string } {
-  const { maxPoints = 0, enabled = true } = options;
+): { data: T; isRefreshing: boolean; isStale: boolean; status: string } {
+  const {
+    maxPoints = 0,
+    enabled = true,
+    staleThreshold = DEFAULT_STALE_THRESHOLD,
+  } = options;
   const [data, setData] = useState<T>(initialData);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isStale, setIsStale] = useState(false);
   const fetchingRef = useRef(false);
+  const failureCountRef = useRef(0);
 
   const refetch = useCallback(async () => {
     if (fetchingRef.current) return;
@@ -48,19 +71,29 @@ export function useRealtimeData<T>(
           newData = newData.slice(-maxPoints);
         }
         setData(newData as T);
+        failureCountRef.current = 0;
+        setIsStale(false);
+      } else {
+        failureCountRef.current += 1;
+        if (failureCountRef.current >= staleThreshold) {
+          setIsStale(true);
+        }
       }
     } catch {
-      // Silently fail — keep showing stale data
+      failureCountRef.current += 1;
+      if (failureCountRef.current >= staleThreshold) {
+        setIsStale(true);
+      }
     } finally {
       fetchingRef.current = false;
       setIsRefreshing(false);
     }
-  }, [fetchUrl, maxPoints]);
+  }, [fetchUrl, maxPoints, staleThreshold]);
 
   const { status } = useSSE(
     { [sseEvent]: () => refetch() },
     { enabled }
   );
 
-  return { data, isRefreshing, status };
+  return { data, isRefreshing, isStale, status };
 }

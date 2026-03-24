@@ -29,16 +29,53 @@ describe("isProject", () => {
 });
 
 describe("isDockYard", () => {
-  it("detects DockYard by CLAUDE.md", () => {
-    expect(isDockYard(["CLAUDE.md", "package.json"])).toBe(true);
+  it("returns true when both required and confirming markers are present", () => {
+    expect(
+      isDockYard(["src/db/schema.ts", "DOCKYARD-JSON.md", "package.json"])
+    ).toBe(true);
   });
 
-  it("detects DockYard by src/db/schema.ts", () => {
-    expect(isDockYard(["src/db/schema.ts", "package.json"])).toBe(true);
+  it("returns true with .dockyard-self sentinel as confirming marker", () => {
+    expect(
+      isDockYard(["src/db/schema.ts", ".dockyard-self", "package.json"])
+    ).toBe(true);
   });
 
-  it("returns false for other projects", () => {
+  it("returns true when both confirming markers are present", () => {
+    expect(
+      isDockYard([
+        "src/db/schema.ts",
+        "DOCKYARD-JSON.md",
+        ".dockyard-self",
+        "package.json",
+      ])
+    ).toBe(true);
+  });
+
+  it("returns false for directories with only CLAUDE.md (Claude Code projects)", () => {
+    expect(isDockYard(["CLAUDE.md", "package.json"])).toBe(false);
+  });
+
+  it("returns false for directories with only src/db/schema.ts (Drizzle projects)", () => {
+    expect(isDockYard(["src/db/schema.ts", "package.json"])).toBe(false);
+  });
+
+  it("returns false for directories with only package.json", () => {
     expect(isDockYard(["package.json", "src/index.ts"])).toBe(false);
+  });
+
+  it("returns false for empty file lists", () => {
+    expect(isDockYard([])).toBe(false);
+  });
+
+  it("returns false when confirming marker is present but required is missing", () => {
+    expect(isDockYard(["DOCKYARD-JSON.md", "package.json"])).toBe(false);
+  });
+
+  it("returns false for directories with CLAUDE.md and src/db/schema.ts but no confirming marker", () => {
+    expect(
+      isDockYard(["CLAUDE.md", "src/db/schema.ts", "package.json"])
+    ).toBe(false);
   });
 });
 

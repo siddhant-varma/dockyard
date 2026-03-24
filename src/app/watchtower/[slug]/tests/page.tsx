@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { RunTestButton } from "./run-test-button";
 
 type Params = Promise<{ slug: string }>;
@@ -98,7 +98,7 @@ function formatDuration(ms: number): string {
  * Returns an empty array on any failure so the page degrades gracefully.
  */
 async function fetchTests(slug: string): Promise<TestSuite[]> {
-  if (isDemoMode) return DEMO_TESTS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_TESTS;
 
   try {
     const [resultsRes, configRes] = await Promise.all([

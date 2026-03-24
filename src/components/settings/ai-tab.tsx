@@ -47,6 +47,7 @@ export function AITab() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -85,6 +86,7 @@ export function AITab() {
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError(null);
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
@@ -101,10 +103,15 @@ export function AITab() {
           },
         }),
       });
-      if (res.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to save" }));
+        setSaveError(err.error ?? "Failed to save AI settings");
+        return;
       }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setSaveError("Network error — check your connection");
     } finally {
       setSaving(false);
     }
@@ -217,6 +224,9 @@ export function AITab() {
             />
           </div>
         </div>
+        {saveError && (
+          <p className="text-xs text-red-400">{saveError}</p>
+        )}
         <Button
           size="sm"
           className="text-xs"

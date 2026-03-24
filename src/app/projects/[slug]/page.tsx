@@ -19,7 +19,7 @@ import { PhaseTimeline } from "@/components/projects/phase-timeline";
 import { ConfidenceBreakdown, type ConfidenceFactors } from "@/components/projects/confidence-breakdown";
 import { BlockerList, type Blocker } from "@/components/projects/blocker-list";
 import { ActivityFeed, type ActivityEvent } from "@/components/projects/activity-feed";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import {
   DEMO_PROJECTS,
   DEMO_PHASES,
@@ -35,7 +35,7 @@ const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 async function fetchProject(slug: string): Promise<ProjectSummary | null> {
-  if (isDemoMode) {
+  if (isDemoMode && !isDiagnosticMode) {
     return DEMO_PROJECTS.find((p) => p.slug === slug) ?? null;
   }
   try {
@@ -53,7 +53,7 @@ async function fetchProject(slug: string): Promise<ProjectSummary | null> {
 async function fetchConfidence(
   slug: string
 ): Promise<ConfidenceFactors | null> {
-  if (isDemoMode) return DEMO_CONFIDENCE;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_CONFIDENCE;
   try {
     const res = await fetch(
       `${INTERNAL_BASE}/api/projects/${slug}/confidence`,
@@ -89,7 +89,7 @@ interface ApiBlocker {
 
 /** Fetch blockers for a project (GAP-004). */
 async function fetchBlockers(slug: string): Promise<Blocker[]> {
-  if (isDemoMode) return DEMO_BLOCKERS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_BLOCKERS;
   try {
     const res = await fetch(
       `${INTERNAL_BASE}/api/projects/${slug}/blockers`,
@@ -113,7 +113,7 @@ async function fetchBlockers(slug: string): Promise<Blocker[]> {
 
 /** Fetch recent activity events for a project (FE-010). */
 async function fetchActivity(slug: string): Promise<ActivityEvent[]> {
-  if (isDemoMode) return DEMO_ACTIVITY;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_ACTIVITY;
   try {
     const res = await fetch(
       `${INTERNAL_BASE}/api/projects/${slug}/activity?limit=20`,
@@ -158,7 +158,7 @@ export default async function ProjectDetailPage({
       : null;
 
   // FE-011: Phases — no separate API; use demo data in demo mode, else empty
-  const phases = isDemoMode ? DEMO_PHASES : [];
+  const phases = (isDemoMode && !isDiagnosticMode) ? DEMO_PHASES : [];
 
   // FE-009: Confidence — wired to /api/projects/:slug/confidence
   // FE-010: Activity — wired to /api/projects/:slug/activity

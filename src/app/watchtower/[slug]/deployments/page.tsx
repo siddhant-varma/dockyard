@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageTabs } from "@/components/layout/page-tabs";
 import { buildHealthTabs } from "@/components/watchtower/watchtower-tabs";
 import { EmptyState } from "@/components/shared/empty-state";
-import { isDemoMode } from "@/lib/env";
+import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DeploymentActions } from "./deployment-actions";
 
 type Params = Promise<{ slug: string }>;
@@ -79,7 +79,7 @@ function normalizeStatus(status: string): Deployment["status"] {
  * to the local `Deployment` shape.
  */
 async function fetchDeployments(slug: string): Promise<Deployment[]> {
-  if (isDemoMode) return DEMO_DEPLOYS;
+  if (isDemoMode && !isDiagnosticMode) return DEMO_DEPLOYS;
 
   try {
     const res = await fetch(

@@ -22,8 +22,18 @@ const PROJECT_INDICATORS = [
   "docker-compose.yaml",
 ] as const;
 
-/** Files that suggest this directory is DockYard itself (skip during scan). */
-const SELF_INDICATORS = ["src/db/schema.ts", "CLAUDE.md"] as const;
+/**
+ * Files that MUST be present for a directory to be considered DockYard itself.
+ * `src/db/schema.ts` is common in Drizzle projects, so it alone is not sufficient.
+ */
+const SELF_REQUIRED = ["src/db/schema.ts"] as const;
+
+/**
+ * At least one of these confirming markers must also be present.
+ * `DOCKYARD-JSON.md` is the DockYard schema reference doc.
+ * `.dockyard-self` is an explicit sentinel file for self-detection.
+ */
+const SELF_CONFIRMING = ["DOCKYARD-JSON.md", ".dockyard-self"] as const;
 
 /**
  * Mapping from indicator file to inferred tech stack tags.
@@ -60,13 +70,21 @@ export function isProject(files: string[]): boolean {
 /**
  * Check if a directory appears to be DockYard itself.
  *
+ * Returns true only when ALL required markers AND at least one confirming
+ * marker are present. This prevents false positives for Drizzle projects
+ * (which have `src/db/schema.ts`) and Claude Code projects (which have `CLAUDE.md`).
+ *
  * @param files - Filenames present in the directory (can include relative paths)
  * @returns true if this is likely the DockYard installation directory
  */
 export function isDockYard(files: string[]): boolean {
-  return (SELF_INDICATORS as readonly string[]).some((indicator) =>
-    files.includes(indicator)
+  const hasRequired = (SELF_REQUIRED as readonly string[]).every((f) =>
+    files.includes(f)
   );
+  const hasConfirming = (SELF_CONFIRMING as readonly string[]).some((f) =>
+    files.includes(f)
+  );
+  return hasRequired && hasConfirming;
 }
 
 /**
