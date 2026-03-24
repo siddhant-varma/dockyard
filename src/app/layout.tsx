@@ -59,35 +59,39 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(GeistSans.variable, GeistMono.variable, jetbrainsMono.variable, "dark")}
+      className={cn(
+        GeistSans.variable,
+        GeistMono.variable,
+        jetbrainsMono.variable,
+        "dark"
+      )}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
-       <TooltipProvider>
-        {/* Frame — single max-width container for header + sidebar + canvas */}
-        <div className="relative mx-auto min-h-screen max-w-[1600px] overflow-x-hidden">
-          {/* Header Bar — sticky top, spans full frame width */}
-          <div className="sticky top-0 z-50">
-            <HeaderBar />
-            {/* @ts-expect-error Async Server Component */}
-            <DiagnosticBanner />
-          </div>
+        <TooltipProvider>
+          {/* Frame — single max-width container for header + sidebar + canvas */}
+          <div className="relative mx-auto min-h-screen max-w-[1600px] overflow-x-hidden">
+            {/* Header Bar — sticky top, spans full frame width */}
+            <div className="sticky top-0 z-50">
+              <HeaderBar />
+              <DiagnosticBanner />
+            </div>
 
-          {/* Below header: sidebar + canvas side by side */}
-          <div className="flex">
-            {/* Sidebar — sticky flex child, hidden on mobile */}
-            <Sidebar />
+            {/* Below header: sidebar + canvas side by side */}
+            <div className="flex">
+              {/* Sidebar — sticky flex child, hidden on mobile */}
+              <Sidebar />
 
-            {/* Canvas — main content, fills remaining width */}
-            <main className="min-w-0 min-h-[calc(100vh-3rem)] flex-1 pb-16 sm:pb-0">
-              <div className="mx-auto max-w-[1280px] px-4 py-5 sm:p-6">
-                {children}
-                <Footer />
-              </div>
-            </main>
+              {/* Canvas — main content, fills remaining width */}
+              <main className="min-w-0 min-h-[calc(100vh-3rem)] flex-1 pb-16 sm:pb-0">
+                <div className="mx-auto max-w-[1280px] px-4 py-5 sm:p-6">
+                  {children}
+                  <Footer />
+                </div>
+              </main>
+            </div>
           </div>
-        </div>
-       </TooltipProvider>
+        </TooltipProvider>
       </body>
     </html>
   );
