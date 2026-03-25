@@ -165,6 +165,10 @@ npx drizzle-kit migrate           # Run migrations
 # Build & Deploy
 npm run build                     # Production build
 npm run start                     # Production server
+./scripts/hotpatch.sh             # Hot-patch VPS without Docker rebuild (~30s)
+
+# Local Production Mirror (tests auth, DB, discovery without VPS)
+docker compose -f docker-compose.local-prod.yml up --build
 
 # Quality
 npm run lint                      # ESLint

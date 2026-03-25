@@ -1,0 +1,54 @@
+# docker-compose.local-prod.yml
+#
+# Mirrors the production environment locally. Use this to test auth,
+# discovery, and DB features without deploying to VPS.
+#
+# Usage:
+#   cp .env.example .env.local-prod   # Fill in real values
+#   docker compose -f docker-compose.local-prod.yml up --build
+#
+# This uses the same Dockerfile, same startup script, same schema push.
+# The only difference: ports are localhost-only and no Traefik.
+
+services:
+  dockyard-postgres-local:
+    image: timescale/timescaledb:latest-pg16
+    container_name: dockyard-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dockyard
+      POSTGRES_PASSWORD: dockyard
+      POSTGRES_DB: dockyard
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - dockyard_local_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dockyard"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  dockyard-app-local:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dockyard-app-local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      dockyard-postgres-local:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://dockyard:dockyard@dockyard-postgres-local:5432/dockyard
+      AUTH_SECRET: local-dev-secret-change-me-in-prod
+      AUTH_URL: http://localhost:3001
+      DOCKYARD_AUTH_ENABLED: ${DOCKYARD_AUTH_ENABLED:-true}
+      DOCKYARD_ADMIN_USER: ${DOCKYARD_ADMIN_USER:-admin}
+      DOCKYARD_ADMIN_PASSWORD: ${DOCKYARD_ADMIN_PASSWORD:-admin}
+      CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}
+      DOCKYARD_MODE: ${DOCKYARD_MODE:-local}
+
+volumes:
+  dockyard_local_pgdata:
