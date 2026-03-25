@@ -183,9 +183,12 @@ export function Sidebar() {
             {session && (
               <button
                 type="button"
-                onClick={() =>
-                  signOut({ callbackUrl: isAuthEnabled ? "/login" : "/" })
-                }
+                onClick={() => {
+                  // Clear MFA cookies on logout
+                  document.cookie = "mfa-verified=; path=/; max-age=0";
+                  document.cookie = "mfa-enforced=; path=/; max-age=0";
+                  signOut({ callbackUrl: isAuthEnabled ? "/login" : "/" });
+                }}
                 className="shrink-0 rounded-md p-1.5 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 title="Sign out"
               >

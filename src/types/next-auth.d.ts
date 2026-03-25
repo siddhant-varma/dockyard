@@ -18,6 +18,8 @@ declare module "next-auth" {
     expired?: boolean;
     /** Reason for expiry: "idle", "absolute", or "revoked". */
     expiredReason?: "idle" | "absolute" | "revoked";
+    /** When true, user needs to complete MFA verification before accessing the app. */
+    mfaPending?: boolean;
   }
 }
 
@@ -33,5 +35,7 @@ declare module "next-auth/jwt" {
     expired?: boolean;
     /** Reason for expiry: "idle", "absolute", or "revoked". */
     expiredReason?: "idle" | "absolute" | "revoked";
+    /** Whether MFA verification is still pending for this session. */
+    mfaPending?: boolean;
   }
 }

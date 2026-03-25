@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { withAuth } from "@/lib/auth/guards";
 import { db } from "@/db/connection";
-import { mfaCredentials } from "@/db/schema";
+import { mfaCredentials, platformSettings } from "@/db/schema";
 
 /** Public shape of an MFA credential (no secret data). */
 interface MfaCredentialResponse {
@@ -43,5 +43,50 @@ export const GET = withAuth(async (_request, user) => {
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
   }));
 
-  return NextResponse.json({ data: credentials });
+  // Read global MFA enforcement setting from platform_settings
+  let mfaEnabled = false;
+  try {
+    const settings = await db.query.platformSettings.findFirst();
+    const s = settings?.settings as Record<string, unknown> | null;
+    mfaEnabled = s?.mfaEnforced === true;
+  } catch {
+    /* table may not exist yet */
+  }
+
+  return NextResponse.json({ data: credentials, mfaEnabled });
 });
+
+/**
+ * PUT /api/auth/mfa — Toggle global MFA enforcement.
+ *
+ * Body: { mfaEnabled: boolean }
+ * Stores the setting in platform_settings. When enabled AND DOCKYARD_MODE=server,
+ * the login flow requires TOTP verification after successful credentials auth.
+ */
+export const PUT = withAuth(
+  async (request) => {
+    const body = (await request.json()) as { mfaEnabled?: boolean };
+    const enabled = body.mfaEnabled === true;
+
+    // Upsert into platform_settings (single-row table)
+    const existing = await db.query.platformSettings.findFirst();
+    const currentSettings =
+      (existing?.settings as Record<string, unknown>) ?? {};
+    const newSettings = { ...currentSettings, mfaEnforced: enabled };
+
+    if (existing) {
+      await db
+        .update(platformSettings)
+        .set({ settings: newSettings })
+        .where(eq(platformSettings.id, existing.id));
+    } else {
+      await db.insert(platformSettings).values({
+        operatingMode: "vps",
+        settings: newSettings,
+      });
+    }
+
+    return NextResponse.json({ data: { mfaEnabled: enabled } });
+  },
+  { role: "superadmin" }
+);

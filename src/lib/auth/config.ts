@@ -25,7 +25,14 @@ import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/db/connection";
-import { users, accounts, verificationTokens } from "@/db/schema";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- platformSettings needed for db.query
+import {
+  users,
+  accounts,
+  verificationTokens,
+  mfaCredentials,
+  platformSettings,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { logAudit } from "./audit";
 import { isSessionRevoked } from "./session-revocation";
@@ -136,6 +143,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.userId = dbUser.id;
           }
         }
+
+        // Check if MFA verification is required (server mode only)
+        if (process.env.DOCKYARD_MODE === "server" && token.userId) {
+          try {
+            const settings = await db.query.platformSettings.findFirst();
+            const s = settings?.settings as Record<string, unknown> | null;
+            if (s?.mfaEnforced === true) {
+              // Check if this user has a TOTP credential
+              const hasMfa = await db
+                .select({ id: mfaCredentials.id })
+                .from(mfaCredentials)
+                .where(eq(mfaCredentials.userId, token.userId as string))
+                .limit(1);
+              if (hasMfa.length > 0) {
+                token.mfaPending = true;
+              }
+            }
+          } catch {
+            // Fail open — don't block login if MFA check fails
+          }
+        }
+
         return token;
       }
 
@@ -183,6 +212,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.userId as string;
         session.user.role = token.role as string;
+      }
+
+      // Propagate MFA pending state to the client session
+      if (token.mfaPending) {
+        session.mfaPending = true;
       }
 
       // Propagate expiry state to the client session

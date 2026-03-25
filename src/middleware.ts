@@ -26,6 +26,9 @@ const BASE_DOMAIN = process.env.DOCKYARD_DOMAIN ?? "dockyard.cc";
 /** Whether the login system is active. */
 const AUTH_ENABLED = process.env.DOCKYARD_AUTH_ENABLED === "true";
 
+/** Whether the app is running in server/cloud mode (MFA enforcement only applies here). */
+const SERVER_MODE = process.env.DOCKYARD_MODE === "server";
+
 /** Paths that are accessible without authentication. */
 const PUBLIC_PATHS = ["/login", "/api/auth"];
 
@@ -64,6 +67,29 @@ export function middleware(request: NextRequest) {
         loginUrl.pathname = "/login";
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
+      }
+
+      // MFA gate: if session exists but mfa-verified cookie is missing,
+      // redirect to /login/verify. Uses a lightweight check: if the
+      // mfa-enforced cookie is set (by the app on first load) and
+      // mfa-verified is not set, the user needs to complete 2FA.
+      // Only enforced in server mode.
+      if (
+        SERVER_MODE &&
+        !pathname.startsWith("/login") &&
+        !pathname.startsWith("/api/")
+      ) {
+        const mfaVerified = request.cookies.get("mfa-verified");
+        if (!mfaVerified) {
+          // Check the mfa-enforced cookie (set by the app after first session load)
+          const mfaEnforced = request.cookies.get("mfa-enforced");
+          if (mfaEnforced?.value === "true") {
+            const verifyUrl = request.nextUrl.clone();
+            verifyUrl.pathname = "/login/verify";
+            verifyUrl.searchParams.set("callbackUrl", pathname);
+            return NextResponse.redirect(verifyUrl);
+          }
+        }
       }
     }
   }

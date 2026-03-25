@@ -60,6 +60,9 @@ export function MFATab() {
   const [verifyingTotp, setVerifyingTotp] = useState(false);
   const [registeringPasskey, setRegisteringPasskey] = useState(false);
 
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [togglingMfa, setTogglingMfa] = useState(false);
+
   const passkeys = credentials.filter((c) => c.type === "fido2");
   const hasTotp = credentials.some((c) => c.type === "totp");
 
@@ -72,8 +75,12 @@ export function MFATab() {
         setFetchError("Failed to load MFA credentials");
         return;
       }
-      const json = (await res.json()) as { data: MfaCredential[] };
+      const json = (await res.json()) as {
+        data: MfaCredential[];
+        mfaEnabled?: boolean;
+      };
       setCredentials(json.data ?? []);
+      setMfaEnabled(json.mfaEnabled ?? false);
     } catch {
       setFetchError("Failed to load MFA credentials");
     } finally {
@@ -332,17 +339,61 @@ export function MFATab() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">TOTP Authenticator</CardTitle>
-            {!hasTotp && !totpEnrollment && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={handleEnrollTotp}
-                disabled={enrollingTotp}
-              >
-                {enrollingTotp ? "Generating..." : "Setup Authenticator"}
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              {/* 2FA enforcement toggle — only visible when TOTP is configured */}
+              {hasTotp && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={mfaEnabled}
+                  aria-label="Require 2FA on login"
+                  disabled={togglingMfa}
+                  onClick={async () => {
+                    setTogglingMfa(true);
+                    try {
+                      const res = await authFetch("/api/auth/mfa", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ mfaEnabled: !mfaEnabled }),
+                      });
+                      if (res.ok) {
+                        setMfaEnabled(!mfaEnabled);
+                        setTotpMsg(
+                          !mfaEnabled
+                            ? "2FA enabled — code required on login (server mode only)"
+                            : "2FA disabled — login without code"
+                        );
+                        setTotpError(false);
+                        setTimeout(() => setTotpMsg(null), 4000);
+                      }
+                    } catch {
+                      /* ignore */
+                    }
+                    setTogglingMfa(false);
+                  }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ${
+                    mfaEnabled ? "bg-emerald-500" : "bg-foreground/20"
+                  } ${togglingMfa ? "opacity-50" : ""}`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 ${
+                      mfaEnabled ? "translate-x-[18px]" : "translate-x-[3px]"
+                    }`}
+                  />
+                </button>
+              )}
+              {!hasTotp && !totpEnrollment && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleEnrollTotp}
+                  disabled={enrollingTotp}
+                >
+                  {enrollingTotp ? "Generating..." : "Setup Authenticator"}
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
