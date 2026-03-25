@@ -15,6 +15,7 @@ import { aiSummary } from "@/inngest/functions/ai-summary";
 import { testRunner } from "@/inngest/functions/test-runner";
 import { metricsScraper } from "@/inngest/functions/metrics-scraper";
 import { kumaMonitorSync } from "@/inngest/functions/kuma-monitor-sync";
+import { kumaSelfPush } from "@/inngest/functions/kuma-self-push";
 
 /**
  * Inngest API route handler.
@@ -39,5 +40,6 @@ export const { GET, POST, PUT } = serve({
     testRunner,
     metricsScraper,
     kumaMonitorSync,
+    kumaSelfPush,
   ],
 });

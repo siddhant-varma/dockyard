@@ -276,6 +276,8 @@ npx playwright test --ui          # Playwright interactive UI mode
 - Session revocation check in the `jwt` callback uses an in-memory cache with 30s TTL (`src/lib/auth/session-revocation.ts`) to avoid hitting the DB on every request. After force-logout, there's up to a 30-second delay before affected sessions are actually invalidated.
 - HSTS and CSP headers are only added when `DOCKYARD_AUTH_ENABLED=true` (i.e., production). CSP includes `worker-src 'self' blob:` for react-idle-timer's Web Worker. Local dev (HTTP) does not get HSTS to avoid breaking localhost.
 - Failed login attempts are logged via `logAudit()` with action `auth.login_failed`. Successful logins are logged via the Auth.js `signIn` event with action `auth.login_success`. Both are non-blocking (`.catch(() => {})`).
+- Kuma self-push is an Inngest cron function (`kuma-self-push`, every 2 min) that runs deep health checks and pushes aggregate status to Kuma's push monitor via `KUMA_PUSH_TOKEN`. Requires both `KUMA_URL` and `KUMA_PUSH_TOKEN` env vars — skips silently if either is missing.
+- `scripts/kuma-provision.mjs` accepts `HEALTH_MONITOR_TOKEN` as env var or first CLI arg. All deep health monitor URLs use the `deepHealthUrl()` helper which appends `?token=<TOKEN>` for auth bypass. Without the token, monitors will get 401 when `DOCKYARD_AUTH_ENABLED=true`.
 
 ## Git Policy
 

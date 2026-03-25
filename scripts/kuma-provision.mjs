@@ -17,6 +17,22 @@ const KUMA_USER = "kuma-admin@dockyard";
 const KUMA_PASS = "DockYard-Kuma-2026!";
 const DOCKYARD_URL = "https://dockyard.cc";
 
+/**
+ * HEALTH_MONITOR_TOKEN — must match the value set in DockYard's Dokploy env.
+ * Used to authenticate Kuma's requests to /api/health/deep without a session cookie.
+ * Pass as CLI arg or set as env var: HEALTH_MONITOR_TOKEN=xxx node scripts/kuma-provision.mjs
+ */
+const HEALTH_TOKEN = process.argv[2] || process.env.HEALTH_MONITOR_TOKEN || "";
+
+/** Build a deep health URL with optional check slug and token auth. */
+function deepHealthUrl(checkSlug) {
+  const params = new URLSearchParams();
+  if (checkSlug) params.set("check", checkSlug);
+  if (HEALTH_TOKEN) params.set("token", HEALTH_TOKEN);
+  const qs = params.toString();
+  return `${DOCKYARD_URL}/api/health/deep${qs ? `?${qs}` : ""}`;
+}
+
 // ── Monitor Definitions ─────────────────────────────────────────
 
 const MONITORS = [
@@ -35,17 +51,19 @@ const MONITORS = [
   },
   {
     name: "DockYard — PostgreSQL",
-    type: "port",
-    hostname: "dockyard-postgres",
-    port: 5432,
+    type: "keyword",
+    url: deepHealthUrl("postgres"),
+    keyword: '"status":"ok"',
+    method: "GET",
     interval: 30,
     maxretries: 3,
+    accepted_statuscodes: ["200-299"],
     tags: ["tier-1", "dockyard-project:dockyard"],
   },
   {
     name: "DockYard — Deep Health",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep`,
+    url: deepHealthUrl(),
     keyword: '"status"',
     method: "GET",
     interval: 60,
@@ -58,7 +76,7 @@ const MONITORS = [
   {
     name: "DockYard — Postgres Health",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep?check=postgres`,
+    url: deepHealthUrl("postgres"),
     keyword: '"status":"ok"',
     method: "GET",
     interval: 60,
@@ -69,7 +87,7 @@ const MONITORS = [
   {
     name: "DockYard — TimescaleDB Health",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep?check=timescaledb`,
+    url: deepHealthUrl("timescaledb"),
     keyword: '"status":"ok"',
     method: "GET",
     interval: 120,
@@ -80,7 +98,7 @@ const MONITORS = [
   {
     name: "DockYard — Dokploy Auth",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep?check=dokploy`,
+    url: deepHealthUrl("dokploy"),
     keyword: '"status":"ok"',
     method: "GET",
     interval: 120,
@@ -91,7 +109,7 @@ const MONITORS = [
   {
     name: "DockYard — Hetzner Auth",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep?check=hetzner`,
+    url: deepHealthUrl("hetzner"),
     keyword: '"status":"ok"',
     method: "GET",
     interval: 120,
@@ -102,7 +120,7 @@ const MONITORS = [
   {
     name: "DockYard — Kuma Reachable",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep?check=kuma`,
+    url: deepHealthUrl("kuma"),
     keyword: '"status":"ok"',
     method: "GET",
     interval: 120,
@@ -113,7 +131,7 @@ const MONITORS = [
   {
     name: "DockYard — GitHub API",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep?check=github-api`,
+    url: deepHealthUrl("github-api"),
     keyword: '"status":"ok"',
     method: "GET",
     interval: 300,
@@ -124,7 +142,7 @@ const MONITORS = [
   {
     name: "DockYard — Encryption",
     type: "keyword",
-    url: `${DOCKYARD_URL}/api/health/deep?check=encryption`,
+    url: deepHealthUrl("encryption"),
     keyword: '"status":"ok"',
     method: "GET",
     interval: 300,
@@ -175,8 +193,9 @@ const MONITORS = [
   },
   {
     name: "DockYard — SSE Endpoint",
-    type: "http",
-    url: `${DOCKYARD_URL}/api/sse`,
+    type: "keyword",
+    url: deepHealthUrl("sse"),
+    keyword: '"status":"ok"',
     method: "GET",
     interval: 60,
     maxretries: 2,
