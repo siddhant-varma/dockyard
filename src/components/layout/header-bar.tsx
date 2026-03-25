@@ -3,10 +3,11 @@
  *
  * The brand sits in a left column matching the sidebar width (w-56),
  * so "DockYard" aligns vertically with the sidebar nav items below.
- * External links sit in the remaining right area.
+ * Uses the brand PNG icon from the app icon pack.
  */
 
 import Link from "next/link";
+import Image from "next/image";
 
 export function HeaderBar() {
   return (
@@ -14,11 +15,13 @@ export function HeaderBar() {
       {/* Left column — matches sidebar width, brand inside */}
       <div className="hidden sm:flex w-56 shrink-0 items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-            <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" stroke="var(--color-brand-500)" strokeWidth="1.5" fill="none"/>
-            <path d="M16 8 L22 16 L16 24 L10 16 Z" fill="var(--color-brand-500)" opacity="0.8"/>
-            <circle cx="16" cy="16" r="2" fill="#fff" opacity="0.9"/>
-          </svg>
+          <Image
+            src="/favicon-32.png"
+            alt="DockYard"
+            width={24}
+            height={24}
+            className="rounded"
+          />
           <span className="text-base font-semibold text-foreground">
             DockYard
           </span>
@@ -28,11 +31,13 @@ export function HeaderBar() {
       {/* Mobile brand — visible only on small screens */}
       <div className="flex sm:hidden items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-            <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" stroke="var(--color-brand-500)" strokeWidth="1.5" fill="none"/>
-            <path d="M16 8 L22 16 L16 24 L10 16 Z" fill="var(--color-brand-500)" opacity="0.8"/>
-            <circle cx="16" cy="16" r="2" fill="#fff" opacity="0.9"/>
-          </svg>
+          <Image
+            src="/favicon-32.png"
+            alt="DockYard"
+            width={24}
+            height={24}
+            className="rounded"
+          />
           <span className="text-base font-semibold text-foreground">
             DockYard
           </span>
