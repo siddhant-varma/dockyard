@@ -107,22 +107,30 @@ export async function isSessionRevoked(
   }
 
   // Query DB: find any revocation for this user (or wildcard) after issuedAt
-  const issuedAtDate = new Date(issuedAt * 1000);
-  const revocations = await db
-    .select({ id: revokedSessions.id })
-    .from(revokedSessions)
-    .where(
-      and(
-        or(
-          eq(revokedSessions.userId, userId),
-          eq(revokedSessions.userId, WILDCARD_USER)
-        ),
-        gte(revokedSessions.revokedAt, issuedAtDate)
+  // Wrapped in try/catch: if the table doesn't exist yet (fresh deploy before
+  // migration), fail open (not revoked) rather than breaking all auth.
+  let revoked = false;
+  try {
+    const issuedAtDate = new Date(issuedAt * 1000);
+    const revocations = await db
+      .select({ id: revokedSessions.id })
+      .from(revokedSessions)
+      .where(
+        and(
+          or(
+            eq(revokedSessions.userId, userId),
+            eq(revokedSessions.userId, WILDCARD_USER)
+          ),
+          gte(revokedSessions.revokedAt, issuedAtDate)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  const revoked = revocations.length > 0;
+    revoked = revocations.length > 0;
+  } catch {
+    // Table may not exist yet — fail open so auth still works
+    revoked = false;
+  }
 
   // Cache the result
   cache.set(key, { revoked, expiresAt: now + CACHE_TTL_MS });
