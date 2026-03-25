@@ -92,10 +92,10 @@ export class GitHubSource implements DiscoverySource {
     } else if (user) {
       url = `https://api.github.com/users/${user}/repos?per_page=100&sort=updated`;
     } else {
-      // affiliation=owner ensures we get repos owned by the user (not just repos they collaborate on).
-      // type=all includes both public and private repos.
+      // affiliation=owner,collaborator,organization_member gets all repos the user has access to.
+      // Do NOT combine with type= param (GitHub returns 422).
       url =
-        "https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner&type=all";
+        "https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member";
     }
 
     try {

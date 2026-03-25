@@ -18,19 +18,19 @@ import { AnimatedGrid, AnimatedItem } from "@/components/layout/animated-grid";
 import { ProjectStatusToggle } from "@/components/projects/project-status-toggle";
 import { isDemoMode, isDiagnosticMode } from "@/lib/env";
 import { DEMO_PROJECTS } from "@/lib/demo-data";
-
-const INTERNAL_BASE =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import { listProjects } from "@/lib/projects/service";
 
 async function fetchProjects(activeOnly: boolean): Promise<ProjectSummary[]> {
   if (isDemoMode && !isDiagnosticMode) return DEMO_PROJECTS;
   try {
-    const statusFilter = activeOnly ? "?status=active" : "";
-    const res = await fetch(`${INTERNAL_BASE}/api/projects${statusFilter}`, {
-      cache: "no-store",
+    // Call the service directly (server component → server function).
+    // Using fetch() here would lose the session cookie, causing all
+    // projects to be filtered as publicOnly when auth is enabled.
+    const rows = await listProjects({
+      status: activeOnly ? "active" : undefined,
     });
-    if (!res.ok) return [];
-    return res.json() as Promise<ProjectSummary[]>;
+    // Serialize Date fields to strings (DB returns Date, ProjectSummary expects string)
+    return JSON.parse(JSON.stringify(rows)) as ProjectSummary[];
   } catch {
     return [];
   }
