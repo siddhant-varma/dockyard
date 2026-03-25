@@ -66,11 +66,7 @@ export function SessionTimeoutModal({
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent
-        className="sm:max-w-md"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
+      <DialogContent className="sm:max-w-md" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Session Expiring</DialogTitle>
           <DialogDescription>

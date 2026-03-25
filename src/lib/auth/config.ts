@@ -137,14 +137,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const now = Math.floor(Date.now() / 1000);
 
         // Absolute timeout: force re-login after max session duration
-        if (now - token.issuedAt > ABSOLUTE_TIMEOUT) {
+        if (now - (token.issuedAt as number) > ABSOLUTE_TIMEOUT) {
           token.expired = true;
           token.expiredReason = "absolute";
           return token;
         }
 
         // Idle timeout: force re-login after inactivity
-        if (token.lastActivity && now - token.lastActivity > IDLE_TIMEOUT) {
+        if (
+          token.lastActivity &&
+          now - (token.lastActivity as number) > IDLE_TIMEOUT
+        ) {
           token.expired = true;
           token.expiredReason = "idle";
           return token;
@@ -152,7 +155,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Session revocation check (uses in-memory cache, ~0ms when cached)
         if (token.userId && token.issuedAt) {
-          const revoked = await isSessionRevoked(token.userId, token.issuedAt);
+          const revoked = await isSessionRevoked(
+            token.userId as string,
+            token.issuedAt as number
+          );
           if (revoked) {
             token.expired = true;
             token.expiredReason = "revoked";
@@ -175,7 +181,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Propagate expiry state to the client session
       if (token.expired) {
         session.expired = true;
-        session.expiredReason = token.expiredReason;
+        session.expiredReason = token.expiredReason as
+          | "idle"
+          | "absolute"
+          | "revoked"
+          | undefined;
       }
 
       return session;

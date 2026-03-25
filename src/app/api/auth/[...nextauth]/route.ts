@@ -7,7 +7,7 @@
  * GET requests (session checks) are not rate-limited.
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { handlers } from "@/lib/auth";
 import { rateLimit } from "@/lib/auth/rate-limit";
 
@@ -21,7 +21,7 @@ const AUTH_RATE_WINDOW_MS = 15 * 60 * 1000;
  * Rate-limited POST handler for auth endpoints.
  * Checks the IP-based rate limit before delegating to Auth.js.
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const forwarded = request.headers.get("x-forwarded-for");
   const ip = forwarded
     ? forwarded.split(",")[0].trim()
