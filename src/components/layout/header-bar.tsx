@@ -3,11 +3,11 @@
  *
  * The brand sits in a left column matching the sidebar width (w-56),
  * so "DockYard" aligns vertically with the sidebar nav items below.
- * Uses the brand PNG icon from the app icon pack.
+ * Uses plain <img> for the brand icon — bypasses next/image optimization
+ * so it works reliably on all deploy targets (Dokploy, static, etc.).
  */
 
 import Link from "next/link";
-import Image from "next/image";
 
 export function HeaderBar() {
   return (
@@ -15,7 +15,8 @@ export function HeaderBar() {
       {/* Left column — matches sidebar width, brand inside */}
       <div className="hidden sm:flex w-56 shrink-0 items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/favicon-32.png"
             alt="DockYard"
             width={24}
@@ -31,7 +32,8 @@ export function HeaderBar() {
       {/* Mobile brand — visible only on small screens */}
       <div className="flex sm:hidden items-center gap-2 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/favicon-32.png"
             alt="DockYard"
             width={24}
