@@ -13,7 +13,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy config files first (rarely change → better cache hit)
-COPY tsconfig.json next.config.ts drizzle.config.ts tailwind.config.ts postcss.config.mjs ./
+COPY tsconfig.json next.config.ts drizzle.config.ts postcss.config.mjs ./
 COPY package.json ./
 
 # Copy source code (changes often → separate layer)
