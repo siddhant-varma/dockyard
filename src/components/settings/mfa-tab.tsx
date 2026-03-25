@@ -21,6 +21,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ export function MFATab() {
   const [totpEnrollment, setTotpEnrollment] = useState<TotpEnrollment | null>(
     null
   );
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [enrollingTotp, setEnrollingTotp] = useState(false);
   const [verifyingTotp, setVerifyingTotp] = useState(false);
   const [registeringPasskey, setRegisteringPasskey] = useState(false);
@@ -78,6 +80,17 @@ export function MFATab() {
       setLoading(false);
     }
   }, []);
+
+  // Generate QR code data URL when TOTP enrollment starts
+  useEffect(() => {
+    if (!totpEnrollment?.uri) {
+      setQrDataUrl(null);
+      return;
+    }
+    QRCode.toDataURL(totpEnrollment.uri, { width: 200, margin: 2 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [totpEnrollment?.uri]);
 
   useEffect(() => {
     fetchCredentials();
@@ -373,16 +386,19 @@ export function MFATab() {
                   Scan this QR code with your authenticator app, then enter the
                   6-digit code below to verify.
                 </p>
-                {/* QR code rendering — uses the otpauth:// URI */}
-                <div className="flex h-32 w-32 items-center justify-center rounded-lg border border-glass-border bg-white">
-                  {/*
-                    In production, render a QR code from totpEnrollment.uri
-                    using a library like qrcode.react or @zxing/browser.
-                    For now, show the URI as fallback text.
-                  */}
-                  <span className="break-all p-1 text-center text-[8px] text-black/60">
-                    QR: {totpEnrollment.uri.slice(0, 40)}...
-                  </span>
+                {/* QR code rendered from otpauth:// URI */}
+                <div className="flex h-36 w-36 items-center justify-center rounded-lg border border-glass-border bg-white">
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="Scan this QR code with your authenticator app"
+                      width={144}
+                      height={144}
+                      className="rounded"
+                    />
+                  ) : (
+                    <span className="text-xs text-black/40">Generating...</span>
+                  )}
                 </div>
                 <div className="rounded-lg border border-glass-border bg-card/50 p-2">
                   <p className="text-xs text-foreground/40">
