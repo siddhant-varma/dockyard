@@ -56,6 +56,7 @@ const ABSOLUTE_TIMEOUT = parseInt(
 const AUTH_ENABLED = process.env.DOCKYARD_AUTH_ENABLED === "true";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
@@ -73,8 +74,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
 
-        const adminUser = process.env.DOCKYARD_ADMIN_USER ?? "admin";
-        const adminPass = process.env.DOCKYARD_ADMIN_PASSWORD;
+        // Support both env var names (DOCKYARD_ADMIN_* preferred, SUPERADMIN_* as fallback)
+        const adminUser =
+          process.env.DOCKYARD_ADMIN_USER ??
+          process.env.SUPERADMIN_EMAIL ??
+          "admin";
+        const adminPass =
+          process.env.DOCKYARD_ADMIN_PASSWORD ??
+          process.env.SUPERADMIN_PASSWORD;
 
         if (!adminPass) return null;
 
