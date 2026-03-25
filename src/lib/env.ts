@@ -116,6 +116,14 @@ const envSchema = z.object({
   INNGEST_EVENT_KEY: z.string().optional(),
   INNGEST_SIGNING_KEY: z.string().optional(),
 
+  // ── Session Timeouts ───────────────────────────────────────
+  /** Idle timeout in seconds. Session expires after this much inactivity.
+   *  Default: 1800 (30 minutes). NIST 800-63B AAL1 recommendation. */
+  DOCKYARD_SESSION_IDLE_TIMEOUT: z.coerce.number().default(1800),
+  /** Absolute timeout in seconds. Session expires this long after sign-in.
+   *  Default: 28800 (8 hours). OWASP recommendation for day-long ops tools. */
+  DOCKYARD_SESSION_ABSOLUTE_TIMEOUT: z.coerce.number().default(28800),
+
   // ── Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])

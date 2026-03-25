@@ -17,6 +17,8 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
 
+  const reason = searchParams.get("reason");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,23 @@ export default function LoginPage() {
           </h1>
           <p className="mt-1 text-sm text-foreground/50">Sign in to continue</p>
         </div>
+
+        {/* Session expiry / revocation notice */}
+        {reason === "timeout" && (
+          <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+            <p className="text-xs text-amber-400">
+              Your session expired due to inactivity. Please sign in again.
+            </p>
+          </div>
+        )}
+        {reason === "revoked" && (
+          <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2">
+            <p className="text-xs text-red-400">
+              Your session was revoked by an administrator. Please sign in
+              again.
+            </p>
+          </div>
+        )}
 
         {/* Credentials form */}
         <form onSubmit={handleSubmit} className="space-y-4">

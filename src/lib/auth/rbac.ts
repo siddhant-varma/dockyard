@@ -42,11 +42,12 @@ const ROLE_HIERARCHY = ["viewer", "project_admin", "superadmin"] as const;
 type Role = (typeof ROLE_HIERARCHY)[number];
 
 /**
- * Require an authenticated session. Throws 401 if not authenticated.
+ * Require an authenticated, non-expired session. Throws 401 if not
+ * authenticated or if the session has expired (idle/absolute timeout).
  * When DOCKYARD_AUTH_ENABLED=false, returns an anonymous superadmin.
  *
  * @returns The authenticated user from the session
- * @throws ApiError with code UNAUTHORIZED if no session exists
+ * @throws ApiError with code UNAUTHORIZED if no session or session expired
  */
 export async function requireAuth(): Promise<AuthUser> {
   if (!isAuthEnabled) {
@@ -55,6 +56,12 @@ export async function requireAuth(): Promise<AuthUser> {
   const session = await auth();
   if (!session?.user?.id) {
     throw new ApiError("UNAUTHORIZED", "Authentication required");
+  }
+  if (session.expired) {
+    throw new ApiError(
+      "UNAUTHORIZED",
+      `Session expired: ${session.expiredReason ?? "timeout"}`
+    );
   }
   return session.user as AuthUser;
 }

@@ -14,6 +14,7 @@ import {
   boolean,
   decimal,
   doublePrecision,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -211,6 +212,31 @@ export const mfaCredentials = pgTable("mfa_credentials", {
     .defaultNow()
     .notNull(),
 });
+
+/**
+ * Revoked sessions for server-side session invalidation.
+ *
+ * When a session is revoked (admin force-logout, password change, suspicious
+ * activity), an entry is inserted here. The JWT callback checks this table
+ * on each request: if a revocation exists for the user after the token's
+ * `issuedAt` timestamp, the session is marked as expired.
+ *
+ * Uses `text` for userId (not FK) because the credentials-admin has a synthetic
+ * ID ("credentials-admin") that doesn't exist in the users table.
+ * A special userId of "*" means all sessions are revoked (global force-logout).
+ */
+export const revokedSessions = pgTable(
+  "revoked_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id").notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    reason: text("reason").notNull(),
+  },
+  (table) => [index("idx_revoked_sessions_user").on(table.userId)]
+);
 
 export const projects = pgTable("projects", {
   id: uuid("id").defaultRandom().primaryKey(),

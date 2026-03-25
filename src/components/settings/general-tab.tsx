@@ -7,6 +7,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,12 +37,16 @@ interface PlatformSettings {
 }
 
 export function GeneralTab() {
+  const { data: session } = useSession();
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
   const [scanPath, setScanPath] = useState("..");
   const [savingPath, setSavingPath] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeConfirm, setRevokeConfirm] = useState(false);
+  const [revokeSuccess, setRevokeSuccess] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -237,6 +242,97 @@ export function GeneralTab() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Security — only visible to superadmins when auth is enabled */}
+      {process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" &&
+        session?.user?.role === "superadmin" && (
+          <Card className="bg-card border-glass-border backdrop-blur-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Security</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-foreground/80">
+                    Force Logout All Sessions
+                  </p>
+                  <p className="text-xs text-foreground/40">
+                    Revoke all active sessions. Users will need to sign in
+                    again.
+                  </p>
+                </div>
+                {!revokeConfirm ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    onClick={() => setRevokeConfirm(true)}
+                    disabled={revoking}
+                  >
+                    Revoke All
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setRevokeConfirm(false)}
+                      disabled={revoking}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="text-xs bg-red-600 hover:bg-red-700 text-white"
+                      disabled={revoking}
+                      onClick={async () => {
+                        setRevoking(true);
+                        setError(null);
+                        setRevokeSuccess(false);
+                        try {
+                          const res = await authFetch(
+                            "/api/settings/sessions/revoke",
+                            {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ scope: "all" }),
+                            }
+                          );
+                          if (!res.ok) {
+                            const err = await res.json().catch(() => ({
+                              error: "Failed to revoke sessions",
+                            }));
+                            setError(
+                              ((err as Record<string, unknown>)
+                                .error as string) ?? "Failed to revoke sessions"
+                            );
+                          } else {
+                            setRevokeSuccess(true);
+                            setTimeout(() => setRevokeSuccess(false), 3000);
+                          }
+                        } catch {
+                          setError("Network error — check your connection");
+                        } finally {
+                          setRevoking(false);
+                          setRevokeConfirm(false);
+                        }
+                      }}
+                    >
+                      {revoking ? "Revoking..." : "Confirm Revoke"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {revokeSuccess && (
+                <p className="text-xs text-green-400">
+                  All sessions revoked. Users will be signed out on their next
+                  request.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
     </div>
   );
 }

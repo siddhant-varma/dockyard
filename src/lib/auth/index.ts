@@ -41,3 +41,9 @@ export {
   type ReAuthMethod,
   type ReAuthStatus,
 } from "./jit-reauth";
+export {
+  revokeUserSessions,
+  revokeAllSessions,
+  isSessionRevoked,
+  type RevocationReason,
+} from "./session-revocation";
