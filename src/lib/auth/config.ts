@@ -25,12 +25,12 @@ import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/db/connection";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- platformSettings needed for db.query
 import {
   users,
   accounts,
   verificationTokens,
   mfaCredentials,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   platformSettings,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -172,18 +172,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (AUTH_ENABLED && token.issuedAt) {
         const now = Math.floor(Date.now() / 1000);
 
-        // Absolute timeout: force re-login after max session duration
-        if (now - (token.issuedAt as number) > ABSOLUTE_TIMEOUT) {
+        // Absolute timeout: force re-login after max session duration.
+        // Skip if issuedAt is missing (old token from before timeout feature).
+        if (
+          token.issuedAt &&
+          now - (token.issuedAt as number) > ABSOLUTE_TIMEOUT
+        ) {
           token.expired = true;
           token.expiredReason = "absolute";
           return token;
         }
 
-        // Idle timeout: force re-login after inactivity
-        if (
-          token.lastActivity &&
-          now - (token.lastActivity as number) > IDLE_TIMEOUT
-        ) {
+        // Idle timeout: force re-login after inactivity.
+        // If lastActivity is missing (old token from before timeout feature),
+        // initialize it to now instead of expiring immediately.
+        if (!token.lastActivity) {
+          token.lastActivity = now;
+        } else if (now - (token.lastActivity as number) > IDLE_TIMEOUT) {
           token.expired = true;
           token.expiredReason = "idle";
           return token;
