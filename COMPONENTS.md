@@ -13,8 +13,10 @@
 | AI Layer | `src/lib/ai/` | Velocity calculator, confidence scoring, weekly summaries, milestone wrap-ups, context handoff blocks |
 | SLO Service | `src/lib/slo/` | SLO definitions CRUD, budget calculator, burn-rate threshold evaluation |
 | Config Management | `src/lib/config/` | Encrypted config CRUD, templates, categories, presets, auto-rollback |
-| Auth | `src/lib/auth/` | OAuth2, Credentials provider (admin login), MFA (WebAuthn/TOTP), RBAC, project-scoped permissions, audit logging, JIT re-auth |
-| Auth Fetch | `src/lib/api/auth-fetch.ts` | Client-side fetch wrapper — intercepts 401 responses and redirects to `/login`. Used by all client components instead of raw `fetch()`. |
+| Auth | `src/lib/auth/` | OAuth2, Credentials provider (admin login), MFA (WebAuthn/TOTP), RBAC, project-scoped permissions, audit logging, JIT re-auth, session timeout (idle + absolute), session revocation |
+| Auth Fetch | `src/lib/api/auth-fetch.ts` | Client-side fetch wrapper — intercepts 401 responses and redirects to `/login` with `?reason=timeout` or `?reason=revoked`. Used by all client components instead of raw `fetch()`. |
+| Session Revocation | `src/lib/auth/session-revocation.ts` | Server-side session invalidation for JWT auth. `revokeUserSessions()`, `revokeAllSessions()`, `isSessionRevoked()` with in-memory 30s TTL cache. |
+| Session Timeout UI | `src/components/auth/session-timeout-provider.tsx` | Client-side idle detection via `react-idle-timer`. Shows warning modal 5 min before auto-logout. Cross-tab sync. |
 | Projects | `src/lib/projects/` | Project CRUD, phase timeline, blocker tracking |
 | Crypto | `src/lib/crypto/` | AES-256-GCM encryption for config values |
 | Logger | `src/lib/logger/` | Pino structured logging with request context, Drizzle query logging, Inngest job logging, log sampling |
@@ -85,6 +87,7 @@ All endpoints require authentication via `withAuth()` or `withAuthContext()` unl
 | PUT | `/api/settings` | `withAuth` (superadmin) | Update platform settings |
 | GET | `/api/settings/kuma` | `withAuth` | Get Kuma connection status and configuration |
 | POST | `/api/settings/kuma` | `withAuth` (superadmin) | Test Kuma connection |
+| POST | `/api/settings/sessions/revoke` | `withAuth` (superadmin) | Force-revoke sessions. Body: `{ scope: "all" }` or `{ scope: "user", userId }` |
 
 ### Projects
 

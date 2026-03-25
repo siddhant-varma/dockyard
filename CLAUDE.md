@@ -117,7 +117,7 @@ DockYard/
 │   │   ├── projects/             # Project cards, phase-timeline, confidence, blockers, activity-feed, context-handoff
 │   │   ├── watchtower/           # Health cards, alert-actions, create-rule-form, create-incident-form, postmortem-section, health-sparklines
 │   │   ├── settings/             # Settings tabs: general, projects, sources, notifications, ai, mfa, audit
-│   │   ├── auth/                 # reauth-modal, session-provider
+│   │   ├── auth/                 # reauth-modal, session-provider, session-timeout-provider, session-timeout-modal
 │   │   └── shared/               # EmptyState, reusable utilities
 │   └── db/
 │       ├── schema.ts             # Drizzle schema definitions
@@ -268,6 +268,14 @@ npx playwright test --ui          # Playwright interactive UI mode
 - Kuma v1 CRUD API is Socket.IO only — `KumaClient` REST methods are placeholders. Use `scripts/kuma-provision.mjs` for programmatic monitor creation until Socket.IO rewrite is done.
 - Kuma admin credentials: username `kuma-admin@dockyard`, password `DockYard-Kuma-2026!`. Password was reset via SQLite during KUMA-OPS provisioning.
 - `HEALTH_MONITOR_TOKEN` env var enables external monitors (Kuma) to access `/api/health/deep` without session auth. If not set, token bypass is disabled and only session auth works.
+- JWT sessions enforce dual timeout: idle (default 30 min, `DOCKYARD_SESSION_IDLE_TIMEOUT`) and absolute (default 8h, `DOCKYARD_SESSION_ABSOLUTE_TIMEOUT`). Timeout logic lives in the `jwt` callback in `src/lib/auth/config.ts` — `issuedAt` and `lastActivity` claims are checked on every request. When expired, `token.expired = true` and `requireAuth()` throws 401.
+- `authFetch()` detects session expiry from the 401 response body and redirects to `/login?reason=timeout` or `/login?reason=revoked`. The login page reads `?reason=` to show context-appropriate messages (amber for timeout, red for revocation).
+- `react-idle-timer` (v5.7) is used for client-side idle detection. The `SessionTimeoutProvider` wraps the app in `layout.tsx` and shows a 5-minute warning modal before auto-logout. It uses Web Workers for timers (avoids browser background tab throttling) and cross-tab sync via BroadcastChannel.
+- `POST /api/auth/[...nextauth]` is rate-limited to 5 attempts per 15 minutes per IP. The rate limit uses the same `rateLimit()` function from `src/lib/auth/rate-limit.ts` but is applied inline (not via `withRateLimit` wrapper) because Auth.js handlers return `Response`, not `NextResponse`.
+- `revoked_sessions` table uses `text` for `userId` (not FK to `users`) because the credentials-admin has a synthetic ID (`"credentials-admin"`) that doesn't exist in the users table. A wildcard `userId = "*"` means all sessions are revoked.
+- Session revocation check in the `jwt` callback uses an in-memory cache with 30s TTL (`src/lib/auth/session-revocation.ts`) to avoid hitting the DB on every request. After force-logout, there's up to a 30-second delay before affected sessions are actually invalidated.
+- HSTS and CSP headers are only added when `DOCKYARD_AUTH_ENABLED=true` (i.e., production). CSP includes `worker-src 'self' blob:` for react-idle-timer's Web Worker. Local dev (HTTP) does not get HSTS to avoid breaking localhost.
+- Failed login attempts are logged via `logAudit()` with action `auth.login_failed`. Successful logins are logged via the Auth.js `signIn` event with action `auth.login_success`. Both are non-blocking (`.catch(() => {})`).
 
 ## Git Policy
 
