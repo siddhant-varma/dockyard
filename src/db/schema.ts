@@ -199,9 +199,8 @@ export const verificationTokens = pgTable(
  */
 export const mfaCredentials = pgTable("mfa_credentials", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
+  /** Text (not UUID FK) — credentials-admin has a synthetic non-UUID ID. */
+  userId: text("user_id").notNull(),
   type: mfaTypeEnum("type").notNull(),
   /** Encrypted JSON blob: FIDO2 stores credentialID + publicKey + counter; TOTP stores secret. */
   credentialData: text("credential_data").notNull(),
