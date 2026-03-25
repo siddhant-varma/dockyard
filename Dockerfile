@@ -32,11 +32,13 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Drizzle schema push: copy config, schema, and drizzle-kit binary
+# Drizzle schema push: copy config, schema, drizzle-kit + deps, and .bin symlink
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts ./src/db/schema.ts
+COPY --from=builder --chown=nextjs:nodejs /app/src/db/connection.ts ./src/db/connection.ts
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/drizzle-kit ./node_modules/.bin/drizzle-kit
 
 # Startup script
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh

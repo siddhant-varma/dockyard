@@ -24,6 +24,7 @@ import { checkResend } from "./resend";
 import { checkSlack } from "./slack";
 import { checkAiProvider } from "./ai-provider";
 import { checkSseBroadcast } from "./sse-broadcast";
+import { checkSchema } from "./schema";
 
 /**
  * Registry of all deep health checks, keyed by stable slug.
@@ -35,6 +36,7 @@ export const CHECK_REGISTRY: ReadonlyMap<string, CheckFn> = new Map<
   string,
   CheckFn
 >([
+  ["schema", checkSchema],
   ["postgres", checkPostgres],
   ["timescaledb", checkTimescaleDB],
   ["encryption", checkEncryption],
