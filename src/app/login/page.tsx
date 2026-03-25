@@ -3,7 +3,9 @@
  *
  * Minimal glass-card form for admin credentials login.
  * Shows GitHub OAuth button only when AUTH_GITHUB_ID is configured.
- * Redirects authenticated users to the home page.
+ * Uses Auth.js server-side redirect (not redirect:false) to ensure
+ * the session cookie is set via standard HTTP 302 + Set-Cookie header,
+ * which works reliably behind reverse proxies like Traefik.
  */
 
 "use client";
@@ -18,10 +20,15 @@ export default function LoginPage() {
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
 
   const reason = searchParams.get("reason");
+  const authError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    authError === "CredentialsSignin"
+      ? "Invalid credentials. Check your email and password."
+      : null
+  );
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect authenticated users away from login
@@ -42,25 +49,18 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      const result = await signIn("credentials", {
+      // Use server-side redirect (default). Auth.js will:
+      // - On success: 302 to callbackUrl with Set-Cookie header (cookie always persists)
+      // - On failure: 302 to /login?error=CredentialsSignin
+      // This is more reliable than redirect:false behind reverse proxies.
+      await signIn("credentials", {
         email: email.trim(),
         password: password.trim(),
-        redirect: false,
         callbackUrl,
       });
-
-      if (result?.error) {
-        setError("Invalid credentials. Check your email and password.");
-      } else if (result?.ok) {
-        // Hard navigation — forces full server re-render with new session cookie.
-        // router.replace() does a soft navigation that uses cached RSC payload
-        // from the unauthenticated state, causing pages to show "Loading" forever.
-        window.location.href = callbackUrl;
-        return; // Keep submitting=true while navigating
-      }
+      // signIn with redirect:true navigates away — this line only runs if it fails
     } catch {
       setError("Sign-in failed. Please try again.");
-    } finally {
       setSubmitting(false);
     }
   }
