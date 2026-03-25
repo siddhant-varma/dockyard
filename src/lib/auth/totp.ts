@@ -20,6 +20,9 @@ import { mfaCredentials, users } from "@/db/schema";
 import { encrypt, decrypt } from "@/lib/crypto/aes";
 import { ApiError } from "@/lib/api/errors";
 
+/** Synthetic user IDs that don't exist in the users table. */
+const SYNTHETIC_USERS = new Set(["anonymous", "credentials-admin"]);
+
 /** TOTP configuration constants. */
 const TOTP_ISSUER = "DockYard";
 const TOTP_ALGORITHM = "SHA1";
@@ -126,10 +129,13 @@ export async function verifyAndActivateTotp(
     return false;
   }
 
-  await db
-    .update(users)
-    .set({ mfaEnabled: true, mfaMethod: "totp" })
-    .where(eq(users.id, userId));
+  // Skip users table update for synthetic users (no DB row exists)
+  if (!SYNTHETIC_USERS.has(userId)) {
+    await db
+      .update(users)
+      .set({ mfaEnabled: true, mfaMethod: "totp" })
+      .where(eq(users.id, userId));
+  }
 
   return true;
 }
@@ -209,7 +215,7 @@ export async function removeTotpCredential(userId: string): Promise<boolean> {
     .where(eq(mfaCredentials.userId, userId))
     .limit(1);
 
-  if (remaining.length === 0) {
+  if (remaining.length === 0 && !SYNTHETIC_USERS.has(userId)) {
     await db
       .update(users)
       .set({ mfaEnabled: false, mfaMethod: null })
