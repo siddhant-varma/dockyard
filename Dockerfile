@@ -19,6 +19,7 @@ COPY package.json ./
 # Copy source code (changes often → separate layer)
 COPY src ./src
 COPY public ./public
+COPY scripts ./scripts
 
 ENV NEXT_TELEMETRY_DISABLED=1
 # Cap Node.js heap to 1.5GB to prevent OOM on small VPS (2CPU/4GB)
