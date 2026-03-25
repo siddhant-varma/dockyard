@@ -44,7 +44,11 @@ export class GitHubSource implements DiscoverySource {
     const user = config.user ? String(config.user) : undefined;
 
     log.info(
-      { org: org ?? "(none)", user: user ?? "(none)", tokenLength: token.length },
+      {
+        org: org ?? "(none)",
+        user: user ?? "(none)",
+        tokenLength: token.length,
+      },
       "GitHub scan starting"
     );
 
@@ -61,19 +65,18 @@ export class GitHubSource implements DiscoverySource {
       "GitHub scan completed"
     );
 
-    return filtered
-      .map((repo) => ({
-        name: repo.name,
-        slug: generateSlug(repo.name),
-        description: repo.description ?? undefined,
-        githubRepo: repo.full_name,
-        techStack: repo.language ? [repo.language.toLowerCase()] : undefined,
-        source: "github" as const,
-        metadata: {
-          defaultBranch: repo.default_branch,
-          htmlUrl: repo.html_url,
-        },
-      }));
+    return filtered.map((repo) => ({
+      name: repo.name,
+      slug: generateSlug(repo.name),
+      description: repo.description ?? undefined,
+      githubRepo: repo.full_name,
+      techStack: repo.language ? [repo.language.toLowerCase()] : undefined,
+      source: "github" as const,
+      metadata: {
+        defaultBranch: repo.default_branch,
+        htmlUrl: repo.html_url,
+      },
+    }));
   }
 
   private async fetchRepos(
@@ -89,7 +92,10 @@ export class GitHubSource implements DiscoverySource {
     } else if (user) {
       url = `https://api.github.com/users/${user}/repos?per_page=100&sort=updated`;
     } else {
-      url = "https://api.github.com/user/repos?per_page=100&sort=updated";
+      // affiliation=owner ensures we get repos owned by the user (not just repos they collaborate on).
+      // type=all includes both public and private repos.
+      url =
+        "https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner&type=all";
     }
 
     try {
@@ -108,7 +114,11 @@ export class GitHubSource implements DiscoverySource {
 
         if (!response.ok) {
           log.error(
-            { status: response.status, statusText: response.statusText, url: nextUrl },
+            {
+              status: response.status,
+              statusText: response.statusText,
+              url: nextUrl,
+            },
             "GitHub API returned error"
           );
           break;
@@ -124,14 +134,20 @@ export class GitHubSource implements DiscoverySource {
 
         const repos = (await response.json()) as GitHubRepo[];
         allRepos.push(...repos);
-        log.debug({ page, reposOnPage: repos.length, totalSoFar: allRepos.length }, "GitHub page fetched");
+        log.debug(
+          { page, reposOnPage: repos.length, totalSoFar: allRepos.length },
+          "GitHub page fetched"
+        );
 
         // Parse Link header for pagination
         nextUrl = this.getNextPageUrl(response.headers.get("link"));
         page++;
       }
     } catch (err) {
-      log.error({ err, fetchedSoFar: allRepos.length }, "GitHub API request failed — returning partial results");
+      log.error(
+        { err, fetchedSoFar: allRepos.length },
+        "GitHub API request failed — returning partial results"
+      );
     }
 
     return allRepos;

@@ -119,7 +119,11 @@ export function ProjectsTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to create project" }));
-        setAddError(err.error ?? "Failed to create project");
+        setAddError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to create project")
+        );
         return;
       }
 
@@ -163,7 +167,11 @@ export function ProjectsTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to update" }));
-        setActionError(err.error ?? "Failed to update project");
+        setActionError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to update project")
+        );
         return;
       }
       setEditingSlug(null);
@@ -189,7 +197,11 @@ export function ProjectsTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to archive" }));
-        setActionError(err.error ?? "Failed to archive project");
+        setActionError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to archive project")
+        );
         return;
       }
       await fetchProjects();
@@ -211,7 +223,11 @@ export function ProjectsTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to update status" }));
-        setActionError(err.error ?? "Failed to update status");
+        const msg =
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to update status");
+        setActionError(msg);
         return;
       }
       await fetchProjects();

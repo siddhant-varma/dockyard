@@ -53,8 +53,13 @@ export async function checkProjectPermission(
   projectId: string,
   action: ProjectAction
 ): Promise<boolean> {
-  if (userId === "anonymous") {
-    log.info({ userId, projectId, action, allowed: true }, "permission check: anonymous bypass");
+  // Synthetic users (anonymous when auth disabled, credentials-admin for admin login)
+  // bypass all permission checks — they are effectively superadmin.
+  if (userId === "anonymous" || userId === "credentials-admin") {
+    log.info(
+      { userId, projectId, action, allowed: true },
+      "permission check: synthetic user bypass"
+    );
     return true;
   }
 
@@ -63,12 +68,18 @@ export async function checkProjectPermission(
   });
 
   if (!user) {
-    log.warn({ userId, projectId, action, allowed: false }, "permission check denied: user not found");
+    log.warn(
+      { userId, projectId, action, allowed: false },
+      "permission check denied: user not found"
+    );
     return false;
   }
 
   if (user.role === "superadmin") {
-    log.info({ userId, projectId, action, allowed: true }, "permission check: superadmin bypass");
+    log.info(
+      { userId, projectId, action, allowed: true },
+      "permission check: superadmin bypass"
+    );
     return true;
   }
 
@@ -83,19 +94,31 @@ export async function checkProjectPermission(
     const allowed = ROLE_ACTIONS[membership.role] ?? [];
     const result = allowed.includes(action);
     if (result) {
-      log.info({ userId, projectId, action, role: membership.role, allowed: true }, "permission check allowed via membership");
+      log.info(
+        { userId, projectId, action, role: membership.role, allowed: true },
+        "permission check allowed via membership"
+      );
     } else {
-      log.warn({ userId, projectId, action, role: membership.role, allowed: false }, "permission check denied: action not in role");
+      log.warn(
+        { userId, projectId, action, role: membership.role, allowed: false },
+        "permission check denied: action not in role"
+      );
     }
     return result;
   }
 
   if (user.role === "viewer" && action === "read") {
-    log.info({ userId, projectId, action, allowed: true }, "permission check: global viewer read access");
+    log.info(
+      { userId, projectId, action, allowed: true },
+      "permission check: global viewer read access"
+    );
     return true;
   }
 
-  log.warn({ userId, projectId, action, role: user.role, allowed: false }, "permission check denied: no membership or matching role");
+  log.warn(
+    { userId, projectId, action, role: user.role, allowed: false },
+    "permission check denied: no membership or matching role"
+  );
   return false;
 }
 

@@ -114,7 +114,11 @@ export function SourcesTab() {
       const res = await authFetch("/api/discovery");
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Scan failed" }));
-        setActionError(err.error ?? "Scan failed");
+        setActionError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Scan failed")
+        );
       } else {
         const data = await res.json();
         setScanResult({
@@ -143,7 +147,11 @@ export function SourcesTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to update source" }));
-        setActionError(err.error ?? "Failed to update source");
+        setActionError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to update source")
+        );
         return;
       }
       setSources((prev) =>
@@ -170,7 +178,11 @@ export function SourcesTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to delete source" }));
-        setActionError(err.error ?? "Failed to delete source");
+        setActionError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to delete source")
+        );
         return;
       }
       setSources((prev) => prev.filter((s) => s.id !== id));
@@ -206,7 +218,11 @@ export function SourcesTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to update" }));
-        setActionError(err.error ?? "Failed to update source");
+        setActionError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to update source")
+        );
         return;
       }
       setEditingId(null);
@@ -254,7 +270,11 @@ export function SourcesTab() {
         const err = await res
           .json()
           .catch(() => ({ error: "Failed to add source" }));
-        setAddError(err.error ?? "Failed to add source");
+        setAddError(
+          typeof err.error === "string"
+            ? err.error
+            : (err.error?.message ?? "Failed to add source")
+        );
         return;
       }
 
