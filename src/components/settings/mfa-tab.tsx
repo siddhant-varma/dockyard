@@ -135,28 +135,12 @@ export function MFATab() {
       // Uses string variable to prevent TypeScript from statically resolving the module.
       let attestation: unknown;
       try {
-        const modulePath = "@simplewebauthn/browser";
-        const webauthnBrowser = (await import(
-          /* webpackIgnore: true */ modulePath
-        )) as {
-          startRegistration: (
-            opts: Record<string, unknown>
-          ) => Promise<unknown>;
-        };
-        attestation = await webauthnBrowser.startRegistration(options);
+        const { startRegistration } = await import("@simplewebauthn/browser");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        attestation = await startRegistration(options as any);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "WebAuthn not available";
-        // Check if it's a module-not-found error vs a user cancellation
-        if (
-          message.includes("Cannot find module") ||
-          message.includes("MODULE_NOT_FOUND")
-        ) {
-          throw new Error(
-            "Passkey registration requires @simplewebauthn/browser. " +
-              "Install it with: npm install @simplewebauthn/browser"
-          );
-        }
         throw new Error(`Passkey registration failed: ${message}`);
       }
 
@@ -375,6 +359,35 @@ export function MFATab() {
                 variant="ghost"
                 size="sm"
                 className="text-xs text-red-400"
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      "Remove TOTP authenticator? You will need to re-enroll."
+                    )
+                  )
+                    return;
+                  try {
+                    const res = await authFetch("/api/auth/mfa/totp", {
+                      method: "DELETE",
+                    });
+                    if (!res.ok) {
+                      const body = await res.json().catch(() => ({}));
+                      setTotpMsg(
+                        (body as { error?: { message?: string } }).error
+                          ?.message ?? "Failed to remove"
+                      );
+                      setTotpError(true);
+                      return;
+                    }
+                    setTotpMsg("TOTP authenticator removed.");
+                    setTotpError(false);
+                    await fetchCredentials();
+                  } catch {
+                    setTotpMsg("Failed to remove authenticator");
+                    setTotpError(true);
+                  }
+                  setTimeout(() => setTotpMsg(null), 5000);
+                }}
               >
                 Remove
               </Button>

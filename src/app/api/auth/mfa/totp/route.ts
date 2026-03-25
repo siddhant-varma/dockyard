@@ -11,7 +11,11 @@
 
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/guards";
-import { generateTotpSecret, verifyAndActivateTotp } from "@/lib/auth/totp";
+import {
+  generateTotpSecret,
+  verifyAndActivateTotp,
+  removeTotpCredential,
+} from "@/lib/auth/totp";
 
 /**
  * POST /api/auth/mfa/totp — Generate TOTP secret + QR URI.
@@ -30,11 +34,7 @@ export const POST = withAuth(async (request, user) => {
     // No body or invalid JSON — use default name
   }
 
-  const result = await generateTotpSecret(
-    user.id,
-    user.email ?? "",
-    name
-  );
+  const result = await generateTotpSecret(user.id, user.email ?? "", name);
 
   return NextResponse.json({
     data: {
@@ -83,4 +83,28 @@ export const PUT = withAuth(async (request, user) => {
   return NextResponse.json({
     data: { activated: true },
   });
+});
+
+/**
+ * DELETE /api/auth/mfa/totp — Remove TOTP credential.
+ *
+ * Deletes the user's TOTP credential and disables MFA if no other
+ * credentials remain.
+ */
+export const DELETE = withAuth(async (_request, user) => {
+  const removed = await removeTotpCredential(user.id);
+
+  if (!removed) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "NOT_FOUND",
+          message: "No TOTP credential found to remove",
+        },
+      },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({ data: { removed: true } });
 });
