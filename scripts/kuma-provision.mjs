@@ -22,7 +22,7 @@ const DOCKYARD_URL = "https://dockyard.cc";
  * Used to authenticate Kuma's requests to /api/health/deep without a session cookie.
  * Pass as CLI arg or set as env var: HEALTH_MONITOR_TOKEN=xxx node scripts/kuma-provision.mjs
  */
-const HEALTH_TOKEN = process.argv[2] || process.env.HEALTH_MONITOR_TOKEN || "";
+const HEALTH_TOKEN = process.env.HEALTH_MONITOR_TOKEN || process.argv.find((a) => !a.startsWith("-") && a !== process.argv[0] && a !== process.argv[1]) || "";
 
 /** Build a deep health URL with optional check slug and token auth. */
 function deepHealthUrl(checkSlug) {
@@ -284,6 +284,56 @@ async function ensureTags(socket) {
   return tagMap;
 }
 
+// ── Monitor Deletion ─────────────────────────────────────────────
+
+async function deleteAllMonitors(socket) {
+  const monitors = await getMonitorList(socket);
+  console.log(`  Raw monitor list type: ${typeof monitors}, keys: ${Object.keys(monitors).length}`);
+  const ids = Object.keys(monitors).map(Number).filter(Boolean);
+
+  if (ids.length === 0) {
+    console.log("  No monitors to delete (trying monitorList event instead)");
+    // Kuma v1 may send monitors via the "monitorList" event instead
+    const fallbackMonitors = await new Promise((resolve) => {
+      socket.once("monitorList", (data) => resolve(data));
+      socket.emit("getMonitorList", () => {});
+      setTimeout(() => resolve(null), 5000);
+    });
+    if (fallbackMonitors) {
+      const fallbackIds = Object.keys(fallbackMonitors).map(Number).filter(Boolean);
+      console.log(`  Fallback found ${fallbackIds.length} monitors`);
+      if (fallbackIds.length > 0) {
+        let deleted = 0;
+        for (const id of fallbackIds) {
+          const name = fallbackMonitors[id]?.name ?? `id:${id}`;
+          try {
+            await emit(socket, "deleteMonitor", id);
+            console.log(`  - Deleted "${name}" (id: ${id})`);
+            deleted++;
+          } catch (err) {
+            console.log(`  ✗ Failed to delete "${name}": ${err.message}`);
+          }
+        }
+        return deleted;
+      }
+    }
+    return 0;
+  }
+
+  let deleted = 0;
+  for (const id of ids) {
+    const name = monitors[id]?.name ?? `id:${id}`;
+    try {
+      await emit(socket, "deleteMonitor", id);
+      console.log(`  - Deleted "${name}" (id: ${id})`);
+      deleted++;
+    } catch (err) {
+      console.log(`  ✗ Failed to delete "${name}": ${err.message}`);
+    }
+  }
+  return deleted;
+}
+
 // ── Monitor Creation ────────────────────────────────────────────
 
 async function createMonitors(socket, tagMap) {
@@ -393,9 +443,18 @@ async function createStatusPage(socket) {
 // ── Main ────────────────────────────────────────────────────────
 
 async function main() {
+  const resetMode = process.argv.includes("--reset");
   console.log("═══ Kuma Monitor Provisioning ═══\n");
+  if (resetMode) console.log("  Mode: RESET (delete all monitors first)\n");
+  if (HEALTH_TOKEN) console.log(`  Health token: ${HEALTH_TOKEN.slice(0, 6)}...${HEALTH_TOKEN.slice(-4)}\n`);
 
   const socket = await connect();
+
+  if (resetMode) {
+    console.log("\n── Deleting existing monitors ──");
+    const deleted = await deleteAllMonitors(socket);
+    console.log(`  Deleted ${deleted} monitors`);
+  }
 
   console.log("\n── Creating tags ──");
   const tagMap = await ensureTags(socket);

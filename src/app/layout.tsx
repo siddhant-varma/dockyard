@@ -27,6 +27,7 @@ import { Footer } from "@/components/layout/footer";
 import { DiagnosticBanner } from "@/components/layout/diagnostic-banner";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { SessionTimeoutProvider } from "@/components/auth/session-timeout-provider";
+import { MfaGate } from "@/components/auth/mfa-gate";
 
 export const metadata: Metadata = {
   title: {
@@ -72,6 +73,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <SessionProvider>
+          <MfaGate />
           <SessionTimeoutProvider>
             <TooltipProvider>
               {/* Frame — single max-width container for header + sidebar + canvas */}
