@@ -30,7 +30,17 @@ const AUTH_ENABLED = process.env.DOCKYARD_AUTH_ENABLED === "true";
 const SERVER_MODE = process.env.DOCKYARD_MODE === "server";
 
 /** Paths that are accessible without authentication. */
-const PUBLIC_PATHS = ["/login", "/api/auth"];
+// /api/health covers /api/health/deep, which checks its own monitor token or session.
+// /api/ingest (webhook secrets), /api/inngest (signing key) and /api/sse/broadcast
+// (SSE_BROADCAST_SECRET, called server-to-server) authenticate themselves.
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth",
+  "/api/health",
+  "/api/ingest",
+  "/api/inngest",
+  "/api/sse/broadcast",
+];
 
 /** Subdomains that map to route groups. */
 const SUBDOMAIN_MAP: Record<string, string> = {
@@ -52,17 +62,33 @@ export function middleware(request: NextRequest) {
 
   // ── Auth gate ──────────────────────────────────────────────────
   if (AUTH_ENABLED) {
-    const isPublicPath =
-      PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
-      pathname.startsWith("/api/");
+    const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+    // Check for Auth.js session cookie (dev vs prod cookie names)
+    const hasSession =
+      request.cookies.has("authjs.session-token") ||
+      request.cookies.has("__Secure-authjs.session-token");
 
     if (!isPublicPath) {
-      // Check for Auth.js session cookie (dev vs prod cookie names)
-      const sessionCookie =
-        request.cookies.get("authjs.session-token") ??
-        request.cookies.get("__Secure-authjs.session-token");
+      // API routes get 401 JSON instead of a login redirect.
+      // Route handlers still verify the session (withAuth) — this is defence in depth.
+      // GET /api/projects stays open: it filters to publicVisible projects
+      // for anonymous visitors (public portfolio mode).
+      const isPublicProjectList =
+        pathname === "/api/projects" && request.method === "GET";
 
-      if (!sessionCookie) {
+      if (pathname.startsWith("/api/") && !hasSession && !isPublicProjectList) {
+        return NextResponse.json(
+          {
+            error: { code: "UNAUTHORIZED", message: "Authentication required" },
+          },
+          { status: 401 }
+        );
+      }
+    }
+
+    if (!isPublicPath && !pathname.startsWith("/api/")) {
+      if (!hasSession) {
         const loginUrl = request.nextUrl.clone();
         loginUrl.pathname = "/login";
         loginUrl.searchParams.set("callbackUrl", pathname);

@@ -33,10 +33,11 @@ vi.mock("@/lib/ai/config", () => ({
 }));
 
 describe("Check Registry", () => {
-  it("should export all 13 check slugs", async () => {
+  it("should export all 14 check slugs", async () => {
     const { getCheckSlugs } = await import("@/lib/health/checks");
     const slugs = getCheckSlugs();
 
+    expect(slugs).toContain("schema");
     expect(slugs).toContain("postgres");
     expect(slugs).toContain("timescaledb");
     expect(slugs).toContain("encryption");
@@ -50,7 +51,7 @@ describe("Check Registry", () => {
     expect(slugs).toContain("slack");
     expect(slugs).toContain("ai");
     expect(slugs).toContain("sse");
-    expect(slugs.length).toBe(13);
+    expect(slugs.length).toBe(14);
   });
 
   it("should have all registry entries as functions", async () => {
@@ -276,13 +277,11 @@ describe("checkGitHubOAuth", () => {
 
 describe("checkGitHubApi", () => {
   it("should return ok when API is reachable", async () => {
-    const spy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(JSON.stringify({ rate: { remaining: 60 } }), {
-          status: 200,
-        })
-      );
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ rate: { remaining: 60 } }), {
+        status: 200,
+      })
+    );
 
     const { checkGitHubApi } = await import("@/lib/health/checks/github-api");
     const result = await checkGitHubApi();
@@ -448,8 +447,11 @@ describe("checkDeepHealth orchestrator", () => {
 
   it("should return ok when no critical checks fail", async () => {
     const { db } = await import("@/db/connection");
+    const { EXPECTED_TABLES } = await import("@/lib/health/checks/schema");
+    // One row set serves every query: TimescaleDB reads extversion, schema reads tablename
     (db.execute as ReturnType<typeof vi.fn>).mockResolvedValue([
       { extversion: "2.14" },
+      ...EXPECTED_TABLES.map((tablename) => ({ tablename })),
     ]);
     process.env.CONFIG_ENCRYPTION_KEY = "a".repeat(64);
 
@@ -457,7 +459,7 @@ describe("checkDeepHealth orchestrator", () => {
     const result = await checkDeepHealth();
 
     expect(result.status).toBe("ok");
-    expect(result.checks.length).toBe(13);
+    expect(result.checks.length).toBe(14);
     expect(result.checkedAt).toBeDefined();
     expect(result.cached).toBe(false);
 
