@@ -22,7 +22,7 @@ test.describe("Navigation — Sidebar", () => {
       .getByRole("link", { name: "Projects" });
     await projectsLink.click();
     await page.waitForURL("**/projects");
-    await expect(page.getByText("Aether Core")).toBeVisible();
+    await expect(page.getByText("Aether Core").first()).toBeVisible();
 
     // Navigate to Watchtower via sidebar
     const watchtowerLink = page
@@ -30,7 +30,7 @@ test.describe("Navigation — Sidebar", () => {
       .getByRole("link", { name: "Watchtower" });
     await watchtowerLink.click();
     await page.waitForURL("**/watchtower");
-    await expect(page.getByText("Void Proxy")).toBeVisible();
+    await expect(page.getByText("Void Proxy").first()).toBeVisible();
 
     // Navigate to Settings via sidebar
     const settingsLink = page
@@ -38,15 +38,13 @@ test.describe("Navigation — Sidebar", () => {
       .getByRole("link", { name: "Settings" });
     await settingsLink.click();
     await page.waitForURL("**/settings");
-    await expect(page.getByText("Operating Mode")).toBeVisible();
+    await expect(page.getByText("Operating Mode").first()).toBeVisible();
 
     // Navigate back Home
-    const homeLink = page
-      .locator("aside")
-      .getByRole("link", { name: "Home" });
+    const homeLink = page.locator("aside").getByRole("link", { name: "Home" });
     await homeLink.click();
     await page.waitForURL("/");
-    await expect(page.getByText("hetzner-cx31")).toBeVisible();
+    await expect(page.getByText("hetzner-cx31").first()).toBeVisible();
   });
 });
 
@@ -58,8 +56,8 @@ test.describe("Navigation — Deep Links", () => {
     await expect(
       page.getByRole("heading", { name: "Aether Core" })
     ).toBeVisible();
-    await expect(page.getByText("active")).toBeVisible();
-    await expect(page.getByText("healthy")).toBeVisible();
+    await expect(page.getByText("active").first()).toBeVisible();
+    await expect(page.getByText("healthy").first()).toBeVisible();
   });
 
   test("direct URL to /watchtower/void-proxy loads correctly", async ({
@@ -69,17 +67,13 @@ test.describe("Navigation — Deep Links", () => {
     await expect(
       page.getByRole("heading", { name: "Void Proxy" })
     ).toBeVisible();
-    await expect(page.getByText("DOWN")).toBeVisible();
+    await expect(page.getByText("DOWN").first()).toBeVisible();
   });
 
-  test("direct URL to /watchtower/alerts loads correctly", async ({
-    page,
-  }) => {
+  test("direct URL to /watchtower/alerts loads correctly", async ({ page }) => {
     await page.goto("/watchtower/alerts");
-    await expect(
-      page.getByRole("heading", { name: "Alerts" })
-    ).toBeVisible();
-    await expect(page.getByText("CPU > 90% for 5m")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Alerts" })).toBeVisible();
+    await expect(page.getByText("CPU > 90% for 5m").first()).toBeVisible();
   });
 
   test("direct URL to /watchtower/incidents loads correctly", async ({
@@ -93,13 +87,13 @@ test.describe("Navigation — Deep Links", () => {
 
   test("direct URL to /settings loads correctly", async ({ page }) => {
     await page.goto("/settings");
-    await expect(page.getByText("Operating Mode")).toBeVisible();
+    await expect(page.getByText("Operating Mode").first()).toBeVisible();
   });
 
   test("direct URL to /self-health loads correctly", async ({ page }) => {
     await page.goto("/self-health");
-    await expect(page.getByText("DockYard is")).toBeVisible();
-    await expect(page.getByText("System Components")).toBeVisible();
+    await expect(page.getByText("DockYard is").first()).toBeVisible();
+    await expect(page.getByText("System Components").first()).toBeVisible();
   });
 });
 
@@ -108,9 +102,9 @@ test.describe("Navigation — 404 Page", () => {
     await page.goto("/this-route-does-not-exist");
 
     // 404 page content
-    await expect(page.getByText("404")).toBeVisible();
+    await expect(page.getByText("404").first()).toBeVisible();
     await expect(
-      page.getByText("This page drifted out of orbit")
+      page.getByText("This page drifted out of orbit").first()
     ).toBeVisible();
 
     // "Back to Dashboard" link
@@ -125,18 +119,14 @@ test.describe("Navigation — 404 Page", () => {
   test("404 page renders for invalid project slug", async ({ page }) => {
     await page.goto("/projects/nonexistent-project-xyz");
 
-    await expect(page.getByText("404")).toBeVisible();
-    await expect(
-      page.getByText("This page drifted out of orbit")
-    ).toBeVisible();
+    // Section-level not-found page (src/app/projects/[slug]/not-found.tsx)
+    await expect(page.getByText("Project not found").first()).toBeVisible();
   });
 
   test("404 page renders for invalid watchtower slug", async ({ page }) => {
     await page.goto("/watchtower/nonexistent-project-xyz");
 
-    await expect(page.getByText("404")).toBeVisible();
-    await expect(
-      page.getByText("This page drifted out of orbit")
-    ).toBeVisible();
+    // Section-level not-found page (src/app/watchtower/[slug]/not-found.tsx)
+    await expect(page.getByText("Project not monitored").first()).toBeVisible();
   });
 });

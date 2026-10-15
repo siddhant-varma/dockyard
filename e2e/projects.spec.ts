@@ -14,26 +14,24 @@ test.describe("Projects — Grid Page", () => {
 
   test("projects grid loads with project cards", async ({ page }) => {
     // Demo data has 6 projects
-    await expect(page.getByText("Aether Core")).toBeVisible();
-    await expect(page.getByText("Nebula Gateway")).toBeVisible();
-    await expect(page.getByText("Solaris DB")).toBeVisible();
-    await expect(page.getByText("Void Proxy")).toBeVisible();
-    await expect(page.getByText("Chronos Engine")).toBeVisible();
-    await expect(page.getByText("Prism UI")).toBeVisible();
+    await expect(page.getByText("Aether Core").first()).toBeVisible();
+    await expect(page.getByText("Nebula Gateway").first()).toBeVisible();
+    await expect(page.getByText("Solaris DB").first()).toBeVisible();
+    await expect(page.getByText("Void Proxy").first()).toBeVisible();
+    await expect(page.getByText("Chronos Engine").first()).toBeVisible();
+    await expect(page.getByText("Prism UI").first()).toBeVisible();
   });
 
-  test("project cards show status and health indicators", async ({
-    page,
-  }) => {
-    // Status badges are rendered
-    await expect(page.getByText("active").first()).toBeVisible();
+  test("project cards show status and health indicators", async ({ page }) => {
+    // Confidence score is rendered on each card
+    await expect(page.getByText("confidence").first()).toBeVisible();
     // Health indicator text
     await expect(page.getByText("healthy").first()).toBeVisible();
   });
 
   test("click project card navigates to detail page", async ({ page }) => {
     // Click on the first project card link — Aether Core
-    const aetherLink = page.getByRole("link", { name: /Aether Core/ });
+    const aetherLink = page.getByRole("link", { name: /Aether Core/ }).first();
     await aetherLink.click();
 
     await page.waitForURL("**/projects/aether-core");
@@ -55,46 +53,46 @@ test.describe("Projects — Detail Page", () => {
       page.getByRole("heading", { name: "Aether Core" })
     ).toBeVisible();
     // Status badge
-    await expect(page.getByText("active")).toBeVisible();
+    await expect(page.getByText("active").first()).toBeVisible();
     // Health status
-    await expect(page.getByText("healthy")).toBeVisible();
+    await expect(page.getByText("healthy").first()).toBeVisible();
     // Confidence score (98% from 0.984)
-    await expect(page.getByText("98% Confidence")).toBeVisible();
+    await expect(page.getByText("98% Confidence").first()).toBeVisible();
   });
 
   test("project detail shows description", async ({ page }) => {
     await expect(
-      page.getByText("Next.js dashboard for internal ops")
+      page.getByText("Next.js dashboard for internal ops").first()
     ).toBeVisible();
   });
 
   test("project detail shows phase timeline", async ({ page }) => {
-    await expect(page.getByText("Phase Timeline")).toBeVisible();
-    await expect(page.getByText("Phase 0")).toBeVisible();
-    await expect(page.getByText("Phase 1")).toBeVisible();
-    await expect(page.getByText("Phase 2")).toBeVisible();
-    await expect(page.getByText("Phase 3")).toBeVisible();
+    await expect(page.getByText("Phase Timeline").first()).toBeVisible();
+    await expect(page.getByText("Phase 0").first()).toBeVisible();
+    await expect(page.getByText("Phase 1").first()).toBeVisible();
+    await expect(page.getByText("Phase 2").first()).toBeVisible();
+    await expect(page.getByText("Phase 3").first()).toBeVisible();
   });
 
   test("project detail shows blockers section", async ({ page }) => {
-    await expect(page.getByText("Blockers (2 active)")).toBeVisible();
+    await expect(page.getByText("Blockers (2 active)").first()).toBeVisible();
     await expect(
-      page.getByText("Redis connection timeout under load")
+      page.getByText("Redis connection timeout under load").first()
     ).toBeVisible();
   });
 
   test("project detail shows tech stack", async ({ page }) => {
-    await expect(page.getByText("Tech Stack")).toBeVisible();
-    await expect(page.getByText("Next.js")).toBeVisible();
-    await expect(page.getByText("TypeScript")).toBeVisible();
-    await expect(page.getByText("PostgreSQL")).toBeVisible();
+    await expect(page.getByText("Tech Stack").first()).toBeVisible();
+    await expect(page.getByText("Next.js").first()).toBeVisible();
+    await expect(page.getByText("TypeScript").first()).toBeVisible();
+    await expect(page.getByText("PostgreSQL").first()).toBeVisible();
   });
 
   test("project detail shows activity feed", async ({ page }) => {
     await expect(
-      page.getByText("3 commits pushed to main")
+      page.getByText("3 commits pushed to main").first()
     ).toBeVisible();
-    await expect(page.getByText("Deploy #142 succeeded")).toBeVisible();
+    await expect(page.getByText("Deploy #142 succeeded").first()).toBeVisible();
   });
 
   test("tab navigation works across project sub-pages", async ({ page }) => {
@@ -138,7 +136,10 @@ test.describe("Projects — Detail Page", () => {
 
     // Settings tab (project-level)
     await page.goto("/projects/aether-core");
-    const settingsTab = page.getByRole("link", { name: "Settings" }).first();
+    // Sidebar also has a "Settings" link; target the project tab by href
+    const settingsTab = page.locator(
+      'a[href="/projects/aether-core/settings"]'
+    );
     await expect(settingsTab).toBeVisible();
     await settingsTab.click();
     await page.waitForURL("**/projects/aether-core/settings");
