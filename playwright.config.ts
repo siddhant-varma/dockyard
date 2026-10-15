@@ -14,7 +14,9 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   reporter: [
     ["html", { open: "never" }],
-    ...(process.env.CI ? [["junit" as const, { outputFile: "test-results/junit.xml" }]] : []),
+    ...(process.env.CI
+      ? [["junit" as const, { outputFile: "test-results/junit.xml" }]]
+      : []),
   ],
   use: {
     baseURL: "http://localhost:3001",
@@ -22,13 +24,14 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
-  projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-  ],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "DOCKYARD_DEMO=true PORT=3001 npm run dev",
+    // Production build: next dev compiles routes on first hit, so tab clicks
+    // raced hydration and tests flaked. A built server is fast and stable.
+    command:
+      "DOCKYARD_DEMO=true npx next build && DOCKYARD_DEMO=true npx next start -p 3001",
     port: 3001,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 300_000,
   },
 });

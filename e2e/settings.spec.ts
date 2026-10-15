@@ -33,13 +33,15 @@ test.describe("Settings Page", () => {
     page,
   }) => {
     // General tab content — Environment card
-    await expect(page.getByText("Environment")).toBeVisible();
-    await expect(page.getByText("Operating Mode")).toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true }).first()
+    ).toBeVisible();
+    await expect(page.getByText("Operating Mode").first()).toBeVisible();
     // Service connections card
-    await expect(page.getByText("Service Connections")).toBeVisible();
+    await expect(page.getByText("Service Connections").first()).toBeVisible();
     // Service names
-    await expect(page.getByText("Database")).toBeVisible();
-    await expect(page.getByText("Inngest")).toBeVisible();
+    await expect(page.getByText("Database").first()).toBeVisible();
+    await expect(page.getByText("Inngest").first()).toBeVisible();
   });
 
   test("tab switching works — Projects tab", async ({ page }) => {
@@ -47,7 +49,9 @@ test.describe("Settings Page", () => {
     await projectsTab.click();
 
     // General tab content should no longer be visible
-    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
   });
 
   test("tab switching works — Sources tab", async ({ page }) => {
@@ -55,7 +59,9 @@ test.describe("Settings Page", () => {
     await sourcesTab.click();
 
     // Sources tab content loads — General tab content hidden
-    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
   });
 
   test("tab switching works — Notifications tab", async ({ page }) => {
@@ -64,61 +70,71 @@ test.describe("Settings Page", () => {
     });
     await notificationsTab.click();
 
-    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
   });
 
   test("tab switching works — AI tab", async ({ page }) => {
     const aiTab = page.getByRole("button", { name: "AI" });
     await aiTab.click();
 
-    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
   });
 
   test("tab switching works — MFA tab", async ({ page }) => {
     const mfaTab = page.getByRole("button", { name: "MFA" });
     await mfaTab.click();
 
-    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
   });
 
   test("tab switching works — Audit tab", async ({ page }) => {
     const auditTab = page.getByRole("button", { name: "Audit" });
     await auditTab.click();
 
-    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
   });
 
   test("URL param persists active tab across refresh", async ({ page }) => {
     await page.goto("/settings?tab=Sources");
     // Sources tab should be active — General content hidden
-    await expect(page.getByText("Environment")).not.toBeVisible();
-    await expect(page.getByText("Discovery Sources")).toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
+    await expect(page.getByText("Discovery Sources").first()).toBeVisible();
   });
 
   test("browser back/forward navigates between tabs", async ({ page }) => {
     // Start on General (default)
-    await expect(page.getByText("Operating Mode")).toBeVisible();
+    await expect(page.getByText("Operating Mode").first()).toBeVisible();
 
     // Navigate to Sources
     await page.getByRole("button", { name: "Sources" }).click();
-    await expect(page.getByText("Discovery Sources")).toBeVisible();
+    await expect(page.getByText("Discovery Sources").first()).toBeVisible();
     await expect(page.getByText("Operating Mode")).not.toBeVisible();
 
     // Navigate to Audit
     await page.getByRole("button", { name: "Audit" }).click();
-    await expect(page.getByText("Audit Log")).toBeVisible();
+    await expect(page.getByText("Audit Log").first()).toBeVisible();
 
     // Press back — should return to Sources
     await page.goBack();
-    await expect(page.getByText("Discovery Sources")).toBeVisible();
+    await expect(page.getByText("Discovery Sources").first()).toBeVisible();
 
     // Press back again — should return to General
     await page.goBack();
-    await expect(page.getByText("Operating Mode")).toBeVisible();
+    await expect(page.getByText("Operating Mode").first()).toBeVisible();
 
     // Press forward — should go to Sources
     await page.goForward();
-    await expect(page.getByText("Discovery Sources")).toBeVisible();
+    await expect(page.getByText("Discovery Sources").first()).toBeVisible();
   });
 
   test("switching back to General re-shows operating mode", async ({
@@ -127,11 +143,13 @@ test.describe("Settings Page", () => {
     // Switch away from General
     const projectsTab = page.getByRole("button", { name: "Projects" });
     await projectsTab.click();
-    await expect(page.getByText("Environment")).not.toBeVisible();
+    await expect(
+      page.getByText("Environment", { exact: true })
+    ).not.toBeVisible();
 
     // Switch back to General
     const generalTab = page.getByRole("button", { name: "General" });
     await generalTab.click();
-    await expect(page.getByText("Operating Mode")).toBeVisible();
+    await expect(page.getByText("Operating Mode").first()).toBeVisible();
   });
 });

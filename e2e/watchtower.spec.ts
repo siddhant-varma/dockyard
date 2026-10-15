@@ -14,22 +14,22 @@ test.describe("Watchtower — Health Overview", () => {
 
   test("health overview loads with health cards", async ({ page }) => {
     // Demo data has 8 health projects
-    await expect(page.getByText("Void Proxy")).toBeVisible();
-    await expect(page.getByText("Nebula Gateway")).toBeVisible();
-    await expect(page.getByText("Aether Core")).toBeVisible();
-    await expect(page.getByText("Solaris DB")).toBeVisible();
-    await expect(page.getByText("Chronos Engine")).toBeVisible();
-    await expect(page.getByText("Prism UI")).toBeVisible();
-    await expect(page.getByText("DockYard")).toBeVisible();
-    await expect(page.getByText("Payments")).toBeVisible();
+    await expect(page.getByText("Void Proxy").first()).toBeVisible();
+    await expect(page.getByText("Nebula Gateway").first()).toBeVisible();
+    await expect(page.getByText("Aether Core").first()).toBeVisible();
+    await expect(page.getByText("Solaris DB").first()).toBeVisible();
+    await expect(page.getByText("Chronos Engine").first()).toBeVisible();
+    await expect(page.getByText("Prism UI").first()).toBeVisible();
+    await expect(page.getByText("DockYard").first()).toBeVisible();
+    await expect(page.getByText("Payments").first()).toBeVisible();
   });
 
   test("status summary strip shows health counts", async ({ page }) => {
     // Status summary strip renders
-    await expect(page.getByText(/Healthy/)).toBeVisible();
-    await expect(page.getByText(/Down/)).toBeVisible();
-    await expect(page.getByText(/Degraded/)).toBeVisible();
-    await expect(page.getByText("8 monitored")).toBeVisible();
+    await expect(page.getByText(/Healthy/).first()).toBeVisible();
+    await expect(page.getByText(/Down/).first()).toBeVisible();
+    await expect(page.getByText(/Degraded/).first()).toBeVisible();
+    await expect(page.getByText("8 monitored").first()).toBeVisible();
   });
 
   test("click health card navigates to detail page", async ({ page }) => {
@@ -46,15 +46,9 @@ test.describe("Watchtower — Health Overview", () => {
   });
 
   test("watchtower page tabs render correctly", async ({ page }) => {
-    await expect(
-      page.getByRole("link", { name: "Overview" })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Alerts" })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Incidents" })
-    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Overview" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Alerts" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Incidents" })).toBeVisible();
   });
 });
 
@@ -68,17 +62,17 @@ test.describe("Watchtower — Health Detail", () => {
       page.getByRole("heading", { name: "Aether Core" })
     ).toBeVisible();
     // Status badge shows "HEALTHY"
-    await expect(page.getByText("HEALTHY")).toBeVisible();
+    await expect(page.getByText("HEALTHY").first()).toBeVisible();
     // Uptime value
-    await expect(page.getByText("99.94%")).toBeVisible();
+    await expect(page.getByText("99.94%").first()).toBeVisible();
   });
 
   test("health detail shows component status", async ({ page }) => {
-    await expect(page.getByText("Components")).toBeVisible();
+    await expect(page.getByText("Components").first()).toBeVisible();
     // Aether Core has API, DB, Redis components
-    await expect(page.getByText("API")).toBeVisible();
-    await expect(page.getByText("DB")).toBeVisible();
-    await expect(page.getByText("Redis")).toBeVisible();
+    await expect(page.getByText("API").first()).toBeVisible();
+    await expect(page.getByText("DB").first()).toBeVisible();
+    await expect(page.getByText("Redis").first()).toBeVisible();
   });
 
   test("sub-tabs work — Health, Deployments, Logs, Tests, DORA", async ({
@@ -123,32 +117,32 @@ test.describe("Watchtower — Alerts Page", () => {
   });
 
   test("alerts page loads with heading", async ({ page }) => {
-    await expect(
-      page.getByRole("heading", { name: "Alerts" })
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Alerts" })).toBeVisible();
   });
 
   test("active alerts are displayed", async ({ page }) => {
     // Demo alert events
-    await expect(page.getByText("CPU > 90% for 5m")).toBeVisible();
+    await expect(page.getByText("CPU > 90% for 5m").first()).toBeVisible();
     await expect(
-      page.getByText("Memory Usage Spike > 85%")
+      page.getByText("Memory Usage Spike > 85%").first()
     ).toBeVisible();
     await expect(
-      page.getByText("API Latency P99 > 400ms")
+      page.getByText("API Latency P99 > 400ms").first()
     ).toBeVisible();
 
     // Firing count text
-    await expect(page.getByText("2 active alerts firing")).toBeVisible();
+    await expect(
+      page.getByText("2 active alerts firing").first()
+    ).toBeVisible();
   });
 
   test("alert rules table is displayed", async ({ page }) => {
-    await expect(page.getByText("Alert Rules")).toBeVisible();
+    await expect(page.getByText("Alert Rules").first()).toBeVisible();
 
     // Rule names from demo data
-    await expect(page.getByText("CPU Critical")).toBeVisible();
-    await expect(page.getByText("Memory High")).toBeVisible();
-    await expect(page.getByText("Disk Full Impending")).toBeVisible();
+    await expect(page.getByText("CPU Critical").first()).toBeVisible();
+    await expect(page.getByText("Memory High").first()).toBeVisible();
+    await expect(page.getByText("Disk Full Impending").first()).toBeVisible();
   });
 
   test("alert severity badges are shown", async ({ page }) => {
@@ -172,19 +166,19 @@ test.describe("Watchtower — Incidents Page", () => {
   test("incident list is displayed", async ({ page }) => {
     // Demo incidents
     await expect(
-      page.getByText("Database connection pool exhaustion")
+      page.getByText("Database connection pool exhaustion").first()
     ).toBeVisible();
     await expect(
-      page.getByText("Intermittent latency on Auth Cluster-B")
+      page.getByText("Intermittent latency on Auth Cluster-B").first()
     ).toBeVisible();
     await expect(
-      page.getByText("Redis cache eviction rate spike")
+      page.getByText("Redis cache eviction rate spike").first()
     ).toBeVisible();
   });
 
   test("active incident count is shown", async ({ page }) => {
     // 4 non-resolved incidents in demo data
-    await expect(page.getByText("4 active incidents")).toBeVisible();
+    await expect(page.getByText("4 active incidents").first()).toBeVisible();
   });
 
   test("incident cards show severity and status", async ({ page }) => {

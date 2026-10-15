@@ -21,47 +21,43 @@ test.describe("Dashboard — Home Page", () => {
 
   test("metrics grid renders 4 metric cards", async ({ page }) => {
     // The metrics grid shows CPU, Memory, Network In/Out, Disk I/O
-    await expect(page.getByText("CPU")).toBeVisible();
-    await expect(page.getByText("Memory")).toBeVisible();
-    await expect(page.getByText("Network In/Out")).toBeVisible();
-    await expect(page.getByText("Disk I/O")).toBeVisible();
+    await expect(page.getByText("CPU").first()).toBeVisible();
+    await expect(page.getByText("Memory").first()).toBeVisible();
+    await expect(page.getByText("Network In/Out").first()).toBeVisible();
+    await expect(page.getByText("Disk I/O").first()).toBeVisible();
 
     // Each metric shows its current value
-    await expect(page.getByText("23%")).toBeVisible();
-    await expect(page.getByText("68%")).toBeVisible();
-    await expect(page.getByText("2.4MB/s")).toBeVisible();
-    await expect(page.getByText("140IOPS")).toBeVisible();
+    await expect(page.getByText("23%").first()).toBeVisible();
+    await expect(page.getByText("68%").first()).toBeVisible();
+    await expect(page.getByText("2.4MB/s").first()).toBeVisible();
+    await expect(page.getByText("140IOPS").first()).toBeVisible();
   });
 
   test("server status card is visible", async ({ page }) => {
     // Server name from demo data
-    await expect(page.getByText("hetzner-cx31")).toBeVisible();
+    await expect(page.getByText("hetzner-cx31").first()).toBeVisible();
     // Status indicator — "running" appears somewhere
-    await expect(page.getByText("running")).toBeVisible();
+    await expect(page.getByText("running").first()).toBeVisible();
     // Server details
-    await expect(page.getByText("167.235.1.92")).toBeVisible();
+    await expect(page.getByText("167.235.1.92").first()).toBeVisible();
   });
 
   test("billing card is visible", async ({ page }) => {
     // Billing card shows cost figures from demo data
-    await expect(page.getByText("$12.40")).toBeVisible();
+    await expect(page.getByText("$12.40").first()).toBeVisible();
     // Projected cost
-    await expect(page.getByText("$16.20")).toBeVisible();
+    await expect(page.getByText("$16.20").first()).toBeVisible();
   });
 
   test("logstream section is visible", async ({ page }) => {
     // Live logstream shows log entries from demo data
-    await expect(
-      page.getByText("Health check passed").first()
-    ).toBeVisible();
+    await expect(page.getByText("Health check passed").first()).toBeVisible();
     await expect(
       page.getByText("Redis connection refused").first()
     ).toBeVisible();
   });
 
-  test("navigation tabs work — Dashboard and Self-Health", async ({
-    page,
-  }) => {
+  test("navigation tabs work — Dashboard and Self-Health", async ({ page }) => {
     // Dashboard tab is present
     const dashboardTab = page.getByRole("link", { name: "Dashboard" }).first();
     await expect(dashboardTab).toBeVisible();
@@ -75,8 +71,8 @@ test.describe("Dashboard — Home Page", () => {
     await page.waitForURL("**/self-health");
 
     // Self-Health page renders its content
-    await expect(page.getByText("DockYard is")).toBeVisible();
-    await expect(page.getByText("System Components")).toBeVisible();
-    await expect(page.getByText("Background Jobs")).toBeVisible();
+    await expect(page.getByText("DockYard is").first()).toBeVisible();
+    await expect(page.getByText("System Components").first()).toBeVisible();
+    await expect(page.getByText("Background Jobs").first()).toBeVisible();
   });
 });
