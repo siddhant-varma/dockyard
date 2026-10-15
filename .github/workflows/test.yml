@@ -1,11 +1,21 @@
 name: Test Suite
 on:
   push:
-    branches: [main, 'feat/**', 'testing']
+    branches: [main, "feat/**", "testing"]
   pull_request:
     branches: [main]
 
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   static-analysis:
     runs-on: ubuntu-latest
     steps:
@@ -13,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run lint
@@ -28,11 +38,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
       - run: npm ci
       - run: npm run build
         env:
-          DOCKYARD_DEMO: 'true'
+          DOCKYARD_DEMO: "true"
 
   unit-integration:
     runs-on: ubuntu-latest
@@ -42,7 +52,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
       - run: npm ci
       - run: npx vitest run --reporter=verbose
       - uses: actions/upload-artifact@v4
@@ -59,12 +69,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
         env:
-          DOCKYARD_DEMO: 'true'
+          DOCKYARD_DEMO: "true"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

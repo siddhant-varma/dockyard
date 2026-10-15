@@ -1,1 +1,7 @@
+# Block secrets before they reach this public repo. CI runs the same scan.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --no-banner --redact || exit 1
+else
+  echo "warning: gitleaks not installed (brew install gitleaks); secret scan skipped locally, CI will still run it" >&2
+fi
 npx lint-staged

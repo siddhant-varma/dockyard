@@ -270,7 +270,8 @@ npx playwright test --ui          # Playwright interactive UI mode
 - `GET /api/health/deep` supports `?check=<slug>` for per-dependency checks and `?token=<HEALTH_MONITOR_TOKEN>` for auth bypass (used by Kuma monitors). Both params can be combined: `?check=postgres&token=<secret>`.
 - Uptime Kuma v1 uses HTTP Basic Auth for `/metrics` (empty username, API key as password) — NOT Bearer token. The settings route at `src/app/api/settings/kuma/route.ts` handles this.
 - Kuma v1 CRUD API is Socket.IO only — `KumaClient` REST methods are placeholders. Use `scripts/kuma-provision.mjs` for programmatic monitor creation until Socket.IO rewrite is done.
-- Kuma admin credentials: username `kuma-admin@dockyard`, password `DockYard-Kuma-2026!`. Password was reset via SQLite during KUMA-OPS provisioning.
+- Kuma admin credentials and API keys live in the deployer's secret store, never in this repo. `scripts/kuma-provision.mjs` reads `KUMA_USERNAME`, `KUMA_PASSWORD` and `KUMA_API_TOKEN` from env.
+- **Never commit secrets** (passwords, API keys, tokens), not even in docs or CLAUDE.md. This repo is public. A gitleaks pre-commit hook and a CI job block them.
 - `HEALTH_MONITOR_TOKEN` env var enables external monitors (Kuma) to access `/api/health/deep` without session auth. If not set, token bypass is disabled and only session auth works.
 - JWT sessions enforce dual timeout: idle (default 30 min, `DOCKYARD_SESSION_IDLE_TIMEOUT`) and absolute (default 8h, `DOCKYARD_SESSION_ABSOLUTE_TIMEOUT`). Timeout logic lives in the `jwt` callback in `src/lib/auth/config.ts` — `issuedAt` and `lastActivity` claims are checked on every request. When expired, `token.expired = true` and `requireAuth()` throws 401.
 - `authFetch()` detects session expiry from the 401 response body and redirects to `/login?reason=timeout` or `/login?reason=revoked`. The login page reads `?reason=` to show context-appropriate messages (amber for timeout, red for revocation).

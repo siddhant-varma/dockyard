@@ -1,0 +1,4 @@
+# Rotated 2026-10-16 (BUG-006); old values no longer work. Kept in history only.
+99236a926ab9e79d55c3da9d6a1db4386c0eba89:CLAUDE.md:password-in-docs:269
+46403b4814715e285cd9611455a53e70eaff24f8:scripts/kuma-provision.mjs:hardcoded-password:17
+46403b4814715e285cd9611455a53e70eaff24f8:scripts/kuma-provision.mjs:uptime-kuma-api-key:422
