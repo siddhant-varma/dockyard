@@ -22,7 +22,7 @@ import {
  * All table names defined in src/db/schema.ts.
  * Must be kept in sync when new tables are added.
  */
-const EXPECTED_TABLES = [
+export const EXPECTED_TABLES = [
   "users",
   "accounts",
   "verification_tokens",
