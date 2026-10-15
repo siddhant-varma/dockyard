@@ -24,28 +24,28 @@ const nextConfig: NextConfig = {
       },
     ];
 
-    // HSTS + CSP only in production (when auth/HTTPS is expected).
-    // Adding HSTS in local dev would break HTTP-only localhost.
-    if (process.env.DOCKYARD_AUTH_ENABLED === "true") {
-      securityHeaders.push(
-        {
-          key: "Strict-Transport-Security",
-          value: "max-age=63072000; includeSubDomains",
-        },
-        {
-          key: "Content-Security-Policy",
-          value: [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob:",
-            "font-src 'self' data:",
-            "connect-src 'self'",
-            "worker-src 'self' blob:",
-          ].join("; "),
-        }
-      );
-    }
+    // HSTS is ignored by browsers over plain HTTP, so it is safe on localhost.
+    // 'unsafe-eval' is only needed by Next.js dev mode (React Refresh).
+    const devEval =
+      process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+    securityHeaders.push(
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains",
+      },
+      {
+        key: "Content-Security-Policy",
+        value: [
+          "default-src 'self'",
+          `script-src 'self' 'unsafe-inline'${devEval}`,
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob:",
+          "font-src 'self' data:",
+          "connect-src 'self'",
+          "worker-src 'self' blob:",
+        ].join("; "),
+      }
+    );
 
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
