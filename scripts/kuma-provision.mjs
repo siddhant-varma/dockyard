@@ -28,7 +28,6 @@ const HEALTH_TOKEN = process.env.HEALTH_MONITOR_TOKEN || process.argv.find((a) =
 function deepHealthUrl(checkSlug) {
   const params = new URLSearchParams();
   if (checkSlug) params.set("check", checkSlug);
-  if (HEALTH_TOKEN) params.set("token", HEALTH_TOKEN);
   const qs = params.toString();
   return `${DOCKYARD_URL}/api/health/deep${qs ? `?${qs}` : ""}`;
 }
@@ -359,6 +358,9 @@ async function createMonitors(socket, tagMap) {
       notificationIDList: {},
       accepted_statuscodes: def.accepted_statuscodes || ["200-299"],
     };
+    if (HEALTH_TOKEN && def.url?.includes("/api/health/deep")) {
+      monitorData.headers = JSON.stringify({ Authorization: `Bearer ${HEALTH_TOKEN}` });
+    }
 
     try {
       const res = await emit(socket, "add", monitorData);

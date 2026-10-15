@@ -4,7 +4,7 @@
  * Deep health check endpoint for DockYard's internal dependencies.
  *
  * Authentication: requires EITHER a valid session (withAuth) OR a
- * `?token=<HEALTH_MONITOR_TOKEN>` query parameter for external monitors
+ * `Authorization: Bearer <HEALTH_MONITOR_TOKEN>` header for external monitors
  * like Uptime Kuma that cannot send session cookies.
  *
  * Supports an optional `?check=<slug>` query parameter to run a single
@@ -13,18 +13,19 @@
  *
  * Examples:
  *   GET /api/health/deep                                → all checks (auth required)
- *   GET /api/health/deep?token=<secret>                 → all checks (token auth)
- *   GET /api/health/deep?check=postgres&token=<secret>  → PostgreSQL only
+ *   GET /api/health/deep  + Authorization: Bearer <secret>        → all checks
+ *   GET /api/health/deep?check=postgres + Authorization: Bearer … → PostgreSQL only
  *
  * Returns per-dependency status with latency, plus an aggregate status:
  * - "ok" if no critical checks fail
  * - "degraded" if any critical check fails
  */
 
+import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/guards";
 import { apiSuccess, apiError } from "@/lib/api/response";
-import { checkDeepHealth, checkSingle, getCheckSlugs } from "@/lib/health/deep";
+import { checkDeepHealth, checkSingle } from "@/lib/health/deep";
 
 /** Run the health check logic and return a response. */
 async function handleDeepHealth(request: Request): Promise<NextResponse> {
@@ -35,11 +36,7 @@ async function handleDeepHealth(request: Request): Promise<NextResponse> {
   if (checkSlug) {
     const result = await checkSingle(checkSlug);
     if (!result) {
-      return apiError(
-        "UNKNOWN_CHECK",
-        `Unknown check: "${checkSlug}". Valid slugs: ${getCheckSlugs().join(", ")}`,
-        400
-      );
+      return apiError("UNKNOWN_CHECK", "Unknown check", 400);
     }
 
     return apiSuccess({
@@ -56,16 +53,19 @@ async function handleDeepHealth(request: Request): Promise<NextResponse> {
 }
 
 /**
- * Validate the monitor token from the `?token=` query parameter.
+ * Validate the monitor token from the `Authorization: Bearer` header.
  * Returns true if the token matches `HEALTH_MONITOR_TOKEN` env var.
+ * Header (not query param) keeps the secret out of access logs and history.
  */
 function isValidMonitorToken(request: Request): boolean {
   const secret = process.env.HEALTH_MONITOR_TOKEN;
   if (!secret) return false;
 
-  const url = new URL(request.url);
-  const token = url.searchParams.get("token");
-  return token === secret;
+  const header = request.headers.get("authorization") ?? "";
+  if (!header.startsWith("Bearer ")) return false;
+  const token = Buffer.from(header.slice(7));
+  const expected = Buffer.from(secret);
+  return token.length === expected.length && timingSafeEqual(token, expected);
 }
 
 /**
