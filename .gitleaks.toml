@@ -1,0 +1,28 @@
+# Secret scanning config for the gitleaks pre-commit hook and CI job.
+# Default rules miss Uptime Kuma keys and plain passwords, which is how BUG-006 leaked.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "uptime-kuma-api-key"
+description = "Uptime Kuma API key"
+regex = '''\buk\d+_[A-Za-z0-9_-]{30,}'''
+
+[[rules]]
+id = "hardcoded-password"
+description = "Password literal assigned in source or docs"
+regex = '''(?i)(pass(word)?|pwd|_PASS)["'`]?\s*[:=]\s*["'`]([^"'`\s$<{]{8,})["'`]'''
+secretGroup = 3
+[rules.allowlist]
+paths = ['''(^|/)(__tests__|e2e|test)/''', '''\.test\.tsx?$''', '''\.spec\.ts$''']
+
+[[rules]]
+id = "password-in-docs"
+description = "Password written inline in Markdown, e.g. password `hunter2!`"
+regex = '''(?i)password\s*[:=]?\s*`([^`\s$<{]{8,})`'''
+secretGroup = 1
+path = '''\.md$'''
+
+[allowlist]
+description = "Fake values used in tests"
+regexes = ['''abcdef1234567890''']

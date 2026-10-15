@@ -13,8 +13,12 @@
 import { io } from "socket.io-client";
 
 const KUMA_URL = "https://kuma.dockyard.cc";
-const KUMA_USER = "kuma-admin@dockyard";
-const KUMA_PASS = "DockYard-Kuma-2026!";
+// Credentials come from env, never from source: KUMA_USERNAME, KUMA_PASSWORD, KUMA_API_TOKEN.
+const { KUMA_USERNAME: KUMA_USER, KUMA_PASSWORD: KUMA_PASS, KUMA_API_TOKEN } = process.env;
+if (!KUMA_USER || !KUMA_PASS || !KUMA_API_TOKEN) {
+  console.error("Set KUMA_USERNAME, KUMA_PASSWORD and KUMA_API_TOKEN");
+  process.exit(1);
+}
 const DOCKYARD_URL = "https://dockyard.cc";
 
 /**
@@ -497,7 +501,7 @@ async function main() {
   // Verify metrics
   console.log("\n── Verifying /metrics ──");
   const metricsRes = await fetch(`${KUMA_URL}/metrics`, {
-    headers: { Authorization: "Basic " + Buffer.from(`:uk1_y6FZTVCQkh_J0293fW6vbBKY9FN-yOCpydx8PzjE`).toString("base64") },
+    headers: { Authorization: "Basic " + Buffer.from(`:${KUMA_API_TOKEN}`).toString("base64") },
   });
   const metricsText = await metricsRes.text();
   const monitorCount = (metricsText.match(/^monitor_status\{/gm) || []).length;
