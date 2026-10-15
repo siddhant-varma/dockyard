@@ -27,7 +27,11 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run lint
-      - run: npm audit --audit-level=high
+      # Runtime deps must be free of high/critical advisories. Dev tooling only
+      # fails on critical: the braces/micromatch advisory (shadcn CLI, eslint
+      # plugin) has no patched release yet.
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=critical
       - run: npx @redocly/cli lint docs/api/openapi-core.yaml docs/api/openapi-extended.yaml
 
   build:
