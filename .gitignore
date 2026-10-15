@@ -54,3 +54,7 @@ drizzle/meta/
 
 # Inngest
 .inngest/
+
+# Playwright
+/test-results/
+/playwright-report/
