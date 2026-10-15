@@ -3,7 +3,8 @@
 # Builds locally, copies the .next output to the VPS container, and restarts.
 # Skips full Docker rebuild — ~30 sec instead of ~4 min.
 #
-# Usage: ./scripts/hotpatch.sh
+# Usage: DOCKYARD_VPS_HOST=user@host ./scripts/hotpatch.sh
+#   (or an ~/.ssh/config alias, e.g. DOCKYARD_VPS_HOST=dockyard)
 #
 # Prerequisites:
 # - SSH access to VPS (uses ~/.ssh/id_ed25519)
@@ -18,7 +19,7 @@
 
 set -euo pipefail
 
-VPS_HOST="root@204.168.136.98"
+VPS_HOST="${DOCKYARD_VPS_HOST:?Set DOCKYARD_VPS_HOST (user@host or ssh alias)}"
 VPS_KEY="$HOME/.ssh/id_ed25519"
 CONTAINER="dockyard-app"
 SSH="ssh -i $VPS_KEY $VPS_HOST"
