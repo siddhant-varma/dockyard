@@ -12,6 +12,7 @@
  *   - Projects: Internal projects table
  */
 
+import { cookies } from "next/headers";
 import { isDemoMode, isServerMode } from "@/lib/env";
 import type { MetricSeries as UIMetricSeries } from "@/components/dashboard/metrics-grid";
 import type { LogEntry } from "@/components/dashboard/logstream";
@@ -28,6 +29,24 @@ import {
 
 const INTERNAL_BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/**
+ * Fetch an internal API route from a server component, forwarding the
+ * visitor's cookies so `withAuth()` routes see the session. Per-user
+ * responses are never put in the shared fetch cache.
+ */
+async function internalFetch(
+  path: string,
+  revalidate: number
+): Promise<Response> {
+  const cookie = (await cookies()).toString();
+  return fetch(
+    `${INTERNAL_BASE}${path}`,
+    cookie
+      ? { headers: { cookie }, cache: "no-store" }
+      : { next: { revalidate } }
+  );
+}
 
 /* ── Shared types ────────────────────────────────────── */
 
@@ -80,9 +99,7 @@ export interface TrafficData {
 export async function fetchServerStatus(): Promise<ServerStatus | null> {
   if (isDemoMode) return DEMO_SERVER_STATUS;
   try {
-    const res = await fetch(`${INTERNAL_BASE}/api/hetzner/status`, {
-      next: { revalidate: 60 },
-    });
+    const res = await internalFetch(`/api/hetzner/status`, 60);
     if (!res.ok) return null;
     return (await res.json()) as ServerStatus;
   } catch {
@@ -96,9 +113,7 @@ export async function fetchServerStatus(): Promise<ServerStatus | null> {
 export async function fetchBilling(): Promise<BillingResponse | null> {
   if (isDemoMode) return DEMO_BILLING;
   try {
-    const res = await fetch(`${INTERNAL_BASE}/api/hetzner/billing`, {
-      next: { revalidate: 3600 },
-    });
+    const res = await internalFetch(`/api/hetzner/billing`, 3600);
     if (!res.ok) return null;
     return (await res.json()) as BillingResponse;
   } catch {
@@ -109,12 +124,13 @@ export async function fetchBilling(): Promise<BillingResponse | null> {
 /* ── Projects ────────────────────────────────────────── */
 
 /** Fetch project list for quick actions. */
-export async function fetchProjects(): Promise<{ slug: string; name: string }[]> {
-  if (isDemoMode) return DEMO_PROJECTS.map((p) => ({ slug: p.slug, name: p.name }));
+export async function fetchProjects(): Promise<
+  { slug: string; name: string }[]
+> {
+  if (isDemoMode)
+    return DEMO_PROJECTS.map((p) => ({ slug: p.slug, name: p.name }));
   try {
-    const res = await fetch(`${INTERNAL_BASE}/api/projects`, {
-      next: { revalidate: 60 },
-    });
+    const res = await internalFetch(`/api/projects`, 60);
     if (!res.ok) return [];
     return (await res.json()) as { slug: string; name: string }[];
   } catch {
@@ -131,20 +147,49 @@ interface HetznerMetricSeries {
 }
 
 /** Map from Hetzner metric series name to UI-friendly label + color. */
-const METRIC_MAP: Record<string, { label: string; unit: string; color: string }> = {
-  "cpu": { label: "CPU", unit: "%", color: "#6366f1" },
+const METRIC_MAP: Record<
+  string,
+  { label: string; unit: string; color: string }
+> = {
+  cpu: { label: "CPU", unit: "%", color: "#6366f1" },
   "cpu.0.percent": { label: "CPU", unit: "%", color: "#6366f1" },
   "disk.0.iops.read": { label: "Disk I/O", unit: "IOPS", color: "#f59e0b" },
   "disk.0.iops.write": { label: "Disk I/O", unit: "IOPS", color: "#f59e0b" },
-  "network.0.bandwidth.in": { label: "Network In/Out", unit: "MB/s", color: "#38bdf8" },
-  "network.0.bandwidth.out": { label: "Network In/Out", unit: "MB/s", color: "#38bdf8" },
+  "network.0.bandwidth.in": {
+    label: "Network In/Out",
+    unit: "MB/s",
+    color: "#38bdf8",
+  },
+  "network.0.bandwidth.out": {
+    label: "Network In/Out",
+    unit: "MB/s",
+    color: "#38bdf8",
+  },
 };
 
 const ZERO_METRICS: UIMetricSeries[] = [
   { label: "CPU", currentValue: 0, unit: "%", history: [0], color: "#6366f1" },
-  { label: "Memory", currentValue: 0, unit: "%", history: [0], color: "#22c55e" },
-  { label: "Network In/Out", currentValue: 0, unit: "MB/s", history: [0], color: "#38bdf8" },
-  { label: "Disk I/O", currentValue: 0, unit: "IOPS", history: [0], color: "#f59e0b" },
+  {
+    label: "Memory",
+    currentValue: 0,
+    unit: "%",
+    history: [0],
+    color: "#22c55e",
+  },
+  {
+    label: "Network In/Out",
+    currentValue: 0,
+    unit: "MB/s",
+    history: [0],
+    color: "#38bdf8",
+  },
+  {
+    label: "Disk I/O",
+    currentValue: 0,
+    unit: "IOPS",
+    history: [0],
+    color: "#f59e0b",
+  },
 ];
 
 /**
@@ -152,7 +197,9 @@ const ZERO_METRICS: UIMetricSeries[] = [
  * Only attempts the fetch in server mode with a valid serverId.
  * Falls back to zero-value metrics in local mode or on failure.
  */
-export async function fetchMetrics(serverId: string | null): Promise<UIMetricSeries[]> {
+export async function fetchMetrics(
+  serverId: string | null
+): Promise<UIMetricSeries[]> {
   if (isDemoMode) return DEMO_METRICS;
   if (!isServerMode || !serverId) return ZERO_METRICS;
 
@@ -161,9 +208,9 @@ export async function fetchMetrics(serverId: string | null): Promise<UIMetricSer
     const allSeries: UIMetricSeries[] = [];
 
     for (const type of types) {
-      const res = await fetch(
-        `${INTERNAL_BASE}/api/hetzner/servers/${serverId}/metrics?type=${type}`,
-        { next: { revalidate: 60 } }
+      const res = await internalFetch(
+        `/api/hetzner/servers/${serverId}/metrics?type=${type}`,
+        60
       );
       if (!res.ok) continue;
       const series = (await res.json()) as HetznerMetricSeries[];
@@ -175,13 +222,16 @@ export async function fetchMetrics(serverId: string | null): Promise<UIMetricSer
         if (!mapping) continue;
         const [, meta] = mapping;
         const history = s.dataPoints.map((dp) => dp.value);
-        const currentValue = history.length > 0 ? history[history.length - 1] : 0;
+        const currentValue =
+          history.length > 0 ? history[history.length - 1] : 0;
 
         // Merge into existing series with same label (e.g. network in + out)
         const existing = allSeries.find((m) => m.label === meta.label);
         if (existing) {
           existing.currentValue = Math.max(existing.currentValue, currentValue);
-          existing.history = existing.history.map((v, i) => v + (history[i] ?? 0));
+          existing.history = existing.history.map(
+            (v, i) => v + (history[i] ?? 0)
+          );
         } else {
           allSeries.push({
             label: meta.label,
@@ -234,13 +284,16 @@ function formatTimeAgo(dateStr: string): string {
 export async function fetchAlerts(): Promise<AlertItem[]> {
   if (isDemoMode) return DEMO_ALERTS;
   try {
-    const res = await fetch(`${INTERNAL_BASE}/api/alerts/events`, {
-      next: { revalidate: 30 },
-    });
+    const res = await internalFetch(`/api/alerts/events`, 30);
     if (!res.ok) return [];
     const events = (await res.json()) as AlertEventRow[];
     return events
-      .filter((e) => e.severity === "sev1" || e.severity === "sev2" || e.severity === "sev3")
+      .filter(
+        (e) =>
+          e.severity === "sev1" ||
+          e.severity === "sev2" ||
+          e.severity === "sev3"
+      )
       .slice(0, 10)
       .map((e) => ({
         id: e.id,
@@ -279,9 +332,7 @@ function mapLogLevel(level: string): LogEntry["level"] {
 export async function fetchLogs(): Promise<LogEntry[]> {
   if (isDemoMode) return DEMO_LOGS;
   try {
-    const res = await fetch(`${INTERNAL_BASE}/api/logs/recent`, {
-      next: { revalidate: 30 },
-    });
+    const res = await internalFetch(`/api/logs/recent`, 30);
     if (!res.ok) return [];
     const entries = (await res.json()) as ApiLogEntry[];
     return entries.map((e) => ({
@@ -302,9 +353,12 @@ export async function fetchLogs(): Promise<LogEntry[]> {
 /* ── FE-006: Billing History ─────────────────────────── */
 
 const ZERO_BILLING_HISTORY: MonthCost[] = [
-  { month: "Oct", cost: 0 }, { month: "Nov", cost: 0 },
-  { month: "Dec", cost: 0 }, { month: "Jan", cost: 0 },
-  { month: "Feb", cost: 0 }, { month: "Mar", cost: 0, projected: true },
+  { month: "Oct", cost: 0 },
+  { month: "Nov", cost: 0 },
+  { month: "Dec", cost: 0 },
+  { month: "Jan", cost: 0 },
+  { month: "Feb", cost: 0 },
+  { month: "Mar", cost: 0, projected: true },
 ];
 
 /**
@@ -318,7 +372,9 @@ export async function fetchBillingHistory(
   if (isDemoMode) return DEMO_BILLING_HISTORY;
   if (!isServerMode || !currentBilling) return ZERO_BILLING_HISTORY;
 
-  const totalCost = parseFloat(currentBilling.totalCost?.replace(/[^0-9.]/g, "") ?? "0");
+  const totalCost = parseFloat(
+    currentBilling.totalCost?.replace(/[^0-9.]/g, "") ?? "0"
+  );
   if (totalCost <= 0) return ZERO_BILLING_HISTORY;
 
   const now = new Date();
@@ -327,7 +383,7 @@ export async function fetchBillingHistory(
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthLabel = d.toLocaleString("en-US", { month: "short" });
     const isCurrentMonth = i === 0;
-    const variance = isCurrentMonth ? 0 : (Math.random() * 0.2 - 0.1);
+    const variance = isCurrentMonth ? 0 : Math.random() * 0.2 - 0.1;
     months.push({
       month: monthLabel,
       cost: parseFloat((totalCost * (1 + variance)).toFixed(2)),
