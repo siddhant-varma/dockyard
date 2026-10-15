@@ -253,7 +253,7 @@ async function ensureTags(socket) {
   let existingTags = [];
   try {
     const res = await emit(socket, "getTags", null);
-    existingTags = res || [];
+    existingTags = res?.tags || [];
     if (Array.isArray(existingTags)) {
       console.log(`  Found ${existingTags.length} existing tags`);
     }
@@ -376,15 +376,13 @@ async function createMonitors(socket, tagMap) {
         const tag = tagMap.get(tagSpec);
         if (tag) {
           const [, value] = tagSpec.includes(":") ? tagSpec.split(":") : [tagSpec, ""];
-          try {
-            await emit(socket, "addMonitorTag", {
-              tag_id: tag.id,
-              monitor_id: monitorId,
-              value: value || "",
-            });
-          } catch {
-            // Tags might fail silently, that's ok
-          }
+          // Kuma's addMonitorTag takes positional args (tagID, monitorID, value).
+          // The DockYard ingest webhook maps events to projects via the
+          // dockyard-project tag value, so a failure here must be visible.
+          const res = await new Promise((resolve) =>
+            socket.emit("addMonitorTag", tag.id, monitorId, value || "", resolve)
+          );
+          if (!res?.ok) console.log(`  ✗ Tag "${tagSpec}" on "${def.name}": ${res?.msg}`);
         }
       }
 
