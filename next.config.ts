@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
 
+  // Pino spawns transport workers (thread-stream) by file path; bundling them
+  // breaks the path, crashing dev with "Cannot find module .../lib/worker.js".
+  serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
+
   env: {
     NEXT_PUBLIC_AUTH_ENABLED: process.env.DOCKYARD_AUTH_ENABLED ?? "false",
     NEXT_PUBLIC_GITHUB_AUTH_ENABLED: process.env.AUTH_GITHUB_ID
