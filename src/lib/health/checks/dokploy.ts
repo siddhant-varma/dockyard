@@ -1,5 +1,5 @@
 /**
- * Dokploy deploy platform API check — fetches settings with real API key.
+ * Dokploy deploy platform API check — calls settings.health with the real API key.
  * @module health/checks/dokploy
  */
 
@@ -32,7 +32,7 @@ export async function checkDokploy(): Promise<DeepCheckResult> {
     // DOKPLOY_API_URL already ends with /api — don't double it
     const baseUrl = apiUrl.replace(/\/api\/?$/, "");
     const response = (await Promise.race([
-      fetch(`${baseUrl}/api/settings.getAll`, {
+      fetch(`${baseUrl}/api/settings.health`, {
         headers: {
           "x-api-key": apiKey,
           Accept: "application/json",
