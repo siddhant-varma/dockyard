@@ -22,6 +22,7 @@ const call = (path: string, method = "GET", cookie?: string) =>
 describe("middleware API auth gate", () => {
   it("rejects protected API routes without a session cookie", () => {
     expect(call("/api/settings").status).toBe(401);
+    expect(call("/api/sse").status).toBe(401);
     expect(call("/api/projects", "POST").status).toBe(401);
   });
 

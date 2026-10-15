@@ -31,13 +31,15 @@ const SERVER_MODE = process.env.DOCKYARD_MODE === "server";
 
 /** Paths that are accessible without authentication. */
 // /api/health covers /api/health/deep, which checks its own monitor token or session.
-// /api/ingest (webhook secrets) and /api/inngest (signing key) authenticate themselves.
+// /api/ingest (webhook secrets), /api/inngest (signing key) and /api/sse/broadcast
+// (SSE_BROADCAST_SECRET, called server-to-server) authenticate themselves.
 const PUBLIC_PATHS = [
   "/login",
   "/api/auth",
   "/api/health",
   "/api/ingest",
   "/api/inngest",
+  "/api/sse/broadcast",
 ];
 
 /** Subdomains that map to route groups. */
