@@ -177,7 +177,7 @@ npx tsc --noEmit                  # Type check
 # Testing
 npx vitest run                    # Run all unit + integration tests
 npx vitest run --reporter=verbose # Verbose test output
-npx playwright test               # Run E2E tests (requires DOCKYARD_DEMO=true)
+npx playwright test               # E2E: builds + serves prod in demo mode on :3001
 npx playwright test --ui          # Playwright interactive UI mode
 ```
 
@@ -187,7 +187,7 @@ npx playwright test --ui          # Playwright interactive UI mode
 - **TypeScript**: Strict mode, no `any` types, functional components only
 - **No production pollution**: No `console.log`, mock/sample/placeholder data
 - **Service layer**: Business logic in `lib/` services, NOT in API route handlers or React components
-- **API routes**: Thin handlers — validate input, call service, return response. Use `withAuth()` for static routes or `withAuthContext()` for dynamic routes with params (from `@/lib/auth/guards`). Only `/api/health` is intentionally public.
+- **API routes**: Thin handlers — validate input, call service, return response. Use `withAuth()` for static routes or `withAuthContext()` for dynamic routes with params (from `@/lib/auth/guards`). Intentionally public: `/api/health*`, `GET /api/projects` (portfolio); `/api/ingest*`, `/api/inngest`, `/api/sse/broadcast` authenticate themselves.
 - **Components**: Presentational. Data fetching via RSC or TanStack Query
 - **Error handling**: Proper HTTP status codes, structured error responses at API boundaries
 - **Secrets**: Never hardcoded. Always from environment variables. Encrypted at rest in `Config_Entry` table.
@@ -259,7 +259,7 @@ npx playwright test --ui          # Playwright interactive UI mode
 - `DOCKYARD_DEMO=true` is required for E2E tests — Playwright starts a dev server on port 3001 with demo mode enabled
 - Port 3001 is used by Playwright's dev server to avoid conflicts with the default port 3000 dev server
 - Pino logger must not be imported in client components — it's a Node.js-only dependency. Use `console` in client code if needed.
-- `DOCKYARD_AUTH_ENABLED=true` gates both API routes (via `withAuth()`) and pages (via middleware cookie check). Middleware checks for `authjs.session-token` or `__Secure-authjs.session-token` cookies — missing cookie redirects to `/login`. Unauthenticated `/api/*` calls get 401 JSON from middleware, except `/api/auth/*`, `/api/health*`, `/api/ingest*`, `/api/inngest` and `/api/sse/broadcast` (which authenticate themselves) and `GET /api/projects` (public portfolio). Pages are exempt only for `/login` and static assets. Credentials provider validates `DOCKYARD_ADMIN_USER` + `DOCKYARD_ADMIN_PASSWORD` env vars (no DB user needed). `NEXT_PUBLIC_AUTH_ENABLED` exposed to client via `next.config.ts` env mapping.
+- `DOCKYARD_AUTH_ENABLED=true` (production default) gates both API routes (via `withAuth()`) and pages (via middleware cookie check). Middleware checks for `authjs.session-token` or `__Secure-authjs.session-token` cookies — missing cookie redirects to `/login`. Unauthenticated `/api/*` calls get 401 JSON from middleware, except `/api/auth/*`, `/api/health*`, `/api/ingest*`, `/api/inngest` and `/api/sse/broadcast` (which authenticate themselves) and `GET /api/projects` (public portfolio). Pages are exempt only for `/login` and static assets. Credentials provider validates `DOCKYARD_ADMIN_USER` + `DOCKYARD_ADMIN_PASSWORD` env vars (no DB user needed). `NEXT_PUBLIC_AUTH_ENABLED` exposed to client via `next.config.ts` env mapping.
 - `GET /api/projects` uses raw `auth()` + `isAuthEnabled` check, NOT `withAuth()` wrapper — this is intentional so public portfolio mode works. When auth disabled, all projects visible. When auth enabled + no session, only `publicVisible=true` projects returned.
 - `POST /api/projects` uses `requireAuth()` directly (not `withAuth()` wrapper) — returns anonymous superadmin when auth disabled.
 - Dokploy env vars use `DOCKYARD_ADMIN_USER` / `DOCKYARD_ADMIN_PASSWORD` — NOT `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`. Mismatched names are silently ignored.
@@ -284,6 +284,16 @@ npx playwright test --ui          # Playwright interactive UI mode
 - HSTS and CSP headers are always sent (browsers ignore HSTS over plain HTTP, so localhost is fine). `script-src` has no `'unsafe-eval'` except when `NODE_ENV=development` (React Refresh needs it). CSP includes `worker-src 'self' blob:` for react-idle-timer's Web Worker.
 - Failed login attempts are logged via `logAudit()` with action `auth.login_failed`. Successful logins are logged via the Auth.js `signIn` event with action `auth.login_success`. Both are non-blocking (`.catch(() => {})`).
 - Kuma self-push is an Inngest cron function (`kuma-self-push`, every 2 min) that runs deep health checks and pushes aggregate status to Kuma's push monitor via `KUMA_PUSH_TOKEN`. Requires both `KUMA_URL` and `KUMA_PUSH_TOKEN` env vars — skips silently if either is missing.
+- **Production Inngest is self-hosted**: Dokploy compose `inngest` (image `inngest/inngest`, 256 MB limit) on `dokploy-network`; the app gets `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` and `INNGEST_BASE_URL=http://dockyard-inngest:8288`. Without `INNGEST_BASE_URL` the SDK targets Inngest Cloud and crons never run. After deploying a new app or Inngest version, re-register from inside the network: `PUT http://dockyard-app:3000/api/inngest`. A PUT to `127.0.0.1` registers an unreachable URL.
+- Kuma webhooks (`/api/ingest/kuma`) map events to projects via the monitor tag `dockyard-project=<project slug>`. Untagged monitors are logged as "no matching project found" and dropped.
+- Dokploy v0.30 removed `settings.getAll`; the Dokploy deep check uses `settings.health`, which still requires a valid API key.
+- Server components that call internal API routes must use `internalFetch()` in `src/lib/dashboard-data.ts`, which forwards cookies and skips the shared cache. A raw `fetch()` hits `withAuth()` without a session and gets 401.
+- E2E tests run against a production build (`next build && next start -p 3001`, see `playwright.config.ts`). `next dev` compiles routes on first hit and tab clicks raced hydration.
+- `pino`, `pino-pretty` and `thread-stream` must stay in `serverExternalPackages`; bundling them breaks the transport worker path.
+- Dependencies: `@base-ui/react` is pinned `~1.3.0` (1.4+ peers on `date-fns` 4, which conflicts with Tremor's `date-fns` 3) and `eslint-plugin-react-hooks` is pinned to `7.0.1` (7.1 adds new error rules). npm 10.9 crashes on this tree with `Cannot read properties of null (reading 'edgesOut')` when changing deps; use `npx npm@11 install`, after which `npm ci` (npm 10) works.
+- CI `npm audit`: runtime deps fail on high, all deps on critical. The dev-only braces/micromatch advisory (shadcn CLI, eslint plugin) has no fixed release.
+- The production host is a Docker Swarm (Dokploy). Never `systemctl restart docker` there: it leaves stale `vx-*` VXLAN links and breaks overlay networking and service VIPs (BUG-015). Stop docker and docker.socket, `ip link delete` each `vx-*`, then start. `dokploy-postgres` and `dokploy-redis` run with `--endpoint-mode dnsrr`.
+- Monitoring: every host pushes health to Kuma; scripts and the per-host `REQUIRED` container lists are in `docs/ops/monitoring/`. When adding a container to production, add it to `REQUIRED` in `/etc/kuma-push.env` on the host.
 - `scripts/kuma-provision.mjs` accepts `HEALTH_MONITOR_TOKEN` as env var or first CLI arg. All deep health monitor URLs use the `deepHealthUrl()` helper; the script adds an `Authorization: Bearer <TOKEN>` header to every deep health monitor. Without the token, monitors will get 401 when `DOCKYARD_AUTH_ENABLED=true`.
 
 ## Git Policy
