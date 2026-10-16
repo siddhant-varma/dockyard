@@ -11,9 +11,11 @@
  */
 
 import { io } from "socket.io-client";
+import { createHmac } from "node:crypto";
 
 const KUMA_URL = "https://kuma.dockyard.cc";
-// Credentials come from env, never from source: KUMA_USERNAME, KUMA_PASSWORD, KUMA_API_TOKEN.
+// Credentials come from env, never from source: KUMA_USERNAME, KUMA_PASSWORD, KUMA_API_TOKEN,
+// and KUMA_TOTP_SECRET (base32) when the Kuma account has 2FA enabled.
 const { KUMA_USERNAME: KUMA_USER, KUMA_PASSWORD: KUMA_PASS, KUMA_API_TOKEN } = process.env;
 if (!KUMA_USER || !KUMA_PASS || !KUMA_API_TOKEN) {
   console.error("Set KUMA_USERNAME, KUMA_PASSWORD and KUMA_API_TOKEN");
@@ -29,6 +31,20 @@ const DOCKYARD_URL = "https://dockyard.cc";
 const HEALTH_TOKEN = process.env.HEALTH_MONITOR_TOKEN || process.argv.find((a) => !a.startsWith("-") && a !== process.argv[0] && a !== process.argv[1]) || "";
 
 /** Build a deep health URL with optional check slug and token auth. */
+
+/** RFC 6238 TOTP code (SHA-1, 6 digits, 30 s) for a base32 secret; "" when no secret is set. */
+function totp(secret) {
+  if (!secret) return "";
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const bits = [...secret.replace(/=+$/, "").toUpperCase()].map((c) => alpha.indexOf(c).toString(2).padStart(5, "0")).join("");
+  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)));
+  const ctr = Buffer.alloc(8);
+  ctr.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
+  const h = createHmac("sha1", key).update(ctr).digest();
+  const o = h[19] & 15;
+  return String((h.readUInt32BE(o) & 0x7fffffff) % 1e6).padStart(6, "0");
+}
+
 function deepHealthUrl(checkSlug) {
   const params = new URLSearchParams();
   if (checkSlug) params.set("check", checkSlug);
@@ -213,7 +229,7 @@ function connect() {
   return new Promise((resolve, reject) => {
     const socket = io(KUMA_URL, { transports: ["websocket"] });
     socket.on("connect", () => {
-      socket.emit("login", { username: KUMA_USER, password: KUMA_PASS, token: "" }, (res) => {
+      socket.emit("login", { username: KUMA_USER, password: KUMA_PASS, token: totp(process.env.KUMA_TOTP_SECRET) }, (res) => {
         if (res.ok) {
           console.log("✓ Authenticated with Kuma");
           resolve(socket);
