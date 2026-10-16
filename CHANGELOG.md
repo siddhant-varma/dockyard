@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Production compose defaults `DOCKYARD_AUTH_ENABLED` to `true`; dev compose requires `POSTGRES_PASSWORD`.
+- Middleware returns 401 for unauthenticated `/api/*` calls (self-authenticating routes and `GET /api/projects` exempt).
+- `/api/health/deep` monitor token moved from `?token=` to `Authorization: Bearer` (constant-time compare); error responses no longer list check slugs.
+- CSP and HSTS are always sent; `unsafe-eval` only in development.
+- `robots.txt` disallows all crawlers.
+- Hardcoded Kuma credentials removed from `scripts/kuma-provision.mjs` and `CLAUDE.md` (rotated); gitleaks added to pre-commit and CI with custom Kuma-key and password rules.
+- Patched critical advisories in `next` and `next-auth`; CI audit fails on high runtime or any critical advisory.
+
+### Added
+
+- Optional GlitchTip/Sentry error tracking (`GLITCHTIP_DSN`, `src/instrumentation.ts`).
+- Middleware API-gate and dashboard cookie-forwarding tests; e2e suite green against a production build.
+
+### Fixed
+
+- Dokploy deep check calls `settings.health` (`settings.getAll` was removed in Dokploy v0.30).
+- `INNGEST_BASE_URL` is passed to the app so it registers with self-hosted Inngest; Inngest crons (e.g. Kuma self-push) run in production.
+- Home dashboard server fetches forward the session cookie, so status, billing, alerts and logs render when auth is on.
+- `kuma-provision.mjs` attaches `dockyard-project` tags correctly, so Kuma webhooks map to projects instead of being dropped.
+- `next dev` no longer crashes on pino transport workers (`serverExternalPackages`).
+- Docs submodule URL; `hotpatch.sh` reads the VPS host from `DOCKYARD_VPS_HOST`.
+
 ## [0.1.0] - 2026-03-19
 
 ### Added
