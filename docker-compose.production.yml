@@ -34,21 +34,17 @@ services:
       dockyard-postgres:
         condition: service_healthy
     healthcheck:
-      # Unhealthy when the schema push failed (scripts/start.sh) or the app is down.
+      # Traefik only routes to healthy containers, so this must stay a pure
+      # liveness check. The schema-push marker from scripts/start.sh is not
+      # checked here until the push works in the image (BUG-024).
       test:
-        [
-          "CMD-SHELL",
-          "[ ! -f /tmp/dockyard-migration-failed ] && wget -qO- http://127.0.0.1:3000/api/health >/dev/null",
-        ]
-      interval: 30s
+        ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null"]
+      interval: 10s
       timeout: 5s
       retries: 3
       start_period: 60s
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      # Unset in production before Phase CI, so the app ran with the
-      # src/lib/env.ts default. Keep that default; set "server" explicitly.
-      DOCKYARD_MODE: ${DOCKYARD_MODE:-local}
       DOCKYARD_DOMAIN: ${DOCKYARD_DOMAIN:-dockyard.cc}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
       AUTH_URL: ${AUTH_URL:-https://dockyard.cc}

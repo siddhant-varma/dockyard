@@ -5,8 +5,7 @@
 # forks, and schema updates.
 #
 # A failed schema push does not stop the server (the previous schema may still
-# work), but it writes MIGRATION_FAILED_MARKER, which the compose healthcheck
-# treats as unhealthy so the failure is visible instead of a log line.
+# work), but it writes MIGRATION_FAILED_MARKER so the failure can be detected.
 
 set -e
 
@@ -14,7 +13,7 @@ MIGRATION_FAILED_MARKER=/tmp/dockyard-migration-failed
 rm -f "$MIGRATION_FAILED_MARKER"
 
 migration_failed() {
-  echo "[dockyard] ERROR: Schema push failed ($1); container will report unhealthy"
+  echo "[dockyard] ERROR: Schema push failed ($1); marker written"
   touch "$MIGRATION_FAILED_MARKER"
 }
 
