@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Dev tooling: `npm audit` reports 0 high/critical (was 8 high from braces ≤3.0.3, no upstream fix). The shadcn CLI is no longer a devDependency (use `npx shadcn@4.21.5`; theme CSS vendored) and `@next/eslint-plugin-next` uses `tinyglobby` instead of `fast-glob` via `overrides` (BUG-007).
 - Production compose defaults `DOCKYARD_AUTH_ENABLED` to `true`; dev compose requires `POSTGRES_PASSWORD`.
 - Middleware returns 401 for unauthenticated `/api/*` calls (self-authenticating routes and `GET /api/projects` exempt).
 - `/api/health/deep` monitor token moved from `?token=` to `Authorization: Bearer` (constant-time compare); error responses no longer list check slugs.
