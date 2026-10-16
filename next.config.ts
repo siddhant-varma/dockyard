@@ -9,9 +9,12 @@ const nextConfig: NextConfig = {
 
   env: {
     NEXT_PUBLIC_AUTH_ENABLED: process.env.DOCKYARD_AUTH_ENABLED ?? "false",
-    NEXT_PUBLIC_GITHUB_AUTH_ENABLED: process.env.AUTH_GITHUB_ID
-      ? "true"
-      : "false",
+    // Image builds pass DOCKYARD_GITHUB_AUTH_ENABLED instead of the client ID.
+    NEXT_PUBLIC_GITHUB_AUTH_ENABLED:
+      process.env.AUTH_GITHUB_ID ||
+      process.env.DOCKYARD_GITHUB_AUTH_ENABLED === "true"
+        ? "true"
+        : "false",
     NEXT_PUBLIC_SESSION_IDLE_TIMEOUT:
       process.env.DOCKYARD_SESSION_IDLE_TIMEOUT ?? "1800",
   },

@@ -33,8 +33,22 @@ services:
     depends_on:
       dockyard-postgres:
         condition: service_healthy
+    healthcheck:
+      # Unhealthy when the schema push failed (scripts/start.sh) or the app is down.
+      test:
+        [
+          "CMD-SHELL",
+          "[ ! -f /tmp/dockyard-migration-failed ] && wget -qO- http://127.0.0.1:3000/api/health >/dev/null",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      # Unset in production before Phase CI, so the app ran with the
+      # src/lib/env.ts default. Keep that default; set "server" explicitly.
+      DOCKYARD_MODE: ${DOCKYARD_MODE:-local}
       DOCKYARD_DOMAIN: ${DOCKYARD_DOMAIN:-dockyard.cc}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
       AUTH_URL: ${AUTH_URL:-https://dockyard.cc}
