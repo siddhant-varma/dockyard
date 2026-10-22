@@ -1,0 +1,53 @@
+name: Rollback
+
+# Re-point :latest to an earlier main build, then redeploy.
+#
+# Roll FORWARD instead when a release in between changed src/db/schema.ts:
+# the container runs `drizzle-kit push --force` on start, so an older image
+# would push its older schema onto the database.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Full 40-char commit SHA of an earlier main build"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Validate input
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          if ! printf '%s' "$SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::sha must be a full 40-char lowercase commit SHA"; exit 1
+          fi
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Re-point :latest to the given sha
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          ref=ghcr.io/siddhant-varma/dockyard
+          # Fails before touching :latest if that sha was never pushed
+          docker buildx imagetools inspect "$ref:$SHA" > /dev/null
+          docker buildx imagetools create --tag "$ref:latest" "$ref:$SHA"
+          echo "dockyard:latest -> $SHA"
+
+  deploy:
+    needs: retag
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

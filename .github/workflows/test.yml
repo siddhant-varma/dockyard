@@ -90,6 +90,12 @@ jobs:
             ghcr.io/siddhant-varma/dockyard:latest
           cache-from: type=gha
 
+  # main only: Dokploy pulls the image just published (autoDeploy is off).
+  deploy:
+    needs: publish
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+
   unit-integration:
     runs-on: ubuntu-latest
     needs: static-analysis

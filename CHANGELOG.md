@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Production pulls the CI-built image from GHCR instead of building on the server. CI triggers the deploy after publishing, waits for it and health-checks it; a manual `Rollback` workflow re-points `:latest` to an earlier build.
+
 ### Fixed
 
 - Schema push on startup works in the production image (BUG-024): `drizzle-kit` now ships with its full dependency tree in `/app/migrate`. Before this it failed on every deploy (`Cannot find module 'esbuild'`). `schema.ts` now matches production: `audit_logs.actor_id` is nullable text (the credentials admin has a non-UUID ID), and the audit, MFA and revoked-session indexes are declared so the push keeps them.
