@@ -18,9 +18,10 @@ services:
       - dockyard
 
   dockyard-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Built by GitHub Actions on every merge to main (never on this host).
+    # TAG pins a specific commit; rollback re-points :latest instead (rollback.yml).
+    image: ghcr.io/siddhant-varma/dockyard:${TAG:-latest}
+    pull_policy: always
     container_name: dockyard-app
     restart: unless-stopped
     deploy:
