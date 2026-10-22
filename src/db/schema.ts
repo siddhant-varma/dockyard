@@ -197,20 +197,27 @@ export const verificationTokens = pgTable(
  * MFA credentials for FIDO2 (passkeys/security keys) and TOTP authenticator apps.
  * Credential data is encrypted at rest using AES-256-GCM.
  */
-export const mfaCredentials = pgTable("mfa_credentials", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  /** Text (not UUID FK) — credentials-admin has a synthetic non-UUID ID. */
-  userId: text("user_id").notNull(),
-  type: mfaTypeEnum("type").notNull(),
-  /** Encrypted JSON blob: FIDO2 stores credentialID + publicKey + counter; TOTP stores secret. */
-  credentialData: text("credential_data").notNull(),
-  /** User-provided friendly name (e.g., "YubiKey 5C", "Google Authenticator"). */
-  name: text("name").notNull(),
-  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const mfaCredentials = pgTable(
+  "mfa_credentials",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** Text (not UUID FK) — credentials-admin has a synthetic non-UUID ID. */
+    userId: text("user_id").notNull(),
+    type: mfaTypeEnum("type").notNull(),
+    /** Encrypted JSON blob: FIDO2 stores credentialID + publicKey + counter; TOTP stores secret. */
+    credentialData: text("credential_data").notNull(),
+    /** User-provided friendly name (e.g., "YubiKey 5C", "Google Authenticator"). */
+    name: text("name").notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_mfa_credentials_user_id").on(table.userId),
+    index("idx_mfa_credentials_user_type").on(table.userId, table.type),
+  ]
+);
 
 /**
  * Revoked sessions for server-side session invalidation.
@@ -234,7 +241,10 @@ export const revokedSessions = pgTable(
       .notNull(),
     reason: text("reason").notNull(),
   },
-  (table) => [index("idx_revoked_sessions_user").on(table.userId)]
+  (table) => [
+    index("idx_revoked_sessions_user_id").on(table.userId),
+    index("idx_revoked_sessions_revoked_at").on(table.revokedAt),
+  ]
 );
 
 export const projects = pgTable("projects", {
@@ -585,19 +595,28 @@ export const configAuditLog = pgTable("config_audit_log", {
  * Records actor, action, target, and before/after diff.
  * NEVER update or delete rows from this table.
  */
-export const auditLogs = pgTable("audit_logs", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  actorId: uuid("actor_id").references(() => users.id),
-  actorIp: text("actor_ip"),
-  actorUserAgent: text("actor_user_agent"),
-  action: text("action").notNull(),
-  targetType: text("target_type").notNull(),
-  targetId: text("target_id"),
-  diff: jsonb("diff"),
-  timestamp: timestamp("timestamp", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** Text (not UUID FK), like mfa_credentials.user_id: credentials-admin has a synthetic non-UUID ID. */
+    actorId: text("actor_id"),
+    actorIp: text("actor_ip"),
+    actorUserAgent: text("actor_user_agent"),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id"),
+    diff: jsonb("diff"),
+    timestamp: timestamp("timestamp", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_audit_logs_action").on(table.action),
+    index("idx_audit_logs_actor_id").on(table.actorId),
+    index("idx_audit_logs_timestamp").on(table.timestamp),
+  ]
+);
 
 /**
  * Config templates for environment profiles (dev/staging/prod).

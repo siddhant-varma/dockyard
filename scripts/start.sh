@@ -19,13 +19,10 @@ migration_failed() {
 
 echo "[dockyard] Pushing database schema..."
 
-# Try multiple paths: npx (if in PATH), direct bin, node direct
-if command -v drizzle-kit >/dev/null 2>&1; then
-  drizzle-kit push --force 2>&1 || migration_failed "drizzle-kit in PATH"
-elif [ -f ./node_modules/.bin/drizzle-kit ]; then
-  ./node_modules/.bin/drizzle-kit push --force 2>&1 || migration_failed ".bin"
-elif [ -d ./node_modules/drizzle-kit ]; then
-  node ./node_modules/drizzle-kit/bin.cjs push --force 2>&1 || migration_failed "node direct"
+# /app/migrate holds drizzle-kit with its full dependency tree (see Dockerfile).
+if [ -f ./migrate/node_modules/drizzle-kit/bin.cjs ]; then
+  (cd ./migrate && node ./node_modules/drizzle-kit/bin.cjs push --force 2>&1) \
+    || migration_failed "drizzle-kit push"
 else
   migration_failed "drizzle-kit not found"
 fi

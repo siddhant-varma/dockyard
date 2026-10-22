@@ -40,6 +40,16 @@ RUN [ -n "$NEXT_PUBLIC_KUMA_URL" ] || unset NEXT_PUBLIC_KUMA_URL; \
     [ -n "$NEXT_PUBLIC_SITE_URL" ] || unset NEXT_PUBLIC_SITE_URL; \
     npm run build
 
+# ── Stage 2b: schema-push tooling (versions from the lock file) ──
+FROM node:22-alpine AS migrator
+WORKDIR /migrate
+COPY package-lock.json /tmp/
+RUN v() { node -p "require('/tmp/package-lock.json').packages['node_modules/$1'].version"; } && \
+    npm init -y >/dev/null && \
+    npm install --ignore-scripts --no-audit --no-fund \
+      "drizzle-kit@$(v drizzle-kit)" "drizzle-orm@$(v drizzle-orm)" "postgres@$(v postgres)" && \
+    npm cache clean --force
+
 # ── Stage 3: Production image ─────────────────────────────────
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -55,13 +65,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Drizzle schema push: copy config, schema, drizzle-kit + .bin symlink
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
-COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts ./src/db/schema.ts
-COPY --from=builder --chown=nextjs:nodejs /app/src/db/connection.ts ./src/db/connection.ts
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/drizzle-kit ./node_modules/.bin/drizzle-kit
+# Drizzle schema push runs from /app/migrate, which has drizzle-kit with its
+# full dependency tree (esbuild etc.); copying single packages left it broken (BUG-024).
+COPY --from=migrator --chown=nextjs:nodejs /migrate ./migrate
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./migrate/
+COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts ./migrate/src/db/schema.ts
 
 # Startup script
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh
