@@ -47,6 +47,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       DOCKYARD_DOMAIN: ${DOCKYARD_DOMAIN:-dockyard.cc}
+      # server = Dokploy/GitHub discovery and MFA enforcement (CI-003)
+      DOCKYARD_MODE: ${DOCKYARD_MODE:-server}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
       AUTH_URL: ${AUTH_URL:-https://dockyard.cc}
       AUTH_GITHUB_ID: ${AUTH_GITHUB_ID}
