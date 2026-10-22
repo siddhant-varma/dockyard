@@ -9,6 +9,7 @@
  * @module health/checks/schema
  */
 
+import { existsSync } from "node:fs";
 import { db } from "@/db/connection";
 import { sql } from "drizzle-orm";
 import {
@@ -57,9 +58,24 @@ export const EXPECTED_TABLES = [
   "mfa_credentials",
 ] as const;
 
+/** Written by scripts/start.sh when `drizzle-kit push` fails at startup. */
+const MIGRATION_FAILED_MARKER = "/tmp/dockyard-migration-failed";
+
 /** Check that all expected tables exist in the database. */
 export async function checkSchema(): Promise<DeepCheckResult> {
   const start = performance.now();
+  // Reported here, not in the container healthcheck: Traefik drops unhealthy
+  // containers, so a failed push would become an outage (BUG-024).
+  if (existsSync(MIGRATION_FAILED_MARKER)) {
+    return {
+      slug: "schema",
+      name: "DB Schema",
+      status: "error",
+      critical: true,
+      latencyMs: elapsed(start),
+      error: "Schema push failed at startup (see container logs)",
+    };
+  }
   try {
     const result = await Promise.race([
       (async () => {
