@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Production runs in `server` mode (Dokploy/GitHub discovery, MFA enforcement when enabled), and the production image bakes auth and GitHub login on: the idle-timeout warning, sign-out and GitHub login button now show. Dockerfile defaults stay off for self-hosters.
 - Production pulls the CI-built image from GHCR instead of building on the server. CI triggers the deploy after publishing, waits for it and health-checks it; a manual `Rollback` workflow re-points `:latest` to an earlier build.
 
 ### Fixed

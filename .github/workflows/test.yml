@@ -54,6 +54,11 @@ jobs:
           context: .
           platforms: linux/amd64
           load: true
+          # Production build flags (Dockerfile defaults stay off for self-hosters).
+          # Keep identical in `image` and `publish` so the cache is shared.
+          build-args: |
+            DOCKYARD_AUTH_ENABLED=true
+            DOCKYARD_GITHUB_AUTH_ENABLED=true
           tags: dockyard:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -85,6 +90,11 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          # Production build flags (Dockerfile defaults stay off for self-hosters).
+          # Keep identical in `image` and `publish` so the cache is shared.
+          build-args: |
+            DOCKYARD_AUTH_ENABLED=true
+            DOCKYARD_GITHUB_AUTH_ENABLED=true
           tags: |
             ghcr.io/siddhant-varma/dockyard:${{ github.sha }}
             ghcr.io/siddhant-varma/dockyard:latest

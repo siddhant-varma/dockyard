@@ -20,6 +20,7 @@ Entry point for any coding agent. `CLAUDE.md` is the full reference; read it bef
 
 ## Actions log
 Newest first. Add one line per change that matters to the next agent.
+- 2026-10-22: Production `DOCKYARD_MODE=server` (compose pass-through) and auth/GitHub-login flags baked on via CI build-args; `scripts/bundle-flags.baseline` updated (CI-003 closed).
 - 2026-10-22: Phase CI cutover: production pulls `ghcr.io/siddhant-varma/dockyard`, CI deploys after publish (`deploy.yml`), `rollback.yml` added, Dokploy autoDeploy off.
 - 2026-10-22: Startup schema push fixed (BUG-024): drizzle-kit has its full dependency tree in `/app/migrate`, `schema.ts` matches production, and a failed push is reported by the deep health `schema` check.
 - 2026-10-16: Phase CI part 1: images built in GitHub Actions and pushed to GHCR. The healthcheck is liveness only. Kuma provisioning supports TOTP.
