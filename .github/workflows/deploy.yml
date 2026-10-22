@@ -1,0 +1,57 @@
+name: Deploy
+
+# Reusable: called by test.yml after `publish` on main, and by rollback.yml.
+# Triggers the Dokploy compose deploy (which pulls :latest), waits for the
+# deployment to finish, then checks public health. Secrets come from the
+# `production` environment, which only the main branch can use.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    steps:
+      # Dokploy's queue can stall, so clear it, deploy, then wait for the new
+      # deployment to reach "done". "error" or a 10-min timeout fails the job.
+      - name: Trigger Dokploy deploy and wait
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+          COMPOSE_ID: LV1YP5-LpKnnscLfsqEu9
+        run: |
+          api() { curl --fail-with-body --silent --show-error -H "x-api-key: $DOKPLOY_TOKEN" -H "Content-Type: application/json" "$@"; }
+          # Prints "<id> <status>" for each deployment of the compose
+          list() { api "$DOKPLOY_URL/api/deployment.allByCompose?composeId=$COMPOSE_ID" | python3 -c 'import json,sys; d=json.load(sys.stdin); d=d.get("json", d) if isinstance(d, dict) else d; [print(x["deploymentId"], x["status"]) for x in d]'; }
+          BEFORE=$(list | cut -d' ' -f1)
+          api -X POST -d "{\"composeId\":\"$COMPOSE_ID\"}" "$DOKPLOY_URL/api/compose.cleanQueues" > /dev/null
+          api -X POST -d "{\"composeId\":\"$COMPOSE_ID\"}" "$DOKPLOY_URL/api/compose.deploy" > /dev/null
+          for i in $(seq 1 40); do
+            sleep 15
+            NEW=$(list | grep -vwF -e "${BEFORE:-__none__}" | head -n1 || true)
+            echo "[$((i * 15))s] ${NEW:-no new deployment yet}"
+            case "$NEW" in
+              *" done") exit 0 ;;
+              *" error") echo "::error::Dokploy deployment failed: $NEW"; exit 1 ;;
+            esac
+          done
+          echo "::error::No finished Dokploy deployment after 10 minutes"; exit 1
+
+      # The container needs a few seconds to pass its healthcheck before
+      # Traefik routes to it.
+      - name: Public health check
+        run: |
+          for i in $(seq 1 24); do
+            if curl --fail --silent --max-time 10 https://dockyard.cc/api/health > /dev/null; then
+              echo "healthy after $((i * 5))s"; exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::https://dockyard.cc/api/health not healthy 2 minutes after deploy"; exit 1
